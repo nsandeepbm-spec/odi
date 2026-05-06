@@ -160,11 +160,11 @@ export function WIPPage() {
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.5 }}
-        onClick={() => navigate('/odi-kids')}
+        onClick={() => navigate('/')}
         className="fixed top-6 left-6 z-50 flex items-center gap-2 px-4 py-2 bg-white backdrop-blur-sm rounded-full border-2 border-[#FF6B9D]/20 hover:border-[#FF6B9D]/40 transition-all shadow-lg hover:shadow-xl group"
       >
         <ArrowLeft className="w-4 h-4 text-[#FF6B9D] group-hover:-translate-x-1 transition-transform" />
-        <span className="text-sm font-semibold text-gray-700">Back to ODI Kids</span>
+        <span className="text-sm font-semibold text-gray-700">Back to ODI</span>
       </motion.button>
 
       {/* Hero Section */}
@@ -454,10 +454,10 @@ export function WIPPage() {
             This vision is just the beginning. Stay tuned for updates as we bring this experience to life.
           </p>
           <button
-            onClick={() => navigate('/odi-kids')}
+            onClick={() => navigate('/')}
             className="px-8 py-4 bg-white text-[#7C3AED] rounded-2xl font-black text-lg shadow-2xl hover:scale-105 transition-transform"
           >
-            Back to Brand Guidelines
+            Back to ODI
           </button>
         </motion.div>
       </section>
