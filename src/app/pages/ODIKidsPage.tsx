@@ -60,17 +60,7 @@ export function ODIKidsPage() {
           transition={{ duration: 0.8, ease: "easeOut" }}
           className="relative z-10 flex flex-col items-center max-w-4xl"
         >
-          {/* Badge */}
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="inline-flex items-center gap-2 px-5 py-2 bg-white/80 backdrop-blur-md rounded-full border-2 border-[#FFB800]/30 mb-8 shadow-lg"
-          >
-            <div className="w-2 h-2 bg-gradient-to-r from-[#FF6B9D] to-[#FFB800] rounded-full animate-pulse" />
-            <span className="text-sm font-bold text-gray-700">Brand Guidelines 2026</span>
-          </motion.div>
-
+         
           {/* Logo */}
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
@@ -488,7 +478,7 @@ export function ODIKidsPage() {
                         {/* App Content */}
                         <div className="p-6">
                           <div className="w-16 mb-6">
-                            <ODIKidsLogoFull color="#7C3AED" />
+                            <ODIKidsLogoFull logoColor="#7C3AED" />
                           </div>
                           
                           <h5 className="text-2xl font-black bg-gradient-to-r from-[#FF6B9D] to-[#FFB800] bg-clip-text text-transparent mb-3">

@@ -7,8 +7,8 @@ import { useNavigate, useLocation } from 'react-router';
 const navLinks = [
   { name: 'Home', path: '/' },
   { name: 'About', path: '/about' },
-  { 
-    name: 'Services', 
+  {
+    name: 'Services',
     path: '/services',
     dropdown: [
       { name: '3D Movie Conversion', path: '/services/3d-movie-conversion' },
@@ -22,7 +22,7 @@ const navLinks = [
   { name: 'Products', path: '/wip' },
   { name: 'Work', path: '/work' },
   { name: 'Careers', path: '/careers' },
-  { name: 'Contact', path: '/contact' },
+
 ];
 
 export function Navbar() {
@@ -45,16 +45,15 @@ export function Navbar() {
       initial={{ y: -100 }}
       animate={{ y: 0 }}
       transition={{ duration: 0.8, ease: [0.25, 0.1, 0.25, 1] }}
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isScrolled 
-          ? 'bg-[#0D1B2A]/80 backdrop-blur-lg border-b border-white/10 py-3 shadow-lg' 
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled
+          ? 'bg-[#0D1B2A]/80 backdrop-blur-lg border-b border-white/10 py-3 shadow-lg'
           : 'bg-transparent py-5 md:py-6'
-      }`}
+        }`}
     >
       <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
         <div className="flex items-center justify-between">
           {/* Logo */}
-          <div 
+          <div
             className="flex-shrink-0 cursor-pointer w-[100px] md:w-[130px] relative z-50 transition-transform hover:scale-105"
             onClick={() => navigate('/')}
           >
@@ -69,18 +68,16 @@ export function Navbar() {
                 <div key={link.name} className="relative group">
                   <button
                     onClick={() => navigate(link.path)}
-                    className={`flex items-center gap-1 px-4 py-2 text-sm font-medium transition-colors duration-300 rounded-md ${
-                      isActive ? 'text-white' : 'text-white/70 hover:text-white'
-                    }`}
+                    className={`flex items-center gap-1 px-4 py-2 text-sm font-medium transition-colors duration-300 rounded-md ${isActive ? 'text-white' : 'text-white/70 hover:text-white'
+                      }`}
                   >
                     {link.name}
                     {link.dropdown && <ChevronDown className="w-4 h-4 transition-transform duration-300 group-hover:rotate-180" />}
-                    
+
                     {/* Hover Line */}
-                    <span 
-                      className={`absolute bottom-0 left-4 right-4 h-[2px] bg-gradient-to-r from-[#06B6D4] to-[#7C3AED] origin-left transition-transform duration-300 rounded-full ${
-                        isActive ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'
-                      }`} 
+                    <span
+                      className={`absolute bottom-0 left-4 right-4 h-[2px] bg-gradient-to-r from-[#06B6D4] to-[#7C3AED] origin-left transition-transform duration-300 rounded-full ${isActive ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'
+                        }`}
                     />
                   </button>
 
@@ -103,7 +100,7 @@ export function Navbar() {
                 </div>
               );
             })}
-            
+
             {/* Call to action button */}
             <button
               onClick={() => navigate('/contact')}
@@ -150,21 +147,20 @@ export function Navbar() {
                         setMobileMenuOpen(false);
                       }
                     }}
-                    className={`w-full flex items-center justify-between text-left px-4 py-3 text-xl font-medium rounded-lg transition-colors ${
-                      location.pathname === link.path && !link.dropdown
-                        ? 'text-white bg-white/10 border border-white/5' 
+                    className={`w-full flex items-center justify-between text-left px-4 py-3 text-xl font-medium rounded-lg transition-colors ${location.pathname === link.path && !link.dropdown
+                        ? 'text-white bg-white/10 border border-white/5'
                         : 'text-white/70 hover:text-white hover:bg-white/5'
-                    }`}
+                      }`}
                   >
                     {link.name}
                     {link.dropdown && (
                       <ChevronDown className={`w-5 h-5 transition-transform ${mobileDropdownOpen === link.name ? 'rotate-180' : ''}`} />
                     )}
                   </motion.button>
-                  
+
                   <AnimatePresence>
                     {link.dropdown && mobileDropdownOpen === link.name && (
-                      <motion.div 
+                      <motion.div
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: 'auto' }}
                         exit={{ opacity: 0, height: 0 }}
