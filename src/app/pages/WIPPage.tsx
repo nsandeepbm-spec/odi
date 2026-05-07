@@ -7,10 +7,31 @@ import bookSpine from 'figma:asset/c6e88e108f40b435afb24f04fb1dc157c95c5086.png'
 import packagingBox from 'figma:asset/df6a076901e67404246994e517080c6335ebeaee.png';
 import { ImageWithFallback } from '../components/figma/ImageWithFallback';
 
+interface Slide {
+  id: number;
+  icon: any;
+  category: string;
+  title: string;
+  gradient: string;
+  content?: string[];
+  highlight?: boolean;
+  image?: string;
+  subtitle?: string;
+  features?: string[];
+  showBookSpine?: boolean;
+  subtext?: string;
+  showPackaging?: boolean;
+  quote?: string;
+  steps?: string[];
+  problems?: string[];
+  solution?: string;
+  series?: string[];
+}
+
 export function WIPPage() {
   const navigate = useNavigate();
 
-  const slides = [
+  const slides: Slide[] = [
     {
       id: 1,
       icon: Sparkles,
@@ -46,7 +67,6 @@ export function WIPPage() {
       title: "Premium Explorer Kit Packaging",
       gradient: "from-[#06B6D4] to-[#7C3AED]",
       subtitle: "Designed like a premium product, not a normal book",
-      subtext: "Inspired by Apple-style unboxing experience",
       features: [
         "Magnetic box",
         "Organized compartments",
@@ -154,14 +174,14 @@ export function WIPPage() {
   ];
 
   return (
-    <div className="w-full min-h-screen bg-gradient-to-br from-gray-50 to-white odi-kids-font">
+    <div className="w-full min-h-screen bg-gradient-to-br from-gray-50 to-white odi-kids-font pt-20">
       {/* Back Button */}
       <motion.button
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.5 }}
         onClick={() => navigate('/')}
-        className="fixed top-6 left-6 z-50 flex items-center gap-2 px-4 py-2 bg-white backdrop-blur-sm rounded-full border-2 border-[#FF6B9D]/20 hover:border-[#FF6B9D]/40 transition-all shadow-lg hover:shadow-xl group"
+        className="fixed top-24 left-6 z-50 flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm rounded-full border-2 border-[#FF6B9D]/20 hover:border-[#FF6B9D]/40 transition-all shadow-lg hover:shadow-xl group"
       >
         <ArrowLeft className="w-4 h-4 text-[#FF6B9D] group-hover:-translate-x-1 transition-transform" />
         <span className="text-sm font-semibold text-gray-700">Back to ODI</span>

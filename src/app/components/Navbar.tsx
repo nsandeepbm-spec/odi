@@ -1,22 +1,43 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Menu, X, ChevronDown } from 'lucide-react';
-import { ODILogo } from './ODILogo';
+import { 
+  Menu, X, ChevronDown, ArrowRight, Sparkles, 
+  MonitorPlay, Layers, Smartphone, Box, Film,
+  type LucideIcon 
+} from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router';
+import { ODILogo } from './ODILogo';
 
-const navLinks = [
+// --- Interfaces for Type Safety ---
+interface DropdownItem {
+  name: string;
+  path: string;
+  icon?: LucideIcon; // Optional icon
+  desc?: string;     // Optional description
+}
+
+interface NavLink {
+  name: string;
+  path: string;
+  isMega?: boolean;
+  dropdown?: DropdownItem[];
+}
+
+// --- Navigation Data ---
+const navLinks: NavLink[] = [
   { name: 'Home', path: '/' },
   { name: 'About', path: '/about' },
   {
     name: 'Services',
     path: '/services',
+    isMega: true,
     dropdown: [
-      { name: '3D Movie Conversion', path: '/services/3d-movie-conversion' },
-      { name: '3D Short Films', path: '/services/3d-short-films' },
-      { name: '3D Reels & Vertical Content', path: '/services/3d-reels-vertical' },
-      { name: 'Immersive Advertising', path: '/services/immersive-advertising' },
-      { name: 'Depth Compositing & Cleanup', path: '/services/depth-compositing' },
-      { name: 'VR / Vision Pro Content Prep', path: '/services/vr-vision-pro' },
+      { name: '3D Movie Conversion', path: '/services/3d-movie-conversion', icon: Film, desc: 'Cinematic depth for feature films.' },
+      { name: '3D Short Films', path: '/services/3d-short-films', icon: MonitorPlay, desc: 'Immersive storytelling in small formats.' },
+      { name: '3D Reels & Vertical', path: '/services/3d-reels-vertical', icon: Smartphone, desc: 'Optimized for social and mobile.' },
+      { name: 'Immersive Advertising', path: '/services/immersive-advertising', icon: Sparkles, desc: 'Engaging brand spatial experiences.' },
+      { name: 'Depth Compositing', path: '/services/depth-compositing', icon: Layers, desc: 'Technical cleanup and refinement.' },
+      { name: 'Spatial Optimization', path: '/services/vr-vision-pro', icon: Box, desc: 'Apple Vision Pro & VR ready.' },
     ]
   },
   {
@@ -25,196 +46,207 @@ const navLinks = [
     dropdown: [
       { name: 'Film Studios', path: '/industries/film-studios' },
       { name: 'OTT Platforms', path: '/industries/ott-platforms' },
-      { name: 'Creators & Influencers', path: '/industries/creators-influencers' },
+      { name: 'Creators', path: '/industries/creators-influencers' },
       { name: 'Advertising Agencies', path: '/industries/advertising-agencies' },
       { name: 'Music Labels', path: '/industries/music-labels' },
-      { name: 'Documentary Teams', path: '/industries/documentary-teams' },
+      { name: 'Documentaries', path: '/industries/documentary-teams' },
     ]
   },
-  { name: 'Products', path: '/wip' },
   { name: 'Work', path: '/work' },
+  { name: 'Products', path: '/wip' },
   { name: 'Careers', path: '/careers' },
-
 ];
 
 export function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [mobileDropdownOpen, setMobileDropdownOpen] = useState<string | null>(null);
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  
   const navigate = useNavigate();
   const location = useLocation();
 
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20);
-    };
+    const handleScroll = () => setIsScrolled(window.scrollY > 20);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  useEffect(() => setMobileMenuOpen(false), [location]);
+
+  const isWIP = location.pathname === '/wip';
+
   return (
-    <motion.nav
-      initial={{ y: -100 }}
-      animate={{ y: 0 }}
-      transition={{ duration: 0.8, ease: [0.25, 0.1, 0.25, 1] }}
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled
-        ? 'bg-[#0D1B2A]/80 backdrop-blur-lg border-b border-white/10 py-3 shadow-lg'
-        : 'bg-transparent py-5 md:py-6'
-        }`}
-    >
-      <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
-        <div className="flex items-center justify-between">
-          {/* Logo */}
-          <div
-            className="flex-shrink-0 cursor-pointer w-[100px] md:w-[130px] relative z-50 transition-transform hover:scale-105"
-            onClick={() => navigate('/')}
-          >
-            <ODILogo color="white" />
-          </div>
+    <nav className="fixed top-0 left-0 right-0 z-[100] pointer-events-none transition-all duration-500">
+      <div className="max-w-7xl mx-auto px-4 md:px-8 py-4 md:py-6">
+        <div 
+          className={`pointer-events-auto flex items-center justify-between px-6 py-3 rounded-full transition-all duration-500 border ${
+            isScrolled 
+              ? (isWIP 
+                  ? 'bg-white/90 backdrop-blur-xl border-black/10 shadow-xl' 
+                  : 'bg-[#020617]/80 backdrop-blur-xl border-white/10 shadow-2xl')
+              : (isWIP
+                  ? 'bg-white/50 backdrop-blur-md border-black/5'
+                  : 'bg-white/5 backdrop-blur-md border-white/5')
+          }`}
+        >
+          {/* LOGO */}
+        <div 
+          className="relative z-[110] cursor-pointer w-24 md:w-28 hover:scale-105 transition-transform"
+          onClick={() => navigate('/')}
+        >
+          <ODILogo color={isWIP && !isScrolled ? "black" : (isWIP && isScrolled ? "black" : "white")} />
+        </div>
 
-          {/* Desktop Nav */}
-          <div className="hidden lg:flex items-center space-x-1 lg:space-x-4">
-            {navLinks.map((link) => {
-              const isActive = location.pathname === link.path;
-              return (
-                <div key={link.name} className="relative group">
-                  <button
-                    onClick={() => navigate(link.path)}
-                    className={`flex items-center gap-1 px-4 py-2 text-sm font-medium transition-colors duration-300 rounded-md ${isActive ? 'text-white' : 'text-white/70 hover:text-white'
-                      }`}
+        {/* DESKTOP LINKS */}
+        <div className="hidden lg:flex items-center gap-2">
+          {navLinks.map((link) => (
+            <div 
+              key={link.name}
+              className="relative"
+              onMouseEnter={() => setActiveDropdown(link.name)}
+              onMouseLeave={() => setActiveDropdown(null)}
+            >
+              <button
+                onClick={() => !link.dropdown && navigate(link.path)}
+                className={`px-4 py-2 text-[11px] font-black tracking-[0.2em] uppercase transition-all flex items-center gap-1.5 ${
+                  location.pathname === link.path 
+                    ? 'text-cyan-400' 
+                    : (isWIP ? 'text-black/70 hover:text-black' : 'text-white/70 hover:text-white')
+                }`}
+              >
+                {link.name}
+                {link.dropdown && (
+                  <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-300 ${activeDropdown === link.name ? 'rotate-180 text-cyan-400' : ''}`} />
+                )}
+              </button>
+
+              {/* DROPDOWN MENU */}
+              <AnimatePresence>
+                {link.dropdown && activeDropdown === link.name && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.98 }}
+                    className={`absolute top-full left-0 pt-4 ${link.isMega ? '-left-48 w-[600px]' : 'w-64'}`}
                   >
-                    {link.name}
-                    {link.dropdown && <ChevronDown className="w-4 h-4 transition-transform duration-300 group-hover:rotate-180" />}
-
-                    {/* Hover Line */}
-                    <span
-                      className={`absolute bottom-0 left-4 right-4 h-[2px] bg-gradient-to-r from-[#06B6D4] to-[#7C3AED] origin-left transition-transform duration-300 rounded-full ${isActive ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'
-                        }`}
-                    />
-                  </button>
-
-                  {/* Desktop Dropdown */}
-                  {link.dropdown && (
-                    <div className="absolute top-full left-0 pt-2 opacity-0 translate-y-2 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto transition-all duration-300">
-                      <div className="w-64 py-2 rounded-xl bg-[#0D1B2A]/95 backdrop-blur-xl border border-white/10 shadow-xl flex flex-col">
-                        {link.dropdown.map((subItem) => (
+                    <div className="bg-[#0D121F] border border-white/10 rounded-[2rem] p-6 shadow-2xl backdrop-blur-2xl">
+                      <div className={link.isMega ? "grid grid-cols-2 gap-4" : "flex flex-col gap-1"}>
+                        {link.dropdown.map((sub) => (
                           <button
-                            key={subItem.name}
-                            onClick={() => navigate(subItem.path)}
-                            className="text-left px-5 py-2.5 text-sm text-white/70 hover:text-white hover:bg-white/5 transition-colors"
+                            key={sub.name}
+                            onClick={() => navigate(sub.path)}
+                            className="group flex items-start gap-4 p-3 rounded-xl hover:bg-white/5 transition-all text-left"
                           >
-                            {subItem.name}
+                            {/* Logic to only show icon if it exists */}
+                            {sub.icon && (
+                              <div className="mt-1 w-8 h-8 rounded-lg bg-cyan-500/10 flex items-center justify-center group-hover:bg-cyan-500/20 transition-colors">
+                                <sub.icon className="w-4 h-4 text-cyan-400" />
+                              </div>
+                            )}
+                            <div>
+                              <div className="text-sm font-bold text-white group-hover:text-cyan-400 transition-colors uppercase tracking-tight">
+                                {sub.name}
+                              </div>
+                              {/* Logic to only show description if it exists */}
+                              {sub.desc && (
+                                <div className="text-[11px] text-white/40 mt-0.5 leading-tight">
+                                  {sub.desc}
+                                </div>
+                              )}
+                            </div>
                           </button>
                         ))}
                       </div>
                     </div>
-                  )}
-                </div>
-              );
-            })}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          ))}
 
-            {/* Call to action button */}
-            <button
-              onClick={() => navigate('/contact')}
-              className="ml-4 px-6 py-2.5 rounded-full text-sm font-semibold text-white bg-white/10 hover:bg-white/20 border border-white/10 hover:border-white/30 backdrop-blur-sm transition-all duration-300 shadow-[0_0_15px_rgba(6,182,212,0.15)] hover:shadow-[0_0_25px_rgba(124,58,237,0.3)]"
-            >
-              Get in Touch
-            </button>
-          </div>
+          {/* CTA */}
+          <button
+            onClick={() => navigate('/contact')}
+            className={`ml-6 px-6 py-3 rounded-full text-[11px] font-black tracking-[0.2em] uppercase transition-all shadow-xl ${
+              isWIP
+                ? 'bg-black text-white hover:bg-[#06B6D4]' 
+                : 'bg-white text-black hover:bg-cyan-400'
+            }`}
+          >
+            Get in Touch
+          </button>
+        </div>
 
-          {/* Mobile Menu Button */}
-          <div className="lg:hidden relative z-50">
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 text-white/80 hover:text-white transition-colors bg-white/5 rounded-md border border-white/10"
-            >
-              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-            </button>
-          </div>
+        {/* MOBILE TRIGGER */}
+        <button
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          className={`lg:hidden relative z-[110] p-3 rounded-xl border transition-all ${
+            isWIP
+              ? 'bg-black/5 border-black/10 text-black' 
+              : 'bg-white/5 border-white/10 text-white'
+          }`}
+        >
+          {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+        </button>
         </div>
       </div>
 
-      {/* Mobile Menu Dropdown */}
+      {/* MOBILE OVERLAY */}
       <AnimatePresence>
         {mobileMenuOpen && (
           <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: '100vh' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3 }}
-            className="lg:hidden absolute top-full left-0 w-full bg-[#0D1B2A]/95 backdrop-blur-xl border-t border-white/10 overflow-hidden"
+            initial={{ x: '100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '100%' }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            className="fixed inset-0 z-[105] bg-[#020617] lg:hidden flex flex-col p-8 pt-32 overflow-y-auto pointer-events-auto"
           >
-            <div className="px-6 py-8 space-y-4 flex flex-col h-full overflow-y-auto">
-              {navLinks.map((link, index) => (
-                <div key={link.name}>
-                  <motion.button
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: index * 0.05 }}
-                    onClick={() => {
-                      if (link.dropdown) {
-                        setMobileDropdownOpen(mobileDropdownOpen === link.name ? null : link.name);
-                      } else {
-                        navigate(link.path);
-                        setMobileMenuOpen(false);
-                      }
-                    }}
-                    className={`w-full flex items-center justify-between text-left px-4 py-3 text-xl font-medium rounded-lg transition-colors ${location.pathname === link.path && !link.dropdown
-                      ? 'text-white bg-white/10 border border-white/5'
-                      : 'text-white/70 hover:text-white hover:bg-white/5'
-                      }`}
-                  >
-                    {link.name}
-                    {link.dropdown && (
-                      <ChevronDown className={`w-5 h-5 transition-transform ${mobileDropdownOpen === link.name ? 'rotate-180' : ''}`} />
-                    )}
-                  </motion.button>
-
-                  <AnimatePresence>
-                    {link.dropdown && mobileDropdownOpen === link.name && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="pl-8 pr-4 py-2 flex flex-col space-y-2 overflow-hidden"
-                      >
-                        {link.dropdown.map((subItem) => (
-                          <button
-                            key={subItem.name}
-                            onClick={() => {
-                              navigate(subItem.path);
-                              setMobileMenuOpen(false);
-                            }}
-                            className="text-left py-2 text-white/60 hover:text-white text-base transition-colors"
-                          >
-                            {subItem.name}
-                          </button>
-                        ))}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              ))}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.4 }}
-                className="pt-8"
-              >
-                <button
-                  onClick={() => {
-                    navigate('/contact');
-                    setMobileMenuOpen(false);
-                  }}
-                  className="w-full px-4 py-4 rounded-xl font-bold text-white bg-gradient-to-r from-[#06B6D4] to-[#7C3AED] hover:opacity-90 transition-opacity text-center shadow-lg"
+            <div className="space-y-8">
+              {navLinks.map((link, idx) => (
+                <motion.div
+                  key={link.name}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: idx * 0.05 }}
                 >
-                  Get in Touch
-                </button>
-              </motion.div>
+                  <div className="text-[10px] font-black tracking-[0.3em] text-white/30 uppercase mb-4">
+                    {link.name}
+                  </div>
+                  {link.dropdown ? (
+                    <div className="grid grid-cols-1 gap-4 pl-4 border-l border-white/5">
+                      {link.dropdown.map((sub) => (
+                        <button
+                          key={sub.name}
+                          onClick={() => navigate(sub.path)}
+                          className="text-xl font-bold text-white/70 hover:text-cyan-400 text-left"
+                        >
+                          {sub.name}
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => navigate(link.path)}
+                      className="text-4xl font-black tracking-tighter text-white hover:text-cyan-400 text-left uppercase"
+                    >
+                      {link.name}
+                    </button>
+                  )}
+                </motion.div>
+              ))}
+            </div>
+
+            <div className="mt-auto pt-12 pb-8">
+              <button
+                onClick={() => navigate('/contact')}
+                className="w-full py-5 bg-white text-black rounded-2xl font-black tracking-widest uppercase text-xs shadow-xl"
+              >
+                Contact ODI Team
+              </button>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
-    </motion.nav>
+    </nav>
   );
-}
+}
