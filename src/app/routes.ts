@@ -10,6 +10,13 @@ import WorkPage from "./pages/WorkPage";
 import AboutPage from "./pages/AboutPage";
 import CareersPage from "./pages/CareersPage";
 import ContactPage from "./pages/ContactPage";
+import IndustriesPage from "./pages/industriesPage";
+import IndustryOTTPlatforms from "./pages/IndustryOTTPlatforms";
+import IndustryFilmStudios from "./pages/IndustryFilmStudios";
+import IndustryAdvertisingAgencies from "./pages/IndustryAdvertisingAgencies";
+import IndustryCreatorsInfluencers from "./pages/IndustryCreatorsInfluencers";
+import IndustryDocumentaryTeams from "./pages/IndustryDocumentaryTeams";
+import IndustryMusicLabels from "./pages/IndustryMusicLabels";
 import Service3DMovieConversion from "./pages/Service3DMovieConversion";
 import Service3DShortFilms from "./pages/Service3DShortFilms";
 import Service3DReelsVertical from "./pages/Service3DReelsVertical";
@@ -46,6 +53,34 @@ export const router = createBrowserRouter([
       {
         path: "services",
         Component: ServicesPage,
+      },
+      {
+        path: "industries",
+        Component: IndustriesPage,
+      },
+      {
+        path: "industries/ott-platforms",
+        Component: IndustryOTTPlatforms,
+      },
+      {
+        path: "industries/film-studios",
+        Component: IndustryFilmStudios,
+      },
+      {
+        path: "industries/advertising-agencies",
+        Component: IndustryAdvertisingAgencies,
+      },
+      {
+        path: "industries/creators-influencers",
+        Component: IndustryCreatorsInfluencers,
+      },
+      {
+        path: "industries/documentary-teams",
+        Component: IndustryDocumentaryTeams,
+      },
+      {
+        path: "industries/music-labels",
+        Component: IndustryMusicLabels,
       },
       {
         path: "services/3d-movie-conversion",

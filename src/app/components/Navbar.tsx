@@ -19,6 +19,18 @@ const navLinks = [
       { name: 'VR / Vision Pro Content Prep', path: '/services/vr-vision-pro' },
     ]
   },
+  {
+    name: 'Industries',
+    path: '/industries',
+    dropdown: [
+      { name: 'Film Studios', path: '/industries/film-studios' },
+      { name: 'OTT Platforms', path: '/industries/ott-platforms' },
+      { name: 'Creators & Influencers', path: '/industries/creators-influencers' },
+      { name: 'Advertising Agencies', path: '/industries/advertising-agencies' },
+      { name: 'Music Labels', path: '/industries/music-labels' },
+      { name: 'Documentary Teams', path: '/industries/documentary-teams' },
+    ]
+  },
   { name: 'Products', path: '/wip' },
   { name: 'Work', path: '/work' },
   { name: 'Careers', path: '/careers' },
@@ -46,8 +58,8 @@ export function Navbar() {
       animate={{ y: 0 }}
       transition={{ duration: 0.8, ease: [0.25, 0.1, 0.25, 1] }}
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled
-          ? 'bg-[#0D1B2A]/80 backdrop-blur-lg border-b border-white/10 py-3 shadow-lg'
-          : 'bg-transparent py-5 md:py-6'
+        ? 'bg-[#0D1B2A]/80 backdrop-blur-lg border-b border-white/10 py-3 shadow-lg'
+        : 'bg-transparent py-5 md:py-6'
         }`}
     >
       <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
@@ -148,8 +160,8 @@ export function Navbar() {
                       }
                     }}
                     className={`w-full flex items-center justify-between text-left px-4 py-3 text-xl font-medium rounded-lg transition-colors ${location.pathname === link.path && !link.dropdown
-                        ? 'text-white bg-white/10 border border-white/5'
-                        : 'text-white/70 hover:text-white hover:bg-white/5'
+                      ? 'text-white bg-white/10 border border-white/5'
+                      : 'text-white/70 hover:text-white hover:bg-white/5'
                       }`}
                   >
                     {link.name}
