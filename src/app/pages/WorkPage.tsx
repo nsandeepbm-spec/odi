@@ -78,6 +78,51 @@ export default function WorkPage() {
             </motion.div>
           ))}
         </div>
+
+        {/* Our Process Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.8 }}
+          className="mt-32"
+        >
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold mb-6 text-white">
+              Our Process
+            </h2>
+            <div className="w-24 h-1 bg-gradient-to-r from-[#8B5CF6] to-[#06B6D4] mx-auto rounded-full mb-8" />
+            <p className="text-lg text-white/70 max-w-2xl mx-auto">
+              We employ a meticulous, step-by-step approach to ensure the highest quality stereoscopic 3D conversion and VFX integration for every frame.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-4 gap-8">
+            {[
+              { step: '01', title: 'Analysis', desc: 'Evaluating source footage and defining the depth budget and creative vision.' },
+              { step: '02', title: 'Roto & Prep', desc: 'Precise rotoscoping and clean-plating to isolate elements for spatial manipulation.' },
+              { step: '03', title: 'Depth Mapping', desc: 'Assigning accurate volumetric depth to every object in the scene.' },
+              { step: '04', title: 'Compositing', desc: 'Seamlessly integrating all elements into a stunning, immersive final stereo render.' }
+            ].map((process, idx) => (
+              <motion.div
+                key={process.step}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: idx * 0.15 }}
+                className="bg-[#1B263B]/50 p-8 rounded-2xl border border-white/5 hover:border-white/10 transition-colors relative overflow-hidden group"
+              >
+                <div className="text-5xl font-extrabold text-white/5 mb-6 group-hover:text-white/10 transition-colors duration-300">
+                  {process.step}
+                </div>
+                <h3 className="text-xl font-bold mb-4 text-white/90">{process.title}</h3>
+                <p className="text-white/60 text-sm leading-relaxed">
+                  {process.desc}
+                </p>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
       </div>
     </div>
   );

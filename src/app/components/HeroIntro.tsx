@@ -85,7 +85,7 @@ export function HeroIntro() {
             }}
             className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-white/70 font-light tracking-wide mb-12 max-w-3xl leading-relaxed drop-shadow-lg"
           >
-            We create <strong className="text-white font-medium">depth-driven visual experiences</strong> for next-generation media.
+            We create <strong className="text-white font-medium">depth-driven visual </strong> for next-generation media.
           </motion.p>
 
           <motion.div
