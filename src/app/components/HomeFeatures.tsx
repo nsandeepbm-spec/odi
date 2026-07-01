@@ -67,10 +67,10 @@ const Card = ({ item, index, delay = 0.1, isActive = false }: { item: FeatureIte
     whileInView={{ opacity: 1, y: 0 }}
     viewport={{ once: true }}
     transition={{ delay: index * delay }}
-    className={`group p-10 rounded-[2rem] border transition-all duration-500 relative overflow-hidden backdrop-blur-md ${
+    className={`group p-10 rounded-[2rem] border transition-all duration-500 relative overflow-hidden backdrop-blur-xl shadow-2xl ${
       isActive 
-        ? "bg-[#091524]/80 border-cyan-500/50 shadow-[0_0_40px_rgba(6,182,212,0.25)] scale-[1.02]" 
-        : "bg-[#040815]/50 border-white/5 hover:bg-[#091524]/60 hover:border-cyan-500/30 hover:shadow-[0_0_30px_rgba(6,182,212,0.15)] hover:scale-[1.02]"
+        ? "bg-gradient-to-br from-cyan-950/80 to-[#040815]/80 border-cyan-500/50 border-t-cyan-400/80 border-l-cyan-400/60 shadow-[0_20px_60px_-15px_rgba(6,182,212,0.4)] scale-[1.02] -translate-y-1" 
+        : "bg-gradient-to-br from-white/[0.08] to-transparent border-white/10 border-t-white/20 border-l-white/20 hover:from-cyan-950/60 hover:to-[#040815]/60 hover:border-cyan-500/40 hover:border-t-cyan-400/60 hover:border-l-cyan-400/40 hover:shadow-[0_20px_50px_-15px_rgba(6,182,212,0.3)] hover:-translate-y-2"
     }`}
   >
     {/* Glowing background card element */}
@@ -327,7 +327,7 @@ export function HomeFeatures() {
  initial={{ opacity: 0, y: 20 }}
  whileInView={{ opacity: 1, y: 0 }}
  viewport={{ once: true }}
- className="group p-10 rounded-[2.5rem] bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] transition-all duration-500"
+ className="group p-10 rounded-[2.5rem] bg-gradient-to-br from-white/[0.08] to-transparent border border-white/10 border-t-white/20 border-l-white/20 hover:from-cyan-950/40 hover:to-transparent hover:border-cyan-500/30 hover:border-t-cyan-400/50 hover:border-l-cyan-400/40 hover:shadow-[0_20px_40px_-15px_rgba(6,182,212,0.2)] hover:-translate-y-2 transition-all duration-500 backdrop-blur-xl shadow-2xl"
  >
  <div className="w-14 h-14 rounded-2xl bg-cyan-500/10 flex items-center justify-center mb-8 border border-cyan-500/10 group-hover:scale-110 transition-all">
  <item.icon className="w-6 h-6 text-cyan-400"strokeWidth={1} />
