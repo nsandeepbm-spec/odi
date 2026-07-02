@@ -1,133 +1,205 @@
 import { Link } from 'react-router';
-import { Mail, Phone, MapPin, Facebook, Twitter, Instagram, Linkedin, ArrowUp } from 'lucide-react';
+import { Instagram, Linkedin, Youtube, Video, Mail, ArrowRight, Star, Globe, Monitor } from 'lucide-react';
 import { ODILogo } from './ODILogo';
 
-const footerLinks = [
- {
- title: 'Company',
- links: [
- { name: 'About Us', href: '/about' },
- { name: 'Our Work', href: '/work' },
- { name: 'Services', href: '/services' },
- { name: 'Products', href: '/products' },
- ]
- },
- {
- title: 'Resources',
- links: [
- { name: 'Careers', href: '/careers' },
- { name: 'Contact', href: '/contact' },
- { name: 'Kids Division', href: '/odi-kids' },
- ]
- }
-];
-
 export function Footer() {
- const scrollToTop = () => {
- window.scrollTo({ top: 0, behavior: 'smooth' });
- };
+  return (
+    <footer className="bg-[#080808] text-white pt-20 pb-8 border-t border-white/10" style={{ fontFamily: "'Inter', 'Helvetica Neue', Arial, sans-serif" }}>
+      <div className="max-w-[1400px] mx-auto px-6 md:px-12 lg:px-16">
+        
+        {/* TOP SECTION */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 mb-20">
+          
+          {/* Column 1: Brand & Info (Span 4) */}
+          <div className="lg:col-span-4 pr-0 lg:pr-8">
+            <Link to="/" className="block mb-8 w-[140px]">
+              <ODILogo color="white" />
+            </Link>
+            
+            <div className="w-8 h-px bg-[#00C8FF] mb-6" />
+            
+            <h3 className="text-xl md:text-2xl font-light leading-snug mb-6 text-white/90">
+              We create stereoscopic<br />
+              experiences that bring<br />
+              stories, ideas and visions<br />
+              closer to life.
+            </h3>
+            
+            <p className="text-[#B8B8B8] text-sm leading-relaxed mb-10 font-light">
+              From concept to final frame, we craft depth<br />
+              that feels natural, immersive and unforgettable.
+            </p>
+            
+            <div className="flex gap-4">
+              {[Instagram, Linkedin, Youtube, Video].map((Icon, idx) => (
+                <a
+                  key={idx}
+                  href="#"
+                  className="w-10 h-10 rounded-full border border-white/20 flex items-center justify-center text-white/60 hover:text-white hover:border-white transition-all duration-300"
+                >
+                  <Icon size={16} strokeWidth={1.5} />
+                </a>
+              ))}
+            </div>
+          </div>
 
- return (
- <footer className="bg-[#0D1B2A] border-t border-white/10 pt-20 pb-10 relative overflow-hidden">
- {/* Background Glows */}
- <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-[#06B6D4]/50 to-transparent opacity-50"/>
- <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-[#06B6D4]/10 rounded-full blur-[120px] pointer-events-none"/>
- <div className="absolute -top-40 -right-40 w-96 h-96 bg-[#7C3AED]/10 rounded-full blur-[120px] pointer-events-none"/>
+          {/* Column 2: Links Grid (Span 5) */}
+          <div className="lg:col-span-5 grid grid-cols-2 sm:grid-cols-4 gap-8 lg:gap-4 pt-4">
+            {/* EXPLORE */}
+            <div>
+              <h4 className="text-[10px] tracking-[0.2em] font-bold text-[#00C8FF] uppercase mb-6">Explore</h4>
+              <ul className="space-y-4">
+                {['Experience', 'Work', 'Playground', 'Studio', 'Journal', 'Careers'].map(link => (
+                  <li key={link}>
+                    <Link to="#" className="text-[#B8B8B8] text-sm font-light hover:text-white transition-colors">{link}</Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            
+            {/* WHAT WE DO */}
+            <div>
+              <h4 className="text-[10px] tracking-[0.2em] font-bold text-[#00C8FF] uppercase mb-6">What We Do</h4>
+              <ul className="space-y-4">
+                {['Stereo Books', 'Stereo Content', 'Stereo Conversion', '3D Production', 'Depth Consulting'].map(link => (
+                  <li key={link}>
+                    <Link to="#" className="text-[#B8B8B8] text-sm font-light hover:text-white transition-colors">{link}</Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            
+            {/* INDUSTRIES */}
+            <div>
+              <h4 className="text-[10px] tracking-[0.2em] font-bold text-[#00C8FF] uppercase mb-6">Industries</h4>
+              <ul className="space-y-4">
+                {['Publishing', 'Cinema & OTT', 'Music & Events', 'Medical & Education', 'Museums & Exhibits', 'Automotive & Retail', 'Architecture & Design', 'Gaming & Animation'].map(link => (
+                  <li key={link}>
+                    <Link to="#" className="text-[#B8B8B8] text-sm font-light hover:text-white transition-colors">{link}</Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            
+            {/* RESOURCE */}
+            <div>
+              <h4 className="text-[10px] tracking-[0.2em] font-bold text-[#00C8FF] uppercase mb-6">Resource</h4>
+              <ul className="space-y-4">
+                {['Journal', 'Case Studies', 'Behind the Scenes', 'FAQs', 'Sitemap'].map(link => (
+                  <li key={link}>
+                    <Link to="#" className="text-[#B8B8B8] text-sm font-light hover:text-white transition-colors">{link}</Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
 
- <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 relative z-10">
- <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-12 lg:gap-8 mb-16">
- 
- {/* Brand Column */}
- <div className="lg:col-span-5 pr-0 lg:pr-12">
- <Link to="/"className="block mb-8 w-[140px] md:w-[160px] transition-transform hover:scale-105 origin-left">
- <ODILogo color="white"/>
- </Link>
- <p className="text-white/70 mb-8 max-w-md leading-relaxed text-lg font-light">
- Our studio is pioneering the future of visual experiences through innovative 2D to 3D conversion and immersive media design.
- </p>
- <div className="flex gap-4">
- {[Facebook, Twitter, Instagram, Linkedin].map((Icon, index) => (
- <a
- key={index}
- href="#"
- className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-gradient-to-br hover:from-[#06B6D4] hover:to-[#7C3AED] hover:border-transparent hover:shadow-[0_0_20px_rgba(6,182,212,0.4)] hover:-translate-y-1 transition-all duration-300 group"
- >
- <Icon className="w-5 h-5 text-white/70 group-hover:text-white transition-colors"/>
- </a>
- ))}
- </div>
- </div>
+          {/* Column 3: Feature Card (Span 3) */}
+          <div className="lg:col-span-3 pt-4">
+            <div className="border border-white/10 rounded-sm overflow-hidden h-full flex flex-col relative group">
+              <div className="h-48 overflow-hidden relative bg-[#111]">
+                {/* Fallback image resembling the dark studio with a chair */}
+                <img 
+                  src="https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?w=600&q=80" 
+                  alt="Studio Chair" 
+                  className="w-full h-full object-cover opacity-60 group-hover:opacity-80 transition-opacity duration-500"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#080808] via-transparent to-transparent" />
+                <div className="absolute top-4 w-full flex justify-center">
+                  {/* Subtle logo mark on the chair image */}
+                  <span className="text-[10px] tracking-widest text-white/50 uppercase">ODI.STUDIO</span>
+                </div>
+              </div>
+              <div className="p-6 bg-[#080808] flex-1 flex flex-col justify-between -mt-8 relative z-10">
+                <div>
+                  <h4 className="text-xl font-light mb-3">Let's create something<br/>with real depth.</h4>
+                  <p className="text-[#B8B8B8] text-[11px] leading-relaxed mb-6">
+                    Have a project in mind or just want to<br/>explore ideas? We'd love to hear from you.
+                  </p>
+                </div>
+                <button className="w-full py-3 border border-[#00C8FF]/40 text-[#00C8FF] text-[10px] uppercase tracking-[0.2em] flex items-center justify-between px-4 hover:bg-[#00C8FF]/10 transition-colors">
+                  <span>Start a Project</span>
+                  <ArrowRight size={14} strokeWidth={1.5} />
+                </button>
+              </div>
+            </div>
+          </div>
+          
+        </div>
 
- {/* Links Columns */}
- <div className="lg:col-span-4 grid grid-cols-2 gap-8">
- {footerLinks.map((group) => (
- <div key={group.title}>
- <h4 className="text-white font-semibold text-lg tracking-wide mb-6">{group.title}</h4>
- <ul className="space-y-4">
- {group.links.map((link) => (
- <li key={link.name}>
- <Link
- to={link.href}
- className="text-white/60 hover:text-white transition-colors duration-300 flex items-center group font-light"
- >
- <span className="w-0 group-hover:w-3 h-px bg-gradient-to-r from-[#06B6D4] to-[#7C3AED] mr-0 group-hover:mr-3 transition-all duration-300 ease-out"/>
- {link.name}
- </Link>
- </li>
- ))}
- </ul>
- </div>
- ))}
- </div>
+        {/* MIDDLE SECTION (Newsletter & Highlights) */}
+        <div className="border border-white/10 p-6 md:p-8 flex flex-col lg:flex-row items-center justify-between gap-8 mb-12">
+          
+          {/* Newsletter */}
+          <div className="flex items-start gap-4 lg:w-1/3">
+            <Mail className="text-[#00C8FF] shrink-0 mt-1" size={24} strokeWidth={1.2} />
+            <div>
+              <h5 className="text-[10px] tracking-[0.2em] text-[#00C8FF] font-bold uppercase mb-2">Stay in the loop</h5>
+              <p className="text-[#B8B8B8] text-xs font-light mb-4">
+                Stories, insights and creative process<br/>delivered to your inbox.
+              </p>
+              <div className="flex">
+                <input 
+                  type="email" 
+                  placeholder="Enter your email address" 
+                  className="bg-transparent border border-white/20 px-4 py-2 text-xs w-full focus:outline-none focus:border-white/50 text-white"
+                />
+                <button className="border border-white/20 border-l-0 px-4 py-2 text-[10px] uppercase tracking-[0.1em] text-[#00C8FF] hover:bg-white/5 transition-colors flex items-center gap-2">
+                  Subscribe <ArrowRight size={12} />
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          {/* Highlights */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:w-2/3 border-t lg:border-t-0 lg:border-l border-white/10 pt-8 lg:pt-0 lg:pl-8">
+            <div className="flex items-start gap-3">
+              <Star className="text-[#00C8FF] shrink-0 mt-0.5" size={18} strokeWidth={1.5} />
+              <div>
+                <h6 className="text-[10px] font-bold tracking-wide uppercase mb-1">Award-Winning Work</h6>
+                <p className="text-[#B8B8B8] text-[11px] leading-relaxed">International recognition<br/>for immersive excellence.</p>
+              </div>
+            </div>
+            
+            <div className="flex items-start gap-3">
+              <Globe className="text-[#00C8FF] shrink-0 mt-0.5" size={18} strokeWidth={1.5} />
+              <div>
+                <h6 className="text-[10px] font-bold tracking-wide uppercase mb-1">Global Collaborations</h6>
+                <p className="text-[#B8B8B8] text-[11px] leading-relaxed">Trusted by creators and<br/>brands around the world.</p>
+              </div>
+            </div>
+            
+            <div className="flex items-start gap-3">
+              <Monitor className="text-[#00C8FF] shrink-0 mt-0.5" size={18} strokeWidth={1.5} />
+              <div>
+                <h6 className="text-[10px] font-bold tracking-wide uppercase mb-1">Built For Every Platform</h6>
+                <p className="text-[#B8B8B8] text-[11px] leading-relaxed">Delivering depth for screens,<br/>spaces and experiences.</p>
+              </div>
+            </div>
+          </div>
+          
+        </div>
 
- {/* Contact Column */}
- <div className="lg:col-span-3">
- <h4 className="text-white font-semibold text-lg tracking-wide mb-6">Contact Us</h4>
- <ul className="space-y-5">
- <li className="flex items-start gap-4 text-white/60 font-light group">
- <div className="p-2 rounded-lg bg-white/5 border border-white/10 group-hover:bg-[#06B6D4]/20 group-hover:border-[#06B6D4]/50 transition-colors shrink-0 mt-0.5">
- <MapPin className="w-4 h-4 text-[#06B6D4]"/>
- </div>
- <span className="leading-relaxed">4th Floor, SM Heights, C-205, NH 5, Phase 8B, Industrial Area, Sector 74, Mohali, Punjab 160071</span>
- </li>
- <li className="flex items-center gap-4 text-white/60 font-light group">
- <div className="p-2 rounded-lg bg-white/5 border border-white/10 group-hover:bg-[#7C3AED]/20 group-hover:border-[#7C3AED]/50 transition-colors shrink-0">
- <Phone className="w-4 h-4 text-[#7C3AED]"/>
- </div>
- <span>+91 9876907266</span>
- </li>
- <li className="flex items-center gap-4 text-white/60 font-light group">
- <div className="p-2 rounded-lg bg-white/5 border border-white/10 group-hover:bg-[#FF6B9D]/20 group-hover:border-[#FF6B9D]/50 transition-colors shrink-0">
- <Mail className="w-4 h-4 text-[#FF6B9D]"/>
- </div>
- <span>hello@odi.design</span>
- </li>
- </ul>
- </div>
- </div>
+        {/* BOTTOM BAR */}
+        <div className="pt-6 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-4">
+          <p className="text-[#B8B8B8] text-[11px] font-light">
+            © {new Date().getFullYear()} ODI Studio. All rights reserved.
+          </p>
+          
+          <div className="flex items-center gap-4 text-[#B8B8B8] text-[11px] font-light">
+            <Link to="#" className="hover:text-white transition-colors">Privacy Policy</Link>
+            <span className="text-white/20">|</span>
+            <Link to="#" className="hover:text-white transition-colors">Terms of Service</Link>
+            <span className="text-white/20">|</span>
+            <Link to="#" className="hover:text-white transition-colors">Cookies Policy</Link>
+          </div>
+          
+          <p className="text-[#B8B8B8] text-[11px] font-light">
+            Crafted with depth in India. Delivered worldwide.
+          </p>
+        </div>
 
- {/* Bottom Bar */}
- <div className="pt-8 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-6">
- <p className="text-white/40 text-sm font-light">
- © {new Date().getFullYear()} Spatial Studio. All rights reserved.
- </p>
- 
- <div className="flex gap-8 text-sm text-white/40 font-light">
- <a href="#"className="hover:text-white transition-colors">Privacy Policy</a>
- <a href="#"className="hover:text-white transition-colors">Terms of Service</a>
- </div>
-
- <button
- onClick={scrollToTop}
- className="group flex items-center gap-3 text-white/60 hover:text-white transition-colors"
- >
- <span className="text-sm font-medium uppercase tracking-wider">Back to top</span>
- <div className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center group-hover:bg-gradient-to-tr group-hover:from-[#06B6D4] group-hover:to-[#7C3AED] group-hover:border-transparent transition-all shadow-lg group-hover:shadow-[0_0_15px_rgba(6,182,212,0.5)]">
- <ArrowUp className="w-5 h-5 group-hover:-translate-y-1 transition-transform"/>
- </div>
- </button>
- </div>
- </div>
- </footer>
- );
+      </div>
+    </footer>
+  );
 }
