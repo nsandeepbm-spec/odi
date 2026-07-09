@@ -163,14 +163,24 @@ export function Navbar() {
  ))}
 
  {/* CTA */}
-  <button
-  onClick={() => navigate('/contact')}
-  className={`ml-6 px-6 py-3 rounded-full text-[11px] font-black tracking-[0.2em] uppercase transition-all shadow-xl ${
-    isLight ? 'bg-neutral-900 text-white hover:bg-cyan-600' : 'bg-white text-black hover:bg-cyan-400'
-  }`}
-  >
- Get in Touch
- </button>
+ <div className="ml-6 flex items-center gap-3">
+   <button
+     onClick={() => navigate('/login')}
+     className={`px-5 py-2.5 rounded-full text-[11px] font-black tracking-[0.2em] uppercase transition-all border ${
+       isLight ? 'border-neutral-200 text-neutral-900 hover:bg-neutral-50' : 'border-white/20 text-white hover:bg-white/10'
+     }`}
+   >
+     Login
+   </button>
+   <button
+     onClick={() => navigate('/register')}
+     className={`px-5 py-2.5 rounded-full text-[11px] font-black tracking-[0.2em] uppercase transition-all shadow-xl ${
+       isLight ? 'bg-neutral-900 text-white hover:bg-cyan-600' : 'bg-white text-black hover:bg-cyan-400'
+     }`}
+   >
+     Register
+   </button>
+ </div>
  </div>
 
  {/* MOBILE TRIGGER */}
@@ -232,12 +242,18 @@ export function Navbar() {
  ))}
  </div>
 
- <div className="mt-auto pt-12 pb-8">
+ <div className="mt-auto pt-12 pb-8 flex flex-col gap-3">
  <button
- onClick={() => navigate('/contact')}
- className="w-full py-5 bg-white text-black rounded-2xl font-black tracking-widest uppercase text-xs shadow-xl"
+ onClick={() => { setMobileMenuOpen(false); navigate('/login'); }}
+ className="w-full py-4 border border-white/20 text-white rounded-2xl font-black tracking-widest uppercase text-xs hover:bg-white/10"
  >
- Contact Our Team
+ Login
+ </button>
+ <button
+ onClick={() => { setMobileMenuOpen(false); navigate('/register'); }}
+ className="w-full py-4 bg-white text-black rounded-2xl font-black tracking-widest uppercase text-xs shadow-xl"
+ >
+ Register
  </button>
  </div>
  </motion.div>
