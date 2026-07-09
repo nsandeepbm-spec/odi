@@ -1,4 +1,5 @@
 import { motion } from 'motion/react';
+import { Glasses, Box, Layers } from 'lucide-react';
 import { ODILogo } from './ODILogo';
 
 export function LogoSystemSection() {
@@ -49,10 +50,7 @@ export function LogoSystemSection() {
  className="bg-gradient-to-br from-[#06B6D4]/10 to-[#06B6D4]/5 backdrop-blur-sm rounded-2xl p-8 border border-[#06B6D4]/20"
  >
  <div className="w-16 h-16 rounded-xl bg-[#06B6D4]/20 flex items-center justify-center mb-6">
- <svg className="w-8 h-8"viewBox="0 0 24 24"fill="none"stroke="#06B6D4"strokeWidth="2">
- <circle cx="12"cy="12"r="10"/>
- <line x1="12"y1="2"x2="12"y2="22"/>
- </svg>
+ <Glasses className="w-8 h-8 text-[#06B6D4]" strokeWidth={2} />
  </div>
  <h4 className="text-xl font-bold text-white mb-3">Stereo Vision</h4>
  <p className="text-sm text-white/60 leading-relaxed">
@@ -68,11 +66,7 @@ export function LogoSystemSection() {
  className="bg-gradient-to-br from-[#7C3AED]/10 to-[#7C3AED]/5 backdrop-blur-sm rounded-2xl p-8 border border-[#7C3AED]/20"
  >
  <div className="w-16 h-16 rounded-xl bg-[#7C3AED]/20 flex items-center justify-center mb-6">
- <svg className="w-8 h-8"viewBox="0 0 24 24"fill="none"stroke="#7C3AED"strokeWidth="2">
- <rect x="3"y="3"width="18"height="18"rx="2"/>
- <line x1="9"y1="9"x2="15"y2="15"/>
- <line x1="15"y1="9"x2="9"y2="15"/>
- </svg>
+ <Box className="w-8 h-8 text-[#7C3AED]" strokeWidth={2} />
  </div>
  <h4 className="text-xl font-bold text-white mb-3">Dimensional Space</h4>
  <p className="text-sm text-white/60 leading-relaxed">
@@ -88,11 +82,7 @@ export function LogoSystemSection() {
  className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10"
  >
  <div className="w-16 h-16 rounded-xl bg-white/10 flex items-center justify-center mb-6">
- <svg className="w-8 h-8"viewBox="0 0 24 24"fill="none"stroke="white"strokeWidth="2">
- <polygon points="12 2 2 7 12 12 22 7 12 2"/>
- <polyline points="2 17 12 22 22 17"/>
- <polyline points="2 12 12 17 22 12"/>
- </svg>
+ <Layers className="w-8 h-8 text-white" strokeWidth={2} />
  </div>
  <h4 className="text-xl font-bold text-white mb-3">Precision Engineering</h4>
  <p className="text-sm text-white/60 leading-relaxed">

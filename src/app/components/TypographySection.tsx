@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-
+import { MoveVertical, Columns, AlignLeft, Clock } from 'lucide-react';
 export function TypographySection() {
  return (
  <section className="min-h-screen bg-white py-16 md:py-24 lg:py-32 px-4 md:px-6 lg:px-8">
@@ -354,9 +354,7 @@ export function TypographySection() {
  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
  <div className="bg-gradient-to-br from-[#06B6D4]/5 to-white rounded-xl md:rounded-2xl p-6 md:p-8 border-2 border-[#06B6D4]/20">
  <div className="w-12 h-12 md:w-14 md:h-14 rounded-xl bg-[#06B6D4]/10 flex items-center justify-center mb-4 md:mb-6">
- <svg className="w-6 h-6 md:w-7 md:h-7"viewBox="0 0 24 24"fill="none"stroke="#06B6D4"strokeWidth="2">
- <path d="M12 2v20M2 12h20"/>
- </svg>
+ <MoveVertical className="w-6 h-6 md:w-7 md:h-7 text-[#06B6D4]" strokeWidth={2} />
  </div>
  <h5 className="text-lg md:text-xl font-bold text-gray-900 mb-2 md:mb-3">Line Height</h5>
  <p className="text-xs md:text-sm text-gray-600 leading-relaxed mb-3 md:mb-4">
@@ -372,10 +370,7 @@ export function TypographySection() {
 
  <div className="bg-gradient-to-br from-[#7C3AED]/5 to-white rounded-xl md:rounded-2xl p-6 md:p-8 border-2 border-[#7C3AED]/20">
  <div className="w-12 h-12 md:w-14 md:h-14 rounded-xl bg-[#7C3AED]/10 flex items-center justify-center mb-4 md:mb-6">
- <svg className="w-6 h-6 md:w-7 md:h-7"viewBox="0 0 24 24"fill="none"stroke="#7C3AED"strokeWidth="2">
- <rect x="3"y="3"width="18"height="18"rx="2"/>
- <path d="M9 3v18M15 3v18"/>
- </svg>
+ <Columns className="w-6 h-6 md:w-7 md:h-7 text-[#7C3AED]" strokeWidth={2} />
  </div>
  <h5 className="text-lg md:text-xl font-bold text-gray-900 mb-2 md:mb-3">Letter Spacing</h5>
  <p className="text-xs md:text-sm text-gray-600 leading-relaxed mb-3 md:mb-4">
@@ -395,9 +390,7 @@ export function TypographySection() {
 
  <div className="bg-white rounded-xl md:rounded-2xl p-6 md:p-8 border-2 border-gray-200">
  <div className="w-12 h-12 md:w-14 md:h-14 rounded-xl bg-gray-100 flex items-center justify-center mb-4 md:mb-6">
- <svg className="w-6 h-6 md:w-7 md:h-7"viewBox="0 0 24 24"fill="none"stroke="#374151"strokeWidth="2">
- <path d="M4 7h16M4 12h16M4 17h10"/>
- </svg>
+ <AlignLeft className="w-6 h-6 md:w-7 md:h-7 text-[#374151]" strokeWidth={2} />
  </div>
  <h5 className="text-lg md:text-xl font-bold text-gray-900 mb-2 md:mb-3">Paragraph Width</h5>
  <p className="text-xs md:text-sm text-gray-600 leading-relaxed mb-3 md:mb-4">
@@ -411,10 +404,7 @@ export function TypographySection() {
 
  <div className="bg-white rounded-xl md:rounded-2xl p-6 md:p-8 border-2 border-gray-200">
  <div className="w-12 h-12 md:w-14 md:h-14 rounded-xl bg-gray-100 flex items-center justify-center mb-4 md:mb-6">
- <svg className="w-6 h-6 md:w-7 md:h-7"viewBox="0 0 24 24"fill="none"stroke="#374151"strokeWidth="2">
- <circle cx="12"cy="12"r="10"/>
- <path d="M12 6v6l4 2"/>
- </svg>
+ <Clock className="w-6 h-6 md:w-7 md:h-7 text-[#374151]" strokeWidth={2} />
  </div>
  <h5 className="text-lg md:text-xl font-bold text-gray-900 mb-2 md:mb-3">Hierarchy</h5>
  <p className="text-xs md:text-sm text-gray-600 leading-relaxed mb-3 md:mb-4">

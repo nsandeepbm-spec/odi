@@ -1,4 +1,5 @@
 import { motion } from 'motion/react';
+import { Zap, Sparkles, Palette, CheckCircle2 } from 'lucide-react';
 import { ODILogo } from './ODILogo';
 
 export function ColorSection() {
@@ -229,9 +230,7 @@ export function ColorSection() {
  <div className="space-y-4">
  <div className="flex items-start gap-4">
  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#06B6D4] to-[#0891B2] flex-shrink-0 flex items-center justify-center">
- <svg className="w-6 h-6 text-white"fill="none"viewBox="0 0 24 24"stroke="currentColor">
- <path strokeLinecap="round"strokeLinejoin="round"strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z"/>
- </svg>
+ <Zap className="w-6 h-6 text-white" strokeWidth={2} />
  </div>
  <div>
  <h5 className="text-white font-semibold mb-2">Cyan First</h5>
@@ -243,9 +242,7 @@ export function ColorSection() {
 
  <div className="flex items-start gap-4">
  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#7C3AED] to-[#6D28D9] flex-shrink-0 flex items-center justify-center">
- <svg className="w-6 h-6 text-white"fill="none"viewBox="0 0 24 24"stroke="currentColor">
- <path strokeLinecap="round"strokeLinejoin="round"strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
- </svg>
+ <Sparkles className="w-6 h-6 text-white" strokeWidth={2} />
  </div>
  <div>
  <h5 className="text-white font-semibold mb-2">Purple for Premium</h5>
@@ -259,9 +256,7 @@ export function ColorSection() {
  <div className="space-y-4">
  <div className="flex items-start gap-4">
  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#06B6D4] via-[#8B5CF6] to-[#7C3AED] flex-shrink-0 flex items-center justify-center">
- <svg className="w-6 h-6 text-white"fill="none"viewBox="0 0 24 24"stroke="currentColor">
- <path strokeLinecap="round"strokeLinejoin="round"strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/>
- </svg>
+ <Palette className="w-6 h-6 text-white" strokeWidth={2} />
  </div>
  <div>
  <h5 className="text-white font-semibold mb-2">Dynamic Gradients</h5>
@@ -273,9 +268,7 @@ export function ColorSection() {
 
  <div className="flex items-start gap-4">
  <div className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex-shrink-0 flex items-center justify-center">
- <svg className="w-6 h-6 text-white"fill="none"viewBox="0 0 24 24"stroke="currentColor">
- <path strokeLinecap="round"strokeLinejoin="round"strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
- </svg>
+ <CheckCircle2 className="w-6 h-6 text-white" strokeWidth={2} />
  </div>
  <div>
  <h5 className="text-white font-semibold mb-2">Accessibility First</h5>

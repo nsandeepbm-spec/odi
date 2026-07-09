@@ -174,21 +174,21 @@ export function WIPPage() {
  ];
 
  return (
- <div className="w-full min-h-screen bg-gradient-to-br from-gray-50 to-white odi-kids-font pt-20">
+ <div className="w-full min-h-screen bg-white text-neutral-900 odi-kids-font pt-20 selection:bg-indigo-100">
  {/* Back Button */}
  <motion.button
  initial={{ opacity: 0, x: -20 }}
  animate={{ opacity: 1, x: 0 }}
  transition={{ duration: 0.5 }}
  onClick={() => navigate('/')}
- className="fixed top-24 left-6 z-50 flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm rounded-full border-2 border-[#FF6B9D]/20 hover:border-[#FF6B9D]/40 transition-all shadow-lg hover:shadow-xl group"
+ className="fixed top-24 left-6 z-50 flex items-center gap-2 px-4 py-2 bg-white rounded-full border border-neutral-200 hover:border-neutral-300 transition-all shadow-sm hover:shadow-md group"
  >
  <ArrowLeft className="w-4 h-4 text-[#FF6B9D] group-hover:-translate-x-1 transition-transform"/>
  <span className="text-sm font-semibold text-gray-700">Back to ODI</span>
  </motion.button>
 
  {/* Hero Section */}
- <section className="min-h-[60vh] flex items-center justify-center relative overflow-hidden px-4 md:px-6 lg:px-8 py-20 bg-gradient-to-br from-[#FFF5F7] via-[#FFF9E6] to-[#F0F9FF]">
+ <section className="min-h-[60vh] flex items-center justify-center relative overflow-hidden px-4 md:px-6 lg:px-8 py-20 bg-neutral-50 border-b border-neutral-100">
  {/* Animated background */}
  <div className="absolute inset-0 overflow-hidden opacity-30">
  {[...Array(6)].map((_, i) => (
@@ -460,22 +460,22 @@ export function WIPPage() {
  </section>
 
  {/* CTA Section */}
- <section className="py-20 px-4 md:px-6 lg:px-8 bg-gradient-to-r from-[#7C3AED] via-[#FF6B9D] to-[#FFB800]">
+ <section className="py-32 px-4 md:px-6 lg:px-8 bg-white text-center border-t border-neutral-100">
  <motion.div
  initial={{ opacity: 0, y: 40 }}
  whileInView={{ opacity: 1, y: 0 }}
  viewport={{ once: true }}
  className="max-w-4xl mx-auto text-center"
  >
- <h3 className="text-3xl md:text-4xl lg:text-5xl font-black text-white mb-6">
+ <h3 className="text-4xl md:text-5xl lg:text-6xl font-black text-neutral-900 mb-6 tracking-tight">
  Let's Build the Future of Learning
  </h3>
- <p className="text-lg md:text-xl text-white/90 mb-8 font-semibold">
+ <p className="text-lg md:text-xl text-neutral-500 mb-12 font-medium">
  This vision is just the beginning. Stay tuned for updates as we bring this experience to life.
  </p>
  <button
  onClick={() => navigate('/')}
- className="px-8 py-4 bg-white text-[#7C3AED] rounded-2xl font-black text-lg shadow-2xl hover:scale-105 transition-transform"
+ className="px-10 py-5 bg-neutral-900 text-white hover:bg-neutral-800 rounded-full font-black tracking-widest uppercase text-sm transition-all shadow-xl hover:-translate-y-0.5"
  >
  Back to ODI
  </button>

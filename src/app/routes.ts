@@ -9,20 +9,18 @@ import ProductsPage from"./pages/ProductsPage";
 import WorkPage from"./pages/WorkPage";
 import AboutPage from"./pages/AboutPage";
 import CareersPage from"./pages/CareersPage";
-import ContactPage from"./pages/ContactPage";
+import ContactPage from "./pages/ContactPage";
+import LearnMorePage from "./pages/LearnMorePage";
 import IndustriesPage from"./pages/industriesPage";
-import IndustryOTTPlatforms from"./pages/IndustryOTTPlatforms";
-import IndustryFilmStudios from"./pages/IndustryFilmStudios";
-import IndustryAdvertisingAgencies from"./pages/IndustryAdvertisingAgencies";
-import IndustryCreatorsInfluencers from"./pages/IndustryCreatorsInfluencers";
-import IndustryDocumentaryTeams from"./pages/IndustryDocumentaryTeams";
-import IndustryMusicLabels from"./pages/IndustryMusicLabels";
 import Service3DMovieConversion from"./pages/Service3DMovieConversion";
 import Service3DShortFilms from"./pages/Service3DShortFilms";
 import Service3DReelsVertical from"./pages/Service3DReelsVertical";
 import ServiceImmersiveAdvertising from"./pages/ServiceImmersiveAdvertising";
 import ServiceDepthCompositing from"./pages/ServiceDepthCompositing";
 import ServiceVRVisionPro from"./pages/ServiceVRVisionPro";
+import SpaceExplorerPage from"./pages/SpaceExplorerPage.tsx";
+import CheckoutPage from"./pages/CheckoutPage";
+import Service3DBook from "./pages/Service3DBook.tsx";
 
 export const router = createBrowserRouter([
  {
@@ -55,32 +53,12 @@ export const router = createBrowserRouter([
  Component: IndustriesPage,
  },
  {
- path:"industries/ott-platforms",
- Component: IndustryOTTPlatforms,
- },
- {
- path:"industries/film-studios",
- Component: IndustryFilmStudios,
- },
- {
- path:"industries/advertising-agencies",
- Component: IndustryAdvertisingAgencies,
- },
- {
- path:"industries/creators-influencers",
- Component: IndustryCreatorsInfluencers,
- },
- {
- path:"industries/documentary-teams",
- Component: IndustryDocumentaryTeams,
- },
- {
- path:"industries/music-labels",
- Component: IndustryMusicLabels,
- },
- {
  path:"services/3d-movie-conversion",
  Component: Service3DMovieConversion,
+ },
+ {
+ path:"services/3d-books",
+ Component: Service3DBook,
  },
  {
  path:"services/3d-short-films",
@@ -107,6 +85,14 @@ export const router = createBrowserRouter([
  Component: ProductsPage,
  },
  {
+ path:"products/space-explorer",
+ Component: SpaceExplorerPage,
+ },
+ {
+ path:"checkout",
+ Component: CheckoutPage,
+ },
+ {
  path:"work",
  Component: WorkPage,
  },
@@ -117,6 +103,10 @@ export const router = createBrowserRouter([
  {
  path:"contact",
  Component: ContactPage,
+ },
+ {
+ path:"learn-more",
+ Component: LearnMorePage,
  },
  ],
  },

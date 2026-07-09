@@ -4,7 +4,7 @@ import { ODIKidsLogoShowcase } from '../components/ODIKidsLogoVariants';
 import { ODIKidsHorizontalLogo, ODIKidsHorizontalLogoCentered, ODIKidsHorizontalLogoShowcase } from '../components/ODIKidsHorizontalLogo';
 import { ImageWithFallback } from '../components/figma/ImageWithFallback';
 import { useNavigate } from 'react-router';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, ChevronRight } from 'lucide-react';
 
 export function ODIKidsPage() {
  const navigate = useNavigate();
@@ -113,9 +113,7 @@ export function ODIKidsPage() {
  <span className="text-lg font-black text-white tracking-wide">
  View Product Vision
  </span>
- <svg className="w-5 h-5 text-white group-hover:translate-x-1 transition-transform"fill="none"viewBox="0 0 24 24"stroke="currentColor">
- <path strokeLinecap="round"strokeLinejoin="round"strokeWidth={3} d="M9 5l7 7-7 7"/>
- </svg>
+ <ChevronRight className="w-5 h-5 text-white group-hover:translate-x-1 transition-transform" strokeWidth={3} />
  </div>
  </motion.button>
  </motion.div>
@@ -711,9 +709,7 @@ export function ODIKidsPage() {
  className="inline-flex items-center gap-2 px-8 py-4 bg-white text-[#7C3AED] rounded-xl font-black shadow-lg hover:scale-105 transition-transform"
  >
  <span>Explore Full Product Vision</span>
- <svg className="w-5 h-5"fill="none"viewBox="0 0 24 24"stroke="currentColor">
- <path strokeLinecap="round"strokeLinejoin="round"strokeWidth={3} d="M9 5l7 7-7 7"/>
- </svg>
+ <ChevronRight className="w-5 h-5" strokeWidth={3} />
  </button>
  </div>
  </motion.div>

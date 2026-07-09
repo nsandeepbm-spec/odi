@@ -1,173 +1,226 @@
 import { motion } from 'motion/react';
 import { 
- Film, 
- Tv, 
- Users, 
- Sparkles, 
- Music, 
- FileText, 
- ArrowRight,
- MessageSquare
+  Film, 
+  Tv, 
+  Users, 
+  Sparkles, 
+  Music, 
+  FileText, 
+  ArrowRight
 } from 'lucide-react';
 import { Link } from 'react-router';
 
+// ─── PLACEHOLDER COMPONENT ───────────────────────────────────────────────────
+function ImagePlaceholder({ height = 400, label = 'Image Placeholder' }: { height?: number; label?: string }) {
+  return (
+    <div 
+      className="w-full flex items-center justify-center rounded-3xl bg-neutral-50/50 border-2 border-dashed border-neutral-200"
+      style={{ height }}
+    >
+      <span className="text-sm font-bold tracking-widest uppercase text-neutral-400">{label}</span>
+    </div>
+  );
+}
+
 const industries = [
- {
- icon: Tv,
- title: 'OTT PLATFORMS',
- description: 'Streaming content optimization for Netflix, Apple TV+, Disney+, and emerging immersive platforms looking to lead the market.',
- tags: ['Series & Originals', 'Catalog Enhancement', 'Premium Tiers'],
- link: '/industries/ott-platforms'
- },
- {
- icon: Film,
- title: 'FILM STUDIOS',
- description: 'Feature films, theatrical releases, and premium content for major studios and independent filmmakers seeking depth.',
- tags: ['Feature Films', 'Theatrical Distribution', 'Archive Projects'],
- link: '/industries/film-studios'
- },
- {
- icon: Sparkles,
- title: 'ADVERTISING AGENCIES',
- description: 'High-impact brand campaigns, commercials, and experiential content that drives engagement through spatial storytelling.',
- tags: ['TV Commercials', 'Brand Films', 'Product Launches'],
- link: '/industries/advertising-agencies'
- },
- {
- icon: Users,
- title: 'CREATORS & INFLUENCERS',
- description: 'Stand out on social media with immersive reels, shorts, and modern vertical content designed for the next gen of mobile viewing.',
- tags: ['Instagram Reels', 'YouTube Shorts', 'TikTok Content'],
- link: '/industries/creators-influencers'
- },
- {
- icon: FileText,
- title: 'DOCUMENTARY TEAMS',
- description: 'Bring educational and documentary content to life with depth that enhances storytelling and audience immersion.',
- tags: ['Nature Docs', 'Educational Content', 'Cultural Films'],
- link: '/industries/documentary-teams'
- },
- {
- icon: Music,
- title: 'MUSIC LABELS',
- description: 'Transform music videos into immersive experiences for artists, labels, and streaming platforms to connect with fans.',
- tags: ['Music Videos', 'Concert Films', 'Visual Albums'],
- link: '/industries/music-labels'
- }
+  {
+    icon: Tv,
+    title: 'OTT PLATFORMS',
+    headline: 'Bringing Streaming Into Stereoscopic 3D',
+    description: 'We convert films, series, and originals into premium stereoscopic 3D, giving audiences a richer viewing experience while preserving the original creative vision.',
+    tags: ['Series & Originals', 'Content Library Conversion', 'Premium Spatial Releases'],
+  },
+  {
+    icon: Film,
+    title: 'FILM STUDIOS',
+    headline: 'Cinema, Reimagined in 3D',
+    description: 'From new releases to archive titles, we create natural stereoscopic 3D conversions that enhance storytelling without compromising the director\'s vision.',
+    tags: ['Feature Films', 'Theatrical Releases', 'Library Restoration'],
+  },
+  {
+    icon: Sparkles,
+    title: 'ADVERTISING AGENCIES',
+    headline: 'Campaigns With Real Presence',
+    description: 'We transform commercials and brand films into stereoscopic 3D experiences that capture attention and create stronger audience engagement.',
+    tags: ['TV Commercials', 'Brand Films', 'Product Launches'],
+  },
+  {
+    icon: Users,
+    title: 'CREATORS & INFLUENCERS',
+    headline: 'Content That Feels Closer',
+    description: 'Turn everyday videos into immersive stereoscopic experiences for modern spatial platforms, helping your audience connect in a whole new way.',
+    tags: ['Instagram Reels', 'YouTube Shorts', 'TikTok Content'],
+  },
+  {
+    icon: FileText,
+    title: 'DOCUMENTARY TEAMS',
+    headline: 'Reality, Experienced in 3D',
+    description: 'We convert documentary footage into stereoscopic 3D, preserving natural depth while making every landscape, subject, and moment feel more lifelike.',
+    tags: ['Nature Documentaries', 'Educational Content', 'Cultural Films'],
+  },
+  {
+    icon: Music,
+    title: 'MUSIC LABELS',
+    headline: 'Feel Every Performance',
+    description: 'From music videos to live concerts, we create stereoscopic 3D experiences that bring fans closer to every performance.',
+    tags: ['Music Videos', 'Concert Films', 'Visual Albums'],
+  }
 ];
 
 export default function IndustriesPage() {
- return (
- <div className="min-h-screen bg-[#0D1B2A] text-white pt-28 md:pt-36 pb-24">
- <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
- 
- {/* --- HERO BANNER SECTION --- */}
- <motion.section 
- initial={{ opacity: 0, y: 20 }}
- animate={{ opacity: 1, y: 0 }}
- transition={{ duration: 0.8 }}
- className="relative w-full h-[400px] md:h-[500px] rounded-[2rem] overflow-hidden mb-20 border border-white/10 shadow-2xl"
- >
- {/* Background Image - Cinematic & High Tech */}
- <img 
- src="https://images.unsplash.com/photo-1478720568477-152d9b164e26?auto=format&fit=crop&q=80&w=2070"
- alt="Cinematic Industry Header"
- className="absolute inset-0 w-full h-full object-cover"
- />
- 
- {/* Professional Overlay Gradients */}
- <div className="absolute inset-0 bg-gradient-to-t from-[#0D1B2A] via-[#0D1B2A]/40 to-transparent"/>
- <div className="absolute inset-0 bg-black/30"/>
+  return (
+    <div className="min-h-screen bg-white text-neutral-900 pt-28 md:pt-36 pb-24 selection:bg-indigo-100 font-sans">
+      
+      {/* ────────────────────────────────────────────────────────────────────────
+          HERO BANNER
+          ──────────────────────────────────────────────────────────────────────── */}
+      <section className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 mb-32">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+          className="relative w-full h-[500px] md:h-[600px] rounded-[3rem] overflow-hidden border border-neutral-100 shadow-2xl group"
+        >
+          {/* Background Image */}
+          <img 
+            src="/industries_hero.png"
+            alt="Cinematic Industry Header"
+            className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
+          />
+          
+          {/* Professional Overlay Gradients */}
+          <div className="absolute inset-0 bg-neutral-900/70 transition-opacity duration-700"/>
 
- {/* Content inside the Banner */}
- <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6">
- <motion.div
- initial={{ opacity: 0, scale: 0.9 }}
- animate={{ opacity: 1, scale: 1 }}
- transition={{ delay: 0.2, duration: 0.6 }}
- >
- <h1 className="text-5xl md:text-7xl lg:text-8xl font-black mb-6 tracking-tighter text-white drop-shadow-2xl">
- INDUSTRIES WE <span className="bg-gradient-to-r from-[#06B6D4] to-[#3B82F6] bg-clip-text text-transparent">SERVE</span>
- </h1>
- <p className="text-lg md:text-xl text-white/80 font-light max-w-2xl mx-auto leading-relaxed drop-shadow-lg">
- Trusted by leading studios and creators worldwide for premium immersive content and spatial technology.
- </p>
- </motion.div>
- </div>
- </motion.section>
+          {/* Content inside the Banner */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.2, duration: 0.6 }}
+            >
+              <div className="flex items-center justify-center gap-4 mb-6">
+                <div className="h-px bg-white/30 w-12"></div>
+                <span className="text-white font-bold tracking-widest text-[11px] uppercase">Every Story Deserves a New Dimension</span>
+                <div className="h-px bg-white/30 w-12"></div>
+              </div>
+              <h1 className="text-5xl md:text-7xl lg:text-8xl font-black mb-6 tracking-tight text-white drop-shadow-md">
+                INDUSTRIES WE <span className="bg-gradient-to-r from-cyan-300 via-indigo-300 to-purple-400 bg-clip-text text-transparent">SERVE</span>
+              </h1>
+              <p className="text-lg md:text-2xl text-white/90 font-medium max-w-3xl mx-auto leading-relaxed drop-shadow-md">
+                We partner with filmmakers, streaming platforms, agencies, creators, and brands to transform 2D content into natural stereoscopic 3D experiences—crafted for cinema, spatial devices, and the future of immersive storytelling.
+              </p>
+            </motion.div>
+          </div>
+        </motion.div>
+      </section>
 
- {/* --- INDUSTRIES GRID --- */}
- <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
- {industries.map((industry, index) => (
- <motion.div
- key={industry.title}
- initial={{ opacity: 0, y: 20 }}
- whileInView={{ opacity: 1, y: 0 }}
- viewport={{ once: true }}
- transition={{ duration: 0.5, delay: index * 0.1 }}
- className="group flex flex-col p-8 rounded-[1.5rem] bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] hover:border-[#06B6D4]/30 transition-all duration-500 shadow-lg"
- >
- <div className="mb-6">
- <div className="w-14 h-14 rounded-2xl bg-white/[0.03] border border-white/5 flex items-center justify-center group-hover:bg-[#06B6D4]/10 transition-colors">
- <industry.icon className="w-8 h-8 text-[#06B6D4] group-hover:scale-110 transition-transform duration-300"strokeWidth={1.5} />
- </div>
- </div>
- 
- <h3 className="text-xl font-bold mb-4 tracking-wider text-white uppercase">
- {industry.title}
- </h3>
- 
- <p className="text-white/50 text-base leading-relaxed mb-8 font-light flex-grow">
- {industry.description}
- </p>
- 
- <div className="flex flex-wrap gap-2 mb-8 mt-auto">
- {industry.tags.map(tag => (
- <span 
- key={tag}
- className="px-3 py-1.5 text-[10px] uppercase tracking-wider font-bold text-white/40 bg-white/5 rounded-md border border-white/5 group-hover:border-[#06B6D4]/20 transition-colors"
- >
- {tag}
- </span>
- ))}
- </div>
- 
- <div className="pt-6 border-t border-white/5 group-hover:border-white/10 transition-colors">
- <Link 
- to={industry.link}
- className="inline-flex items-center gap-2 text-sm font-semibold text-[#06B6D4] hover:text-[#3B82F6] transition-colors group/link"
- >
- Explore Industry 
- <ArrowRight className="w-4 h-4 group-hover/link:translate-x-1 transition-transform"/>
- </Link>
- </div>
- </motion.div>
- ))}
- </div>
+      {/* ────────────────────────────────────────────────────────────────────────
+          WHY SPATIAL TECH? (VALUE PROP)
+          ──────────────────────────────────────────────────────────────────────── */}
+      <section className="bg-neutral-50 py-32 border-y border-neutral-100 mb-32">
+        <div className="max-w-screen-xl mx-auto px-6 md:px-12 lg:px-16 text-center">
+          <h2 className="text-4xl md:text-5xl font-black tracking-tight mb-8">Why Depth Matters</h2>
+          <p className="text-xl md:text-2xl text-neutral-500 font-medium leading-relaxed max-w-4xl mx-auto mb-16">
+            When a story is told in three dimensions, it stops being something you just watch and becomes something you feel. A wildlife scene feels grander. A dramatic moment feels closer. Depth doesn't just change the picture—it changes how people experience the story you're trying to tell.
+          </p>
+        </div>
+      </section>
 
- {/* --- CTA SECTION --- */}
- <motion.div
- initial={{ opacity: 0, y: 30 }}
- whileInView={{ opacity: 1, y: 0 }}
- viewport={{ once: true }}
- className="mt-32 p-12 md:p-20 rounded-[3rem] bg-gradient-to-br from-white/[0.03] to-transparent border border-white/5 text-center relative overflow-hidden"
- >
- {/* Subtle Glow Effect */}
- <div className="absolute -top-24 -left-24 w-64 h-64 bg-[#06B6D4]/10 blur-[100px]"/>
- 
- <h2 className="text-3xl md:text-5xl font-black mb-6 tracking-tight">DON'T SEE YOUR INDUSTRY?</h2>
- <p className="text-white/50 mb-10 max-w-2xl mx-auto font-light text-lg">
- Our technology is adaptable across entertainment, medical, architecture, and education. Let's build your custom immersive solution.
- </p>
- <Link 
- to="/contact"
- className="inline-flex items-center gap-3 px-10 py-5 bg-white text-[#0D1B2A] hover:bg-[#06B6D4] hover:text-white rounded-full font-bold transition-all duration-300 shadow-xl"
- >
- <MessageSquare className="w-5 h-5"/>
- Start a Conversation
- </Link>
- </motion.div>
- </div>
- </div>
- );
+      {/* ────────────────────────────────────────────────────────────────────────
+          INDUSTRY SECTIONS (ALTERNATING BLOCKS)
+          ──────────────────────────────────────────────────────────────────────── */}
+      <section className="max-w-screen-xl mx-auto px-6 md:px-12 lg:px-16 space-y-40 mb-40">
+        {industries.map((industry, index) => {
+          const isEven = index % 2 === 0;
+          
+          return (
+            <div key={industry.title} className={`flex flex-col lg:flex-row items-center gap-16 ${isEven ? '' : 'lg:flex-row-reverse'}`}>
+              
+              {/* Image Side */}
+              <motion.div 
+                initial={{ opacity: 0, x: isEven ? -50 : 50 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6 }}
+                className="w-full lg:w-1/2"
+              >
+                <div className="rounded-[2.5rem] p-4 bg-neutral-50 border border-neutral-100 shadow-xl">
+                  <ImagePlaceholder height={450} label={`${industry.title} Mockup`} />
+                </div>
+              </motion.div>
+
+              {/* Text Side */}
+              <motion.div 
+                initial={{ opacity: 0, x: isEven ? 50 : -50 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: 0.2 }}
+                className="w-full lg:w-1/2 flex flex-col"
+              >
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-14 h-14 rounded-2xl bg-indigo-50 flex items-center justify-center shadow-sm">
+                    <industry.icon className="w-6 h-6 text-indigo-500" strokeWidth={2.5} />
+                  </div>
+                  <span className="text-indigo-500 font-black tracking-widest uppercase text-sm">{industry.title}</span>
+                </div>
+                
+                <h3 className="text-4xl md:text-5xl font-black mb-6 tracking-tight text-neutral-900 leading-tight">
+                  {industry.headline}
+                </h3>
+                
+                <p className="text-lg md:text-xl text-neutral-500 font-medium leading-relaxed mb-10">
+                  {industry.description}
+                </p>
+
+                <div className="flex flex-wrap gap-3 mb-10">
+                  {industry.tags.map(tag => (
+                    <span 
+                      key={tag}
+                      className="px-4 py-2 text-xs uppercase tracking-widest font-black text-neutral-600 bg-neutral-100 rounded-full"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+
+                <div>
+                  <Link 
+                    to="/contact"
+                    className="inline-flex px-8 py-4 bg-neutral-900 text-white hover:bg-neutral-800 rounded-full font-black tracking-widest uppercase text-xs transition-all shadow-xl hover:-translate-y-0.5 items-center gap-2"
+                  >
+                    Partner With Us <ArrowRight className="w-4 h-4"/>
+                  </Link>
+                </div>
+              </motion.div>
+
+            </div>
+          );
+        })}
+      </section>
+
+      {/* ────────────────────────────────────────────────────────────────────────
+          FINAL CTA
+          ──────────────────────────────────────────────────────────────────────── */}
+      <section className="bg-neutral-900 text-white py-32 border-y border-neutral-800">
+        <div className="max-w-3xl mx-auto px-6 text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            <h2 className="text-5xl md:text-6xl font-black mb-8 tracking-tight">
+              Let's Build Something Real.
+            </h2>
+            <p className="text-xl text-neutral-400 font-medium leading-relaxed mb-12">
+              Every project is different, and we treat each one like a blank canvas. Let's talk about how we can bring true depth to your next idea.
+            </p>
+            <Link to="/contact" className="inline-flex px-10 py-5 bg-white text-neutral-900 hover:bg-neutral-200 rounded-full font-black tracking-widest uppercase text-sm transition-all shadow-xl hover:-translate-y-0.5 items-center gap-3">
+              Start Your Project <ArrowRight className="w-4 h-4"/>
+            </Link>
+          </motion.div>
+        </div>
+      </section>
+
+    </div>
+  );
 }

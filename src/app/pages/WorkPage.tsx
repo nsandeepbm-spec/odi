@@ -31,7 +31,7 @@ const showcaseItems = [
 
 export default function WorkPage() {
  return (
- <div className="min-h-screen bg-[#0D1B2A] text-white pt-24 md:pt-32 pb-20">
+ <div className="min-h-screen bg-white text-neutral-900 pt-24 md:pt-32 pb-24 selection:bg-indigo-100">
  <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
  <motion.div
  initial={{ opacity: 0, y: 20 }}
@@ -39,10 +39,15 @@ export default function WorkPage() {
  transition={{ duration: 0.6 }}
  className="text-center mb-16 md:mb-24"
  >
- <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 bg-gradient-to-r from-[#06B6D4] to-[#FF6B9D] bg-clip-text text-transparent">
- WORK / PORTFOLIO
+ <div className="flex items-center justify-center gap-4 mb-4">
+    <div className="h-px bg-indigo-500/30 w-8"></div>
+    <span className="text-indigo-500 font-bold tracking-widest text-[11px] uppercase">Portfolio</span>
+    <div className="h-px bg-indigo-500/30 w-8"></div>
+ </div>
+ <h1 className="text-4xl md:text-5xl lg:text-7xl font-black mb-6 tracking-tight text-neutral-900">
+ OUR <span className="bg-gradient-to-r from-cyan-400 via-indigo-500 to-purple-600 bg-clip-text text-transparent">WORK</span>
  </h1>
- <p className="text-xl md:text-2xl text-white/90 max-w-3xl mx-auto font-medium">
+ <p className="text-lg md:text-xl text-neutral-500 font-medium max-w-3xl mx-auto leading-relaxed">
  Our work focuses on creating visually immersive experiences with precision and quality.
  </p>
  </motion.div>
@@ -54,27 +59,25 @@ export default function WorkPage() {
  initial={{ opacity: 0, y: 30 }}
  animate={{ opacity: 1, y: 0 }}
  transition={{ duration: 0.6, delay: index * 0.15 }}
- className="relative group rounded-2xl overflow-hidden bg-white/5 border border-white/10"
+ className="relative group rounded-3xl overflow-hidden bg-neutral-50 border border-neutral-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-500"
  >
  {/* Card Image */}
- <div className="aspect-video bg-[#1B263B] relative overflow-hidden">
+ <div className="aspect-video bg-neutral-100 relative overflow-hidden">
  <img
  src={item.image}
  alt={item.title}
- className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+ className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
  />
- <div className={`absolute inset-0 bg-gradient-to-br ${item.color} opacity-10 group-hover:opacity-30 transition-opacity duration-300`} />
+ <div className="absolute inset-0 bg-neutral-900/10 group-hover:bg-transparent transition-colors duration-500" />
  </div>
  
  <div className="p-8">
- <h3 className="text-2xl font-bold mb-4">{item.title}</h3>
- <p className="text-white/60 leading-relaxed">
+ <h3 className="text-2xl font-bold mb-4 text-neutral-900">{item.title}</h3>
+ <p className="text-neutral-500 leading-relaxed text-base">
  {item.description}
  </p>
  </div>
  
- {/* Bottom Glow */}
- <div className={`absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r ${item.color} transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-300`} />
  </motion.div>
  ))}
  </div>
@@ -85,19 +88,18 @@ export default function WorkPage() {
  whileInView={{ opacity: 1, y: 0 }}
  viewport={{ once: true }}
  transition={{ duration: 0.8 }}
- className="mt-32"
+ className="mt-32 pt-16 border-t border-neutral-100"
  >
  <div className="text-center mb-16">
- <h2 className="text-3xl md:text-4xl font-bold mb-6 text-white">
- Our Process
+ <h2 className="text-4xl md:text-5xl font-black mb-6 text-neutral-900 tracking-tight">
+ Our Process.
  </h2>
- <div className="w-24 h-1 bg-gradient-to-r from-[#8B5CF6] to-[#06B6D4] mx-auto rounded-full mb-8"/>
- <p className="text-lg text-white/70 max-w-2xl mx-auto">
+ <p className="text-lg text-neutral-500 max-w-2xl mx-auto font-medium">
  We employ a meticulous, step-by-step approach to ensure the highest quality stereoscopic 3D conversion and VFX integration for every frame.
  </p>
  </div>
 
- <div className="grid md:grid-cols-4 gap-8">
+ <div className="grid md:grid-cols-4 gap-6">
  {[
  { step: '01', title: 'Analysis', desc: 'Evaluating source footage and defining the depth budget and creative vision.' },
  { step: '02', title: 'Roto & Prep', desc: 'Precise rotoscoping and clean-plating to isolate elements for spatial manipulation.' },
@@ -110,13 +112,13 @@ export default function WorkPage() {
  whileInView={{ opacity: 1, y: 0 }}
  viewport={{ once: true }}
  transition={{ duration: 0.5, delay: idx * 0.15 }}
- className="bg-[#1B263B]/50 p-8 rounded-2xl border border-white/5 hover:border-white/10 transition-colors relative overflow-hidden group"
+ className="bg-neutral-50 p-8 rounded-3xl border border-neutral-100 hover:bg-white hover:border-indigo-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-500 relative overflow-hidden group"
  >
- <div className="text-5xl font-extrabold text-white/5 mb-6 group-hover:text-white/10 transition-colors duration-300">
+ <div className="text-5xl font-black text-neutral-100 mb-6 group-hover:text-indigo-50 transition-colors duration-500">
  {process.step}
  </div>
- <h3 className="text-xl font-bold mb-4 text-white/90">{process.title}</h3>
- <p className="text-white/60 text-sm leading-relaxed">
+ <h3 className="text-xl font-bold mb-3 text-neutral-900">{process.title}</h3>
+ <p className="text-neutral-500 text-sm leading-relaxed">
  {process.desc}
  </p>
  </motion.div>

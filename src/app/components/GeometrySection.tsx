@@ -1,4 +1,5 @@
 import { motion } from 'motion/react';
+import { Box, ArrowUpDown, Music } from 'lucide-react';
 import { ODILogo } from './ODILogo';
 
 export function GeometrySection() {
@@ -64,9 +65,7 @@ export function GeometrySection() {
  <div className="space-y-4">
  <div className="flex items-start gap-4 p-4 bg-white rounded-xl border border-gray-200">
  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#06B6D4] to-[#0891B2] flex items-center justify-center flex-shrink-0">
- <svg className="w-5 h-5 text-white"fill="none"viewBox="0 0 24 24"stroke="currentColor">
- <path strokeLinecap="round"strokeLinejoin="round"strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
- </svg>
+ <Box className="w-5 h-5 text-white" strokeWidth={2} />
  </div>
  <div>
  <h5 className="font-semibold text-gray-900 mb-1">Dimensional Depth</h5>
@@ -76,9 +75,7 @@ export function GeometrySection() {
 
  <div className="flex items-start gap-4 p-4 bg-white rounded-xl border border-gray-200">
  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#7C3AED] to-[#9333EA] flex items-center justify-center flex-shrink-0">
- <svg className="w-5 h-5 text-white"fill="none"viewBox="0 0 24 24"stroke="currentColor">
- <path strokeLinecap="round"strokeLinejoin="round"strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/>
- </svg>
+ <ArrowUpDown className="w-5 h-5 text-white" strokeWidth={2} />
  </div>
  <div>
  <h5 className="font-semibold text-gray-900 mb-1">Stereo Separation</h5>
@@ -88,9 +85,7 @@ export function GeometrySection() {
 
  <div className="flex items-start gap-4 p-4 bg-white rounded-xl border border-gray-200">
  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#06B6D4] via-[#8B5CF6] to-[#7C3AED] flex items-center justify-center flex-shrink-0">
- <svg className="w-5 h-5 text-white"fill="none"viewBox="0 0 24 24"stroke="currentColor">
- <path strokeLinecap="round"strokeLinejoin="round"strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/>
- </svg>
+ <Music className="w-5 h-5 text-white" strokeWidth={2} />
  </div>
  <div>
  <h5 className="font-semibold text-gray-900 mb-1">Sound Wave Portal</h5>

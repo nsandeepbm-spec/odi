@@ -1,184 +1,255 @@
 import { motion } from 'motion/react';
-import { Film, Check } from 'lucide-react';
+import { Layers, Scissors, Sliders, PenTool, Focus, CheckCircle, ArrowRight, Play, ArrowDown } from 'lucide-react';
+import { Link } from 'react-router';
+
+// ─── PLACEHOLDER COMPONENT ───────────────────────────────────────────────────
+function ImagePlaceholder({ height = 400, label = 'Image Placeholder' }: { height?: number; label?: string }) {
+  return (
+    <div 
+      className="w-full flex items-center justify-center rounded-3xl bg-neutral-50/50 border-2 border-dashed border-neutral-200"
+      style={{ height }}
+    >
+      <span className="text-sm font-bold tracking-widest uppercase text-neutral-400">{label}</span>
+    </div>
+  );
+}
 
 export default function Service3DMovieConversion() {
  return (
- <div className="min-h-screen bg-[#0D1B2A] text-white pt-24 md:pt-32 pb-24">
- <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 space-y-12">
+ <div className="min-h-screen bg-white text-neutral-900 pt-24 md:pt-32 pb-24 selection:bg-indigo-100 font-sans">
  
- {/* 1. Hero Section */}
- <motion.section 
- initial={{ opacity: 0, y: 20 }}
- animate={{ opacity: 1, y: 0 }}
- transition={{ duration: 0.6 }}
- className="relative overflow-hidden rounded-[2rem] bg-[#0A111A]/80 border border-white/5 shadow-2xl flex flex-col md:flex-row items-center"
- >
- <div className="p-10 md:p-16 lg:w-1/2 relative z-10">
- <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#06B6D4]/20 to-[#3B82F6]/20 flex items-center justify-center mb-8 border border-[#06B6D4]/20 shadow-[0_0_20px_rgba(6,182,212,0.15)]">
- <Film className="w-8 h-8 text-[#06B6D4]"strokeWidth={1.5} />
- </div>
- 
- <h1 className="text-4xl md:text-5xl font-black mb-6 tracking-tight">
- 3D MOVIE CONVERSION
- </h1>
- 
- <h2 className="text-xl md:text-2xl text-white/90 font-medium mb-6 leading-snug">
- Feature-length cinematic depth conversion with frame-by-frame precision
- </h2>
- 
- <p className="text-white/60 text-lg leading-relaxed font-light">
- Transform your feature films into premium 3D experiences with our conversion process that's a step ahead of the rest. With 14 years of expertise, we deliver theatrical-grade depth that improves and refines storytelling while maintaining the director's original vision.
- </p>
- </div>
- 
- <div className="w-full lg:w-1/2 h-[400px] md:h-full relative min-h-[400px]">
- {/* Glowing gradient behind the image */}
- <div className="absolute inset-0 bg-gradient-to-l from-transparent to-[#0A111A]/80 z-10"/>
- <img 
- src="https://images.unsplash.com/photo-1617802690992-15d93263d3a9?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80"
- alt="3D Movie Conversion"
- className="absolute inset-0 w-full h-full object-cover object-center"
- />
- </div>
- </motion.section>
+  {/* ────────────────────────────────────────────────────────────────────────
+      HERO SECTION
+      ──────────────────────────────────────────────────────────────────────── */}
+  <section className="max-w-screen-xl mx-auto px-6 md:px-12 lg:px-16 mb-32">
+    <div className="grid lg:grid-cols-2 gap-16 items-center">
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        className="flex flex-col"
+      >
+        <div className="flex items-center gap-4 mb-6">
+          <span className="text-indigo-500 font-bold tracking-widest text-[11px] uppercase">Stereo Conversion</span>
+          <div className="h-px bg-indigo-500/30 w-12"></div>
+        </div>
+        
+        <h1 className="text-5xl md:text-6xl lg:text-7xl font-black mb-8 tracking-tight leading-[1.05]">
+          Bring Every Frame Into{' '}
+          <span className="bg-gradient-to-r from-cyan-400 via-indigo-500 to-purple-600 bg-clip-text text-transparent">Real Depth.</span>
+        </h1>
+        
+        <p className="text-lg md:text-xl text-neutral-500 font-medium leading-relaxed mb-10 max-w-lg">
+          Stereo conversion transforms standard 2D footage into a natural stereoscopic 3D experience. Every shot is carefully rebuilt with accurate depth, making scenes feel larger, closer, and more immersive without changing the original story.
+        </p>
 
- {/* 2. Theatrical Experience Banner */}
- <motion.section
- initial={{ opacity: 0, y: 20 }}
- whileInView={{ opacity: 1, y: 0 }}
- viewport={{ once: true }}
- transition={{ duration: 0.6 }}
- className="relative overflow-hidden rounded-[2rem] border border-white/5 h-[450px] shadow-2xl flex items-end"
- >
- <img 
- src="https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80"
- alt="Theatrical Experience"
- className="absolute inset-0 w-full h-full object-cover"
- />
- <div className="absolute inset-0 bg-gradient-to-t from-[#0A111A] via-[#0A111A]/60 to-transparent"/>
- 
- <div className="relative z-10 p-10 md:p-16 max-w-3xl">
- <h2 className="text-3xl md:text-4xl font-bold mb-4 tracking-tight">
- THE ULTIMATE THEATRICAL EXPERIENCE
- </h2>
- <p className="text-white/70 text-lg leading-relaxed font-light">
- Our 3D conversion brings audiences deeper into the story, creating an immersive cinematic experience that transforms passive viewing into emotional engagement. Every frame is crafted to enhance depth, dimension, and visual storytelling.
- </p>
- </div>
- </motion.section>
+        <div className="flex flex-wrap gap-4">
+          <Link to="/contact" className="px-8 py-4 bg-neutral-900 text-white hover:bg-neutral-800 rounded-full font-black tracking-widest uppercase text-xs transition-all shadow-xl hover:-translate-y-0.5 flex items-center gap-2">
+            Start Your Project <ArrowRight className="w-4 h-4"/>
+          </Link>
+          <Link to="/work" className="px-8 py-4 bg-white text-neutral-900 border border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50 rounded-full font-black tracking-widest uppercase text-xs transition-all flex items-center gap-2">
+            <Play className="w-4 h-4"/> See Our Work
+          </Link>
+        </div>
+      </motion.div>
+      
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.8, delay: 0.2 }}
+      >
+        <div className="w-full h-[500px] rounded-3xl overflow-hidden shadow-2xl">
+          <img src="/3d conversion hero.png" alt="Stereo Conversion Hero" className="w-full h-full object-cover" />
+        </div>
+      </motion.div>
+    </div>
+  </section>
 
- {/* 3. Comprehensive Features */}
- <motion.section
- initial={{ opacity: 0, y: 20 }}
- whileInView={{ opacity: 1, y: 0 }}
- viewport={{ once: true }}
- transition={{ duration: 0.6 }}
- className="rounded-[2rem] bg-[#0A111A]/80 border border-white/5 p-10 md:p-16 shadow-lg"
- >
- <h2 className="text-2xl md:text-3xl font-bold mb-10 tracking-wide uppercase">
- Comprehensive Features
- </h2>
- 
- <div className="grid md:grid-cols-2 gap-y-6 gap-x-12">
- {[
-"Frame-by-frame depth analysis",
-"Theatrical grade quality",
-"Director-approved workflows",
-"Full-length features (90-180 min)",
-"Multiple output formats",
-"Quality assurance at every stage",
-"Stereo cleanup included",
-"Archive-ready deliverables"
- ].map((feature, index) => (
- <div key={index} className="flex items-center gap-4 group">
- <div className="w-6 h-6 rounded-full bg-[#06B6D4]/10 flex items-center justify-center shrink-0 border border-[#06B6D4]/30">
- <Check className="w-3.5 h-3.5 text-[#06B6D4]"strokeWidth={3} />
- </div>
- <span className="text-white/70 font-medium tracking-wide group-hover:text-white transition-colors">{feature}</span>
- </div>
- ))}
- </div>
- </motion.section>
+  {/* ────────────────────────────────────────────────────────────────────────
+      WHAT IS STEREO CONVERSION
+      ──────────────────────────────────────────────────────────────────────── */}
+  <section className="bg-neutral-50 py-32 border-y border-neutral-100">
+    <div className="max-w-screen-xl mx-auto px-6 md:px-12 lg:px-16">
+      <div className="grid lg:grid-cols-12 gap-16 items-center">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="lg:col-span-5"
+        >
+          <div className="w-full rounded-3xl overflow-hidden shadow-xl border border-neutral-100 bg-white">
+            <img src="/What is Stereo Conversion.png" alt="What is Stereo Conversion" className="w-full h-auto object-cover" />
+          </div>
+        </motion.div>
 
- {/* 4. Process & Deliverables */}
- <div className="grid lg:grid-cols-2 gap-8">
- 
- {/* OUR PROCESS */}
- <motion.section
- initial={{ opacity: 0, y: 20 }}
- whileInView={{ opacity: 1, y: 0 }}
- viewport={{ once: true }}
- transition={{ duration: 0.6 }}
- className="rounded-[2rem] bg-[#0A111A]/80 border border-white/5 p-10 shadow-lg"
- >
- <h2 className="text-2xl md:text-3xl font-bold mb-10 tracking-wide uppercase">
- Our Process
- </h2>
- 
- <div className="space-y-8">
- {[
- { title:"Analysis & Planning", desc:"Deep dive into your film's visual language, shot complexity, and creative goals."},
- { title:"Depth Grading", desc:"Artistic depth mapping that enhances narrative and emotional beats."},
- { title:"Stereo Conversion", desc:"Frame-by-frame conversion with pixel-perfect rotoscoping and depth refinement."},
- { title:"Quality Control", desc:"Multi-stage QC including stereo alignment, ghosting elimination, and director review."},
- { title:"Final Delivery", desc:"Multiple formats delivered: theatrical DCP, streaming masters, and archival files."}
- ].map((step, index) => (
- <div key={index} className="flex gap-6">
- <div className="w-10 h-10 rounded-full bg-[#06B6D4]/10 flex items-center justify-center shrink-0 border border-[#06B6D4]/30 font-bold text-[#06B6D4]">
- {index + 1}
- </div>
- <div>
- <h3 className="text-xl font-bold text-white mb-2">{step.title}</h3>
- <p className="text-white/60 font-light leading-relaxed">{step.desc}</p>
- </div>
- </div>
- ))}
- </div>
- </motion.section>
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.2 }}
+          className="lg:col-span-7"
+        >
+          <h2 className="text-4xl md:text-5xl font-black mb-8 tracking-tight">What is Stereo Conversion?</h2>
+          <div className="space-y-6 text-xl text-neutral-500 font-medium leading-relaxed">
+            <p>
+              Stereo conversion is the process of rebuilding depth from existing 2D footage to create a stereoscopic 3D version suitable for cinemas, museums, and immersive displays.
+            </p>
+            <p>
+              Every frame is treated individually to preserve scale, perspective, and visual comfort.
+            </p>
+          </div>
+        </motion.div>
+      </div>
+    </div>
+  </section>
 
- {/* WHAT YOU GET */}
- <motion.section
- initial={{ opacity: 0, y: 20 }}
- whileInView={{ opacity: 1, y: 0 }}
- viewport={{ once: true }}
- transition={{ duration: 0.6, delay: 0.2 }}
- className="rounded-[2rem] bg-[#0A111A]/80 border border-white/5 p-10 shadow-lg flex flex-col"
- >
- <h2 className="text-2xl md:text-3xl font-bold mb-10 tracking-wide uppercase">
- What You Get
- </h2>
- 
- <ul className="space-y-4 mb-12 flex-grow">
- {[
-"Full 3D feature film",
-"Theatrical DCP (if needed)",
-"Streaming-ready masters",
-"Multiple resolution outputs",
-"Stereo alignment reports",
-"Quality assurance documentation",
-"Archival-grade files"
- ].map((item, index) => (
- <li key={index} className="flex items-center gap-4">
- <div className="w-2 h-2 rounded-full bg-[#06B6D4] shrink-0 shadow-[0_0_10px_rgba(6,182,212,0.5)]"/>
- <span className="text-white/80 font-medium tracking-wide">{item}</span>
- </li>
- ))}
- </ul>
- 
- <div className="rounded-2xl bg-white/[0.03] border border-white/10 p-8">
- <span className="text-white/50 text-sm font-medium uppercase tracking-wider mb-2 block">Investment</span>
- <h3 className="text-3xl font-black mb-4">Custom Quote</h3>
- <p className="text-white/60 font-light text-sm leading-relaxed mb-8">
- Pricing varies based on film length, complexity, and delivery timeline. Contact us for a detailed estimate.
- </p>
- <button className="w-full py-4 rounded-xl font-bold text-white bg-gradient-to-r from-[#06B6D4] to-[#3B82F6] hover:opacity-90 transition-opacity shadow-lg">
- Request Custom Quote
- </button>
- </div>
- </motion.section>
- </div>
- 
- </div>
+  {/* ────────────────────────────────────────────────────────────────────────
+      WHAT WE DELIVER (FEATURE GRID)
+      ──────────────────────────────────────────────────────────────────────── */}
+  <section className="py-32 max-w-screen-xl mx-auto px-6 md:px-12 lg:px-16">
+    <div className="text-center mb-20">
+      <h2 className="text-4xl md:text-5xl font-black tracking-tight mb-6">What We Deliver</h2>
+      <p className="text-xl text-neutral-500 font-medium">Precision at every step of the process.</p>
+    </div>
+
+    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-20">
+      {[
+        { title: 'Accurate Depth Creation', desc: 'Natural stereo depth designed shot by shot.', icon: Layers },
+        { title: 'Rotoscoping', desc: 'Precise object isolation for clean depth separation.', icon: Scissors },
+        { title: 'Depth Grading', desc: 'Balanced depth that feels comfortable to watch.', icon: Sliders },
+        { title: 'Stereo Paint', desc: 'Clean-up of hidden areas revealed during conversion.', icon: PenTool },
+        { title: 'Edge Refinement', desc: 'Smooth silhouettes with stable stereo alignment.', icon: Focus },
+        { title: 'Quality Control', desc: 'Every shot reviewed for consistency and viewer comfort.', icon: CheckCircle },
+      ].map((feature, i) => (
+        <motion.div 
+          key={i}
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ delay: i * 0.1 }}
+          className="p-8 rounded-3xl bg-neutral-50 border border-neutral-100 hover:bg-white hover:shadow-xl hover:-translate-y-1 transition-all duration-500 group"
+        >
+          <div className="w-14 h-14 rounded-full bg-white border border-neutral-100 flex items-center justify-center mb-6 shadow-sm group-hover:bg-indigo-50 group-hover:scale-110 transition-all duration-300">
+            <feature.icon className="w-6 h-6 text-neutral-400 group-hover:text-indigo-500" strokeWidth={2} />
+          </div>
+          <h3 className="text-xl font-bold mb-3 text-neutral-900 tracking-tight">{feature.title}</h3>
+          <p className="text-neutral-500 font-medium leading-relaxed">{feature.desc}</p>
+        </motion.div>
+      ))}
+    </div>
+
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      className="rounded-3xl overflow-hidden shadow-2xl mt-12 border border-neutral-100 bg-white"
+    >
+      <img src="/What We Deliver.png" alt="What We Deliver" className="w-full h-auto object-cover" />
+    </motion.div>
+  </section>
+
+  {/* ────────────────────────────────────────────────────────────────────────
+      INDUSTRIES
+      ──────────────────────────────────────────────────────────────────────── */}
+  <section className="bg-neutral-900 text-white py-32 border-y border-neutral-800">
+    <div className="max-w-screen-xl mx-auto px-6 md:px-12 lg:px-16 text-center">
+      <h2 className="text-4xl md:text-5xl font-black tracking-tight mb-16">Industries We Serve</h2>
+      
+      <div className="flex flex-wrap justify-center gap-4 mb-20 max-w-4xl mx-auto">
+        {[
+          'Movies', 'Streaming Platforms', 'Documentaries', 
+          'Museums', 'Planetariums', 'Advertising', 'Education'
+        ].map((industry, i) => (
+          <motion.span 
+            key={i}
+            initial={{ opacity: 0, scale: 0.9 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ delay: i * 0.05 }}
+            className="px-6 py-3 rounded-full bg-white/10 border border-white/20 font-black tracking-widest uppercase text-xs hover:bg-white hover:text-neutral-900 transition-colors cursor-default"
+          >
+            {industry}
+          </motion.span>
+        ))}
+      </div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        className="rounded-3xl overflow-hidden shadow-2xl mt-12 border border-neutral-800 bg-black max-w-5xl mx-auto"
+      >
+        <img src="/Industries We Serve.png" alt="Industries We Serve" className="w-full h-auto object-cover opacity-90" />
+      </motion.div>
+    </div>
+  </section>
+
+  {/* ────────────────────────────────────────────────────────────────────────
+      OUR WORKFLOW
+      ──────────────────────────────────────────────────────────────────────── */}
+  <section className="py-32 max-w-screen-xl mx-auto px-6 md:px-12 lg:px-16">
+    <div className="text-center mb-20">
+      <h2 className="text-4xl md:text-5xl font-black tracking-tight mb-6">Our Workflow</h2>
+      <p className="text-xl text-neutral-500 font-medium">A systematic pipeline for perfect depth.</p>
+    </div>
+
+    <div className="max-w-4xl mx-auto mb-20 relative">
+      <div className="absolute left-1/2 top-0 bottom-0 w-px bg-neutral-200 -translate-x-1/2 hidden md:block"></div>
+      
+      {[
+        'Discovery', 'Shot Planning', 'Depth Design', 
+        'Stereo Conversion', 'Stereo Paint', 'Quality Review', 'Delivery'
+      ].map((step, i) => (
+        <motion.div 
+          key={i}
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ delay: i * 0.1 }}
+          className={`flex flex-col md:flex-row items-center gap-6 md:gap-12 mb-12 last:mb-0 ${i % 2 === 0 ? 'md:flex-row-reverse' : ''}`}
+        >
+          <div className="md:w-1/2 flex justify-center md:justify-end w-full">
+             <div className={`text-2xl font-black tracking-tight text-neutral-900 ${i % 2 === 0 ? 'md:text-left' : 'md:text-right'}`}>
+               {step}
+             </div>
+          </div>
+          
+          <div className="w-12 h-12 rounded-full bg-neutral-900 border-4 border-white shadow-md flex items-center justify-center shrink-0 z-10 text-white font-black text-sm">
+            {i + 1}
+          </div>
+          
+          <div className="md:w-1/2 flex justify-center md:justify-start w-full opacity-30 hidden md:block">
+            {/* Optional subtext or icon could go here on the opposite side */}
+          </div>
+        </motion.div>
+      ))}
+    </div>
+
+  </section>
+
+  {/* ────────────────────────────────────────────────────────────────────────
+      FINAL CTA
+      ──────────────────────────────────────────────────────────────────────── */}
+  <section className="py-32 bg-neutral-50 text-center border-t border-neutral-100">
+    <div className="max-w-3xl mx-auto px-6">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+      >
+        <h2 className="text-5xl md:text-6xl font-black mb-8 tracking-tight text-neutral-900">
+          Ready to Start 3D Conversion?
+        </h2>
+        <p className="text-xl text-neutral-500 font-medium leading-relaxed mb-12">
+          Whether it's a feature film, commercial, museum experience, or immersive installation, we help transform flat imagery into natural stereoscopic storytelling.
+        </p>
+        <Link to="/contact" className="inline-flex px-10 py-5 bg-neutral-900 text-white hover:bg-neutral-800 rounded-full font-black tracking-widest uppercase text-sm transition-all shadow-xl hover:-translate-y-0.5 items-center gap-3">
+          Let's Talk <ArrowRight className="w-4 h-4"/>
+        </Link>
+      </motion.div>
+    </div>
+  </section>
+
  </div>
  );
 }

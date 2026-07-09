@@ -1,5 +1,6 @@
 import { motion } from 'motion/react';
 import { ODILogo } from './ODILogo';
+import { Type, Star, Monitor, FileText } from 'lucide-react';
 
 export function VariationsSection() {
  return (
@@ -36,10 +37,7 @@ export function VariationsSection() {
  className="bg-gradient-to-br from-[#06B6D4]/5 to-white rounded-xl md:rounded-2xl p-6 md:p-8 border-2 border-[#06B6D4]/20"
  >
  <div className="w-14 h-14 md:w-16 md:h-16 rounded-xl bg-[#06B6D4]/10 flex items-center justify-center mb-4 md:mb-6">
- <svg className="w-7 h-7 md:w-8 md:h-8"viewBox="0 0 24 24"fill="none"stroke="#06B6D4"strokeWidth="2">
- <rect x="3"y="3"width="18"height="18"rx="2"/>
- <path d="M3 9h18M9 21V9"/>
- </svg>
+ <Type className="w-7 h-7 md:w-8 md:h-8 text-[#06B6D4]" strokeWidth={2} />
  </div>
  <h5 className="text-xl md:text-2xl font-bold text-gray-900 mb-3 md:mb-4">Full Wordmark</h5>
  <div className="bg-white rounded-xl p-6 md:p-8 mb-4 md:mb-6 border border-gray-200">
@@ -76,10 +74,7 @@ export function VariationsSection() {
  className="bg-gradient-to-br from-[#7C3AED]/5 to-white rounded-xl md:rounded-2xl p-6 md:p-8 border-2 border-[#7C3AED]/20"
  >
  <div className="w-14 h-14 md:w-16 md:h-16 rounded-xl bg-[#7C3AED]/10 flex items-center justify-center mb-4 md:mb-6">
- <svg className="w-7 h-7 md:w-8 md:h-8"viewBox="0 0 24 24"fill="none"stroke="#7C3AED"strokeWidth="2">
- <circle cx="12"cy="12"r="10"/>
- <path d="M12 2v20"/>
- </svg>
+ <Star className="w-7 h-7 md:w-8 md:h-8 text-[#7C3AED]" strokeWidth={2} />
  </div>
  <h5 className="text-xl md:text-2xl font-bold text-gray-900 mb-3 md:mb-4">Icon Mark Only</h5>
  <div className="bg-white rounded-xl p-6 md:p-8 mb-4 md:mb-6 border border-gray-200">
@@ -184,11 +179,7 @@ export function VariationsSection() {
  <div className="bg-gradient-to-br from-[#06B6D4]/5 to-white rounded-xl md:rounded-2xl p-6 md:p-8 border-2 border-gray-200">
  <div className="flex items-center gap-4 mb-4 md:mb-6">
  <div className="w-12 h-12 md:w-14 md:h-14 rounded-xl bg-[#06B6D4]/10 flex items-center justify-center">
- <svg className="w-6 h-6 md:w-7 md:h-7"viewBox="0 0 24 24"fill="none"stroke="#06B6D4"strokeWidth="2">
- <rect x="2"y="3"width="20"height="14"rx="2"/>
- <line x1="8"y1="21"x2="16"y2="21"/>
- <line x1="12"y1="17"x2="12"y2="21"/>
- </svg>
+ <Monitor className="w-6 h-6 md:w-7 md:h-7 text-[#06B6D4]" strokeWidth={2} />
  </div>
  <div>
  <h5 className="text-lg md:text-xl font-bold text-gray-900">Digital / Screen</h5>
@@ -218,12 +209,7 @@ export function VariationsSection() {
  <div className="bg-gradient-to-br from-[#7C3AED]/5 to-white rounded-xl md:rounded-2xl p-6 md:p-8 border-2 border-gray-200">
  <div className="flex items-center gap-4 mb-4 md:mb-6">
  <div className="w-12 h-12 md:w-14 md:h-14 rounded-xl bg-[#7C3AED]/10 flex items-center justify-center">
- <svg className="w-6 h-6 md:w-7 md:h-7"viewBox="0 0 24 24"fill="none"stroke="#7C3AED"strokeWidth="2">
- <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
- <polyline points="14 2 14 8 20 8"/>
- <line x1="16"y1="13"x2="8"y2="13"/>
- <line x1="16"y1="17"x2="8"y2="17"/>
- </svg>
+ <FileText className="w-6 h-6 md:w-7 md:h-7 text-[#7C3AED]" strokeWidth={2} />
  </div>
  <div>
  <h5 className="text-lg md:text-xl font-bold text-gray-900">Print</h5>
