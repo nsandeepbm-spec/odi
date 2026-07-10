@@ -17,9 +17,9 @@ const GALLERY_ITEMS = [
 ];
 
 const IMAGINE_PANELS = [
-  { text: 'Imagine a child opening a book.', sub: 'Stories feel alive when depth breathes through every page.', img: 'https://images.unsplash.com/photo-1532012197267-da84d127e765?w=1000&q=85', dir: 'ltr' },
-  { text: 'Imagine a product impossible to ignore.', sub: 'Depth transforms what you sell into what people remember.', img: 'https://images.unsplash.com/photo-1523170335258-f5ed11844a49?w=1000&q=85', dir: 'rtl' },
-  { text: 'Imagine your next film feeling more immersive.', sub: 'Every frame gains presence. Every scene gains weight.', img: 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=1000&q=85', dir: 'ltr' },
+  { text: 'Imagine a child opening a book.', sub: 'Stories feel alive when depth breathes through every page.', img: '/Imagine 01.png', dir: 'ltr' },
+  { text: 'Imagine a product impossible to ignore.', sub: 'Depth transforms what you sell into what people remember.', img: '/Imagine 02.png', dir: 'rtl' },
+  { text: 'Imagine your next film feeling more immersive.', sub: 'Every frame gains presence. Every scene gains weight.', img: '/Imagine 03.png', dir: 'ltr' },
 ];
 
 const CONSTELLATION_NODES = [
@@ -207,15 +207,15 @@ export function HomeFeatures() {
             <p className="text-neutral-400 font-bold text-xs tracking-widest uppercase">Slide to see the depth</p>
           </div>
           <div className="relative w-full overflow-hidden select-none rounded-3xl shadow-lg ring-1 ring-neutral-200" style={{ height: '60vh' }}>
-            {/* BEFORE */}
-            <div className="absolute inset-0">
-              <img src="https://images.unsplash.com/photo-1523170335258-f5ed11844a49?w=1800&q=90" alt="Before" className="w-full h-full object-cover grayscale opacity-80" />
-              <span className="absolute top-6 left-8 text-[11px] font-black uppercase tracking-widest text-white drop-shadow-md">Before</span>
+            {/* BEFORE (Visible on the Right side) */}
+            <div className="absolute inset-0 bg-black">
+              <img src="/Rgb.webp" alt="Before" className="w-full h-full object-contain" />
+              <span className="absolute top-6 right-8 text-[11px] font-black uppercase tracking-widest text-white drop-shadow-md z-10 transition-opacity duration-200" style={{ opacity: sliderPos > 90 ? 0 : 1 }}>RGB</span>
             </div>
-            {/* AFTER */}
-            <div className="absolute inset-0 overflow-hidden" style={{ width: `${sliderPos}%` }}>
-              <img src="https://images.unsplash.com/photo-1523170335258-f5ed11844a49?w=1800&q=90" alt="After" className="absolute inset-0 h-full object-cover" style={{ width: '100vw', maxWidth: '100%' }} />
-              <span className="absolute top-6 right-8 text-[11px] font-black uppercase tracking-widest text-indigo-100 drop-shadow-md">After</span>
+            {/* AFTER (Visible on the Left side) */}
+            <div className="absolute inset-0" style={{ clipPath: `inset(0 ${100 - sliderPos}% 0 0)` }}>
+              <img src="/Depthmap.jpg" alt="After" className="w-full h-full object-contain" />
+              <span className="absolute top-6 left-8 text-[11px] font-black uppercase tracking-widest text-indigo-100 drop-shadow-md z-10 transition-opacity duration-200" style={{ opacity: sliderPos < 10 ? 0 : 1 }}>Depth Map</span>
             </div>
             {/* Divider */}
             <div className="absolute inset-y-0 w-1 bg-white/50 backdrop-blur-sm shadow-[0_0_10px_rgba(0,0,0,0.1)]" style={{ left: `${sliderPos}%` }} />
@@ -253,28 +253,6 @@ export function HomeFeatures() {
                 </div>
               );
             })}
-          </div>
-        </div>
-      </section>
-
-
-
-      {/* 11 — Final CTA */}
-      <section className="py-32 px-8 text-center">
-        <div className="max-w-4xl mx-auto">
-          <h2 className="text-5xl md:text-6xl lg:text-7xl font-black leading-[1.1] tracking-tight text-neutral-900 mb-6">
-            Your Next Project<br />Already Has A Story.
-          </h2>
-          <p className="text-neutral-500 text-xl font-medium tracking-wide mb-12">
-            Let's give it depth.
-          </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <button className="px-8 py-4 rounded-full bg-neutral-900 text-white text-sm font-bold tracking-wide hover:bg-neutral-800 hover:-translate-y-0.5 transition-all duration-300 shadow-xl shadow-neutral-900/20">
-              Start the Conversation
-            </button>
-            <button className="px-8 py-4 rounded-full bg-white text-neutral-900 text-sm font-bold tracking-wide border border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50 hover:-translate-y-0.5 transition-all duration-300">
-              Schedule a Call
-            </button>
           </div>
         </div>
       </section>

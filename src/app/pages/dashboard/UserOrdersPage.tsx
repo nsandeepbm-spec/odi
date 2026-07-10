@@ -4,7 +4,7 @@ import { Link } from 'react-router';
 
 export default function UserOrdersPage() {
   const orders = [
-    { id: 'ORD-0921', date: 'Oct 24, 2026', total: '₹999', status: 'Processing', item: 'Space Explorer 3D Book' },
+    { id: 'ORD-0921', date: 'Oct 24, 2026', total: '₹1299', status: 'Processing', item: 'Space Explorer 3D Book' },
     { id: 'ORD-0814', date: 'Sep 12, 2026', total: '₹999', status: 'Delivered', item: 'Dinosaur Explorer 3D Book' },
   ];
 

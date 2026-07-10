@@ -1,97 +1,137 @@
+import React from 'react';
 import { motion } from 'motion/react';
-import { BookOpen, Map, PawPrint, Waves, Glasses, Cuboid } from 'lucide-react';
+import { ArrowRight, Box, Target, Layers } from 'lucide-react';
+import { Link } from 'react-router';
+
+const T = { bg: '#FFFFFF', bgAlt: '#F7F7F5', text: '#111111', sub: '#666666', border: '#E8E8E8' };
 
 export default function ProductsPage() {
- return (
- <div className="min-h-screen bg-white text-neutral-900 pt-24 md:pt-32 pb-20 overflow-hidden selection:bg-indigo-100">
- <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 relative">
- 
- <motion.div
- initial={{ opacity: 0, y: 20 }}
- animate={{ opacity: 1, y: 0 }}
- transition={{ duration: 0.6 }}
- className="text-center mb-16"
- >
- <div className="flex items-center justify-center gap-4 mb-4">
-    <div className="h-px bg-indigo-500/30 w-8"></div>
-    <span className="text-indigo-500 font-bold tracking-widest text-[11px] uppercase">Shop</span>
-    <div className="h-px bg-indigo-500/30 w-8"></div>
- </div>
- <h1 className="text-4xl md:text-5xl lg:text-7xl font-black mb-6 bg-gradient-to-r from-cyan-400 via-indigo-500 to-purple-600 bg-clip-text text-transparent tracking-tight">
- PRODUCTS
- </h1>
- <p className="text-lg md:text-xl text-neutral-500 font-medium max-w-2xl mx-auto leading-relaxed">
- Discover our premium 3D learning books and kits designed for immersive education.
- </p>
- </motion.div>
+  const products = [
+    {
+      title: 'Space Explorer',
+      description: 'Journey through the cosmos in immersive 3D. A complete interactive kit for kids.',
+      image: '/Book Mockup3.png', // Reusing the book mockup from checkout
+      price: '₹1299',
+      features: ['3D Glasses Included', 'Interactive Cards', 'Fact Book'],
+      tag: 'Bestseller',
+      isAvailable: true
+    },
+    {
+      title: 'Dino World',
+      description: 'Step back in time and walk with the dinosaurs in stunning stereoscopic depth.',
+      image: '/Dino World.png',
+      price: 'Coming Soon',
+      features: ['3D Glasses Included', 'Fossil Guide', 'Sticker Set'],
+      tag: 'Coming Soon',
+      isAvailable: false
+    },
+    {
+      title: 'Ocean Depths',
+      description: 'Dive into the deep blue and discover marine life popping right off the page.',
+      image: 'https://images.unsplash.com/photo-1582967788606-a171c1080cb0?q=80&w=1000&auto=format&fit=crop', // Temporary placeholder for ocean
+      price: 'Coming Soon',
+      features: ['3D Glasses Included', 'Marine Facts', 'Glow-in-the-dark Poster'],
+      tag: 'Coming Soon',
+      isAvailable: false
+    }
+  ];
 
- {/* ODI Kids Section */}
- <motion.div
- initial={{ opacity: 0, y: 30 }}
- animate={{ opacity: 1, y: 0 }}
- transition={{ duration: 0.8, delay: 0.2 }}
- className="mb-24"
- >
- <div className="flex items-center gap-4 mb-8 justify-center">
- <div className="w-12 h-12 rounded-full bg-indigo-50 flex items-center justify-center">
-    <BookOpen className="w-6 h-6 text-indigo-500"/>
- </div>
- <h2 className="text-3xl font-black text-neutral-900 tracking-tight">Kids Collection</h2>
- </div>
- 
- <div className="grid md:grid-cols-3 gap-6">
- {[
- { icon: Map, title: 'Space Explorer', color: 'group-hover:text-cyan-500' },
- { icon: PawPrint, title: 'Dino World', color: 'group-hover:text-emerald-500' },
- { icon: Waves, title: 'Ocean Depths', color: 'group-hover:text-indigo-500' }
- ].map((product) => (
- <motion.div
- key={product.title}
- className="relative overflow-hidden rounded-3xl bg-neutral-50 border border-neutral-100 p-8 text-center group hover:bg-white hover:shadow-xl hover:-translate-y-1 transition-all duration-500 cursor-pointer"
- >
- <div className="w-20 h-20 mx-auto rounded-full bg-white border border-neutral-100 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500 shadow-sm">
- <product.icon className={`w-8 h-8 text-neutral-400 transition-colors duration-500 ${product.color}`}/>
- </div>
- <h3 className="text-xl font-bold mb-2 text-neutral-900">{product.title}</h3>
- <p className="text-neutral-500 text-sm font-medium">Interactive 3D Book Kit</p>
- </motion.div>
- ))}
- </div>
- </motion.div>
+  return (
+    <div className="min-h-screen pt-28 pb-32 selection:bg-indigo-100" style={{ background: T.bg, color: T.text }}>
+      <div className="max-w-7xl mx-auto px-6 lg:px-12">
+        
+        {/* Header Section */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+          className="text-center max-w-3xl mx-auto mb-24"
+        >
+          <h1 className="text-5xl md:text-7xl font-black tracking-tight mb-8">
+            Products that pop.
+          </h1>
+          <p className="text-xl leading-relaxed font-medium" style={{ color: T.sub }}>
+            Discover our premium 3D learning books and interactive kits. Designed to make education an immersive adventure.
+          </p>
+        </motion.div>
 
- {/* Additional Offerings */}
- <motion.div
- initial={{ opacity: 0, y: 30 }}
- animate={{ opacity: 1, y: 0 }}
- transition={{ duration: 0.8, delay: 0.4 }}
- >
- <div className="text-center mb-10">
-    <h2 className="text-3xl font-black text-neutral-900 tracking-tight">
-    Additional Offerings
-    </h2>
- </div>
- <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
- <div className="flex gap-6 p-8 rounded-3xl bg-neutral-50 border border-neutral-100 hover:bg-white hover:shadow-lg transition-all duration-300">
- <div className="w-14 h-14 rounded-full bg-white border border-neutral-100 flex items-center justify-center flex-shrink-0 shadow-sm">
-    <Glasses className="w-6 h-6 text-indigo-500"/>
- </div>
- <div>
- <h3 className="text-xl font-bold mb-2 text-neutral-900">Anaglyph Visual Content</h3>
- <p className="text-neutral-500 leading-relaxed text-sm">Classic anaglyph visual experiences tailored for impactful learning.</p>
- </div>
- </div>
- <div className="flex gap-6 p-8 rounded-3xl bg-neutral-50 border border-neutral-100 hover:bg-white hover:shadow-lg transition-all duration-300">
- <div className="w-14 h-14 rounded-full bg-white border border-neutral-100 flex items-center justify-center flex-shrink-0 shadow-sm">
-    <Cuboid className="w-6 h-6 text-purple-500"/>
- </div>
- <div>
- <h3 className="text-xl font-bold mb-2 text-neutral-900">Interactive 3D Experiences</h3>
- <p className="text-neutral-500 leading-relaxed text-sm">Next-generation immersive kits that engage and educate.</p>
- </div>
- </div>
- </div>
- </motion.div>
- </div>
- </div>
- );
+        {/* Product Grid */}
+        <div className="space-y-32">
+          {products.map((product, index) => {
+            const isEven = index % 2 === 0;
+            return (
+              <div key={product.title} className={`flex flex-col ${isEven ? 'lg:flex-row' : 'lg:flex-row-reverse'} gap-12 lg:gap-24 items-center`}>
+                
+                {/* Image Side */}
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.8 }}
+                  className="w-full lg:w-1/2"
+                >
+                  <div className="relative rounded-[2.5rem] p-8 md:p-16 flex items-center justify-center overflow-hidden group" style={{ background: T.bgAlt }}>
+                    <div className="absolute top-6 left-6 z-10 px-4 py-2 bg-white rounded-full text-[10px] font-black tracking-widest uppercase shadow-sm">
+                      {product.tag}
+                    </div>
+                    {/* Using object-contain or cover based on if it's the transparent mockup or an unsplash image */}
+                    <img 
+                      src={product.image} 
+                      alt={product.title}
+                      className={`w-full max-w-sm transition-transform duration-700 group-hover:scale-105 ${product.title === 'Space Explorer' ? 'drop-shadow-2xl object-contain' : 'rounded-2xl object-cover h-[400px]'}`}
+                    />
+                  </div>
+                </motion.div>
+
+                {/* Text Side */}
+                <motion.div 
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.8, delay: 0.2 }}
+                  className="w-full lg:w-1/2 space-y-8"
+                >
+                  <div>
+                    <h2 className="text-4xl font-black tracking-tight mb-4">{product.title}</h2>
+                    <p className="text-lg leading-relaxed" style={{ color: T.sub }}>{product.description}</p>
+                  </div>
+                  
+                  <div className="space-y-3 pt-4 border-t" style={{ borderColor: T.border }}>
+                    {product.features.map((feature, i) => (
+                      <div key={i} className="flex items-center gap-3">
+                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                        <span className="font-bold text-sm" style={{ color: T.text }}>{feature}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="pt-8 flex items-center gap-6">
+                    <span className="text-2xl font-black">{product.price}</span>
+                    {product.isAvailable ? (
+                      <Link 
+                        to="/checkout"
+                        className="px-8 py-4 rounded-full bg-neutral-900 text-white text-xs font-black tracking-widest uppercase hover:-translate-y-1 transition-transform flex items-center gap-2 shadow-xl"
+                      >
+                        Buy Now
+                        <ArrowRight className="w-4 h-4" />
+                      </Link>
+                    ) : (
+                      <button 
+                        onClick={() => alert('You will be notified when this is available!')}
+                        className="px-8 py-4 rounded-full border border-neutral-200 text-neutral-900 text-xs font-black tracking-widest uppercase hover:bg-neutral-50 transition-colors flex items-center gap-2"
+                      >
+                        Notify Me
+                      </button>
+                    )}
+                  </div>
+                </motion.div>
+
+              </div>
+            );
+          })}
+        </div>
+
+      </div>
+    </div>
+  );
 }

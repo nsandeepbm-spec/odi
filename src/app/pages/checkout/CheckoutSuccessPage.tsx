@@ -33,7 +33,7 @@ export default function CheckoutSuccessPage() {
           </div>
           <div className="flex justify-between">
             <span className="text-neutral-500">Total</span>
-            <span className="font-bold text-neutral-900">₹999</span>
+            <span className="font-bold text-neutral-900">₹1299</span>
           </div>
           <div className="flex justify-between">
             <span className="text-neutral-500">Payment Method</span>

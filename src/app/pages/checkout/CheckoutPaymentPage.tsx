@@ -61,7 +61,7 @@ export default function CheckoutPaymentPage() {
               Back
             </Link>
             <button type="submit" className="flex-1 py-4 rounded-xl bg-neutral-900 text-white font-bold tracking-wide hover:bg-neutral-800 transition-colors shadow-lg">
-              Pay ₹999
+              Pay ₹1299
             </button>
           </div>
         </form>
@@ -77,14 +77,14 @@ export default function CheckoutPaymentPage() {
           <div className="flex-1">
             <h3 className="font-bold text-neutral-900">Space Explorer 3D Book</h3>
             <p className="text-xs text-neutral-500 mt-1">Includes Glasses & Cards</p>
-            <div className="text-sm font-bold mt-2">₹999</div>
+            <div className="text-sm font-bold mt-2">₹1299</div>
           </div>
         </div>
 
         <div className="space-y-3 pt-6 border-t border-neutral-200 text-sm">
           <div className="flex justify-between text-neutral-600">
             <span>Subtotal</span>
-            <span>₹999</span>
+            <span>₹1299</span>
           </div>
           <div className="flex justify-between text-neutral-600">
             <span>Shipping</span>
@@ -92,7 +92,7 @@ export default function CheckoutPaymentPage() {
           </div>
           <div className="flex justify-between font-black text-lg pt-4 border-t border-neutral-200">
             <span>Total</span>
-            <span>₹999</span>
+            <span>₹1299</span>
           </div>
         </div>
       </div>

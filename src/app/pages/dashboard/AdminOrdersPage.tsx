@@ -3,10 +3,10 @@ import { Search, Filter, MoreVertical } from 'lucide-react';
 
 export default function AdminOrdersPage() {
   const orders = [
-    { id: 'ORD-0923', customer: 'Anita Desai', date: 'Oct 25, 2026', total: '₹1998', status: 'Processing', items: 2 },
-    { id: 'ORD-0922', customer: 'Rahul Sharma', date: 'Oct 24, 2026', total: '₹999', status: 'Processing', items: 1 },
-    { id: 'ORD-0921', customer: 'Sandeep', date: 'Oct 24, 2026', total: '₹999', status: 'Shipped', items: 1 },
-    { id: 'ORD-0814', customer: 'Vikram Singh', date: 'Sep 12, 2026', total: '₹2997', status: 'Delivered', items: 3 },
+    { id: 'ORD-0923', customer: 'Anita Desai', date: 'Oct 25, 2026', total: '₹2598', status: 'Processing', items: 2 },
+    { id: 'ORD-0922', customer: 'Rahul Sharma', date: 'Oct 24, 2026', total: '₹1299', status: 'Processing', items: 1 },
+    { id: 'ORD-0921', customer: 'Sandeep', date: 'Oct 24, 2026', total: '₹1299', status: 'Shipped', items: 1 },
+    { id: 'ORD-0814', customer: 'Vikram Singh', date: 'Sep 12, 2026', total: '₹3897', status: 'Delivered', items: 3 },
   ];
 
   return (

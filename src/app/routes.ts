@@ -5,7 +5,6 @@ import { ErrorPage } from "./pages/ErrorPage";
 import { Layout } from "./components/Layout";
 import ServicesPage from "./pages/ServicesPage";
 import ProductsPage from "./pages/ProductsPage";
-import WorkPage from "./pages/WorkPage";
 import AboutPage from "./pages/AboutPage";
 import CareersPage from "./pages/CareersPage";
 import ContactPage from "./pages/ContactPage";
@@ -94,7 +93,6 @@ export const router = createBrowserRouter([
       { path: "services/vr-vision-pro", Component: ServiceVRVisionPro },
       { path: "products", Component: ProductsPage },
       { path: "products/space-explorer", Component: SpaceExplorerPage },
-      { path: "work", Component: WorkPage },
       { path: "careers", Component: CareersPage },
       { path: "contact", Component: ContactPage },
       { path: "learn-more", Component: LearnMorePage },

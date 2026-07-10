@@ -57,7 +57,7 @@ export default function AdminOverviewPage() {
                 <td className="px-6 py-4">
                   <span className="px-2 py-1 bg-amber-100 text-amber-700 text-[10px] font-bold uppercase rounded-full">Processing</span>
                 </td>
-                <td className="px-6 py-4 text-right font-bold">₹999</td>
+                <td className="px-6 py-4 text-right font-bold">₹1299</td>
               </tr>
               <tr className="hover:bg-neutral-50 transition-colors">
                 <td className="px-6 py-4 font-medium text-indigo-600">#ORD-0921</td>
@@ -66,7 +66,7 @@ export default function AdminOverviewPage() {
                 <td className="px-6 py-4">
                   <span className="px-2 py-1 bg-amber-100 text-amber-700 text-[10px] font-bold uppercase rounded-full">Processing</span>
                 </td>
-                <td className="px-6 py-4 text-right font-bold">₹999</td>
+                <td className="px-6 py-4 text-right font-bold">₹1299</td>
               </tr>
             </tbody>
           </table>

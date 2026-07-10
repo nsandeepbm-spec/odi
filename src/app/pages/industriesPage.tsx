@@ -25,6 +25,7 @@ function ImagePlaceholder({ height = 400, label = 'Image Placeholder' }: { heigh
 const industries = [
   {
     icon: Tv,
+    image: '/OTT Platforms.png',
     title: 'OTT PLATFORMS',
     headline: 'Bringing Streaming Into Stereoscopic 3D',
     description: 'We convert films, series, and originals into premium stereoscopic 3D, giving audiences a richer viewing experience while preserving the original creative vision.',
@@ -32,6 +33,7 @@ const industries = [
   },
   {
     icon: Film,
+    image: '/Film Studios.png',
     title: 'FILM STUDIOS',
     headline: 'Cinema, Reimagined in 3D',
     description: 'From new releases to archive titles, we create natural stereoscopic 3D conversions that enhance storytelling without compromising the director\'s vision.',
@@ -39,6 +41,7 @@ const industries = [
   },
   {
     icon: Sparkles,
+    image: '/Advertising Agencies.png',
     title: 'ADVERTISING AGENCIES',
     headline: 'Campaigns With Real Presence',
     description: 'We transform commercials and brand films into stereoscopic 3D experiences that capture attention and create stronger audience engagement.',
@@ -46,20 +49,15 @@ const industries = [
   },
   {
     icon: Users,
+    image: '/Creators & Influencers.png',
     title: 'CREATORS & INFLUENCERS',
     headline: 'Content That Feels Closer',
     description: 'Turn everyday videos into immersive stereoscopic experiences for modern spatial platforms, helping your audience connect in a whole new way.',
     tags: ['Instagram Reels', 'YouTube Shorts', 'TikTok Content'],
   },
   {
-    icon: FileText,
-    title: 'DOCUMENTARY TEAMS',
-    headline: 'Reality, Experienced in 3D',
-    description: 'We convert documentary footage into stereoscopic 3D, preserving natural depth while making every landscape, subject, and moment feel more lifelike.',
-    tags: ['Nature Documentaries', 'Educational Content', 'Cultural Films'],
-  },
-  {
     icon: Music,
+    image: '/Music Labels.png',
     title: 'MUSIC LABELS',
     headline: 'Feel Every Performance',
     description: 'From music videos to live concerts, we create stereoscopic 3D experiences that bring fans closer to every performance.',
@@ -145,7 +143,11 @@ export default function IndustriesPage() {
                 className="w-full lg:w-1/2"
               >
                 <div className="rounded-[2.5rem] p-4 bg-neutral-50 border border-neutral-100 shadow-xl">
-                  <ImagePlaceholder height={450} label={`${industry.title} Mockup`} />
+                  {industry.image ? (
+                    <img src={industry.image} alt={industry.title} className="w-full h-[450px] object-cover rounded-3xl" />
+                  ) : (
+                    <ImagePlaceholder height={450} label={`${industry.title} Mockup`} />
+                  )}
                 </div>
               </motion.div>
 
@@ -158,9 +160,6 @@ export default function IndustriesPage() {
                 className="w-full lg:w-1/2 flex flex-col"
               >
                 <div className="flex items-center gap-4 mb-6">
-                  <div className="w-14 h-14 rounded-2xl bg-indigo-50 flex items-center justify-center shadow-sm">
-                    <industry.icon className="w-6 h-6 text-indigo-500" strokeWidth={2.5} />
-                  </div>
                   <span className="text-indigo-500 font-black tracking-widest uppercase text-sm">{industry.title}</span>
                 </div>
                 

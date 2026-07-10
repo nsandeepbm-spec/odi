@@ -32,15 +32,14 @@ const navLinks: NavLink[] = [
  path: '/services',
  isMega: true,
  dropdown: [
- { name: 'Stereo Conversion', path: '/services/3d-movie-conversion', icon: Film, desc: 'Cinematic depth for feature films.' },
- { name: '3D Books', path: '/services/3d-books', icon: BookOpen, desc: 'Premium 3D learning products for kids.' },
+ { name: 'Stereo Conversion', path: '/services/3d-movie-conversion', desc: 'Cinematic depth for feature films.' },
+ { name: '3D Books', path: '/services/3d-books', desc: 'Premium 3D learning products for kids.' },
  ]
  },
  {
  name: 'Industries',
  path: '/industries',
  },
- { name: 'Work', path: '/work' },
  { name: 'Products', path: '/products' },
  { name: 'Careers', path: '/careers' },
 ];

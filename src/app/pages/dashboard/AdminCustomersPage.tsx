@@ -3,10 +3,10 @@ import { Search, Mail, ExternalLink } from 'lucide-react';
 
 export default function AdminCustomersPage() {
   const customers = [
-    { id: 'CUST-012', name: 'Sandeep', email: 'sandeep@example.com', orders: 2, spent: '₹1998', joined: 'Sep 10, 2026' },
-    { id: 'CUST-013', name: 'Rahul Sharma', email: 'rahul.s@example.com', orders: 1, spent: '₹999', joined: 'Oct 24, 2026' },
-    { id: 'CUST-014', name: 'Anita Desai', email: 'anita.d@example.com', orders: 4, spent: '₹4995', joined: 'Aug 05, 2026' },
-    { id: 'CUST-015', name: 'Vikram Singh', email: 'vikram.singh@example.com', orders: 1, spent: '₹2997', joined: 'Sep 12, 2026' },
+    { id: 'CUST-012', name: 'Sandeep', email: 'sandeep@example.com', orders: 2, spent: '₹2598', joined: 'Sep 10, 2026' },
+    { id: 'CUST-013', name: 'Rahul Sharma', email: 'rahul.s@example.com', orders: 1, spent: '₹1299', joined: 'Oct 24, 2026' },
+    { id: 'CUST-014', name: 'Anita Desai', email: 'anita.d@example.com', orders: 4, spent: '₹5196', joined: 'Aug 05, 2026' },
+    { id: 'CUST-015', name: 'Vikram Singh', email: 'vikram.singh@example.com', orders: 1, spent: '₹3897', joined: 'Sep 12, 2026' },
   ];
 
   return (

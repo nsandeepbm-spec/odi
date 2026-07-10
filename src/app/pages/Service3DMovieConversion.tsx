@@ -190,39 +190,35 @@ export default function Service3DMovieConversion() {
   <section className="py-32 max-w-screen-xl mx-auto px-6 md:px-12 lg:px-16">
     <div className="text-center mb-20">
       <h2 className="text-4xl md:text-5xl font-black tracking-tight mb-6">Our Workflow</h2>
-      <p className="text-xl text-neutral-500 font-medium">A systematic pipeline for perfect depth.</p>
+      <p className="text-xl text-neutral-500 font-medium">A systematic pipeline for perfect stereo output.</p>
     </div>
 
-    <div className="max-w-4xl mx-auto mb-20 relative">
-      <div className="absolute left-1/2 top-0 bottom-0 w-px bg-neutral-200 -translate-x-1/2 hidden md:block"></div>
+    <div className="relative max-w-6xl mx-auto">
+      {/* Horizontal Line connecting nodes (desktop only) */}
+      <div className="absolute left-8 right-8 top-6 h-1 bg-neutral-100 hidden lg:block -z-10 rounded-full"></div>
       
-      {[
-        'Discovery', 'Shot Planning', 'Depth Design', 
-        'Stereo Conversion', 'Stereo Paint', 'Quality Review', 'Delivery'
-      ].map((step, i) => (
-        <motion.div 
-          key={i}
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ delay: i * 0.1 }}
-          className={`flex flex-col md:flex-row items-center gap-6 md:gap-12 mb-12 last:mb-0 ${i % 2 === 0 ? 'md:flex-row-reverse' : ''}`}
-        >
-          <div className="md:w-1/2 flex justify-center md:justify-end w-full">
-             <div className={`text-2xl font-black tracking-tight text-neutral-900 ${i % 2 === 0 ? 'md:text-left' : 'md:text-right'}`}>
-               {step}
-             </div>
-          </div>
-          
-          <div className="w-12 h-12 rounded-full bg-neutral-900 border-4 border-white shadow-md flex items-center justify-center shrink-0 z-10 text-white font-black text-sm">
-            {i + 1}
-          </div>
-          
-          <div className="md:w-1/2 flex justify-center md:justify-start w-full opacity-30 hidden md:block">
-            {/* Optional subtext or icon could go here on the opposite side */}
-          </div>
-        </motion.div>
-      ))}
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-y-12 lg:gap-y-0 relative z-10">
+        {[
+          'Discovery', 'Shot Planning', 'Depth Design', 
+          'Stereo Conversion', 'Stereo Paint', 'Quality Review', 'Delivery'
+        ].map((step, i) => (
+          <motion.div 
+            key={i}
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: i * 0.1 }}
+            className="flex flex-col items-center text-center group"
+          >
+            <div className="w-12 h-12 rounded-full bg-white border border-neutral-200 shadow-sm flex items-center justify-center text-neutral-400 font-black text-sm mb-6 group-hover:bg-indigo-500 group-hover:text-white group-hover:border-indigo-500 transition-all duration-300 relative">
+              {i + 1}
+            </div>
+            <div className="text-xs font-black tracking-widest uppercase text-neutral-900 px-2 group-hover:text-indigo-500 transition-colors">
+              {step}
+            </div>
+          </motion.div>
+        ))}
+      </div>
     </div>
 
   </section>
