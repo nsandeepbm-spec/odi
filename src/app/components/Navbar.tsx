@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
- Menu, X, ChevronDown, ArrowRight, Sparkles, 
- MonitorPlay, Layers, Smartphone, Box, Film, BookOpen,
+ Menu, X, ChevronDown, LogOut,
  type LucideIcon 
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router';
 import { ODILogo } from './ODILogo';
+import { displayName, getInitials, useAuth } from '../lib/auth';
 
 // --- Interfaces for Type Safety ---
 interface DropdownItem {
@@ -48,9 +48,19 @@ export function Navbar() {
  const [isScrolled, setIsScrolled] = useState(false);
  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+ const [profileOpen, setProfileOpen] = useState(false);
  
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, firebaseUser, isAdmin, signOut } = useAuth();
+
+  const isLoggedIn = Boolean(firebaseUser);
+  const dashboardPath = isAdmin ? '/dashboard/admin' : '/dashboard';
+  const profileName = user ? displayName(user) : (firebaseUser?.displayName || firebaseUser?.email?.split('@')[0] || 'Account');
+  const profileInitials = user
+    ? getInitials(user.full_name, user.email)
+    : getInitials(firebaseUser?.displayName, firebaseUser?.email || 'U');
+  const avatarUrl = user?.avatar_url || firebaseUser?.photoURL || null;
 
   // Light-bg pages: /products/space-explorer, /checkout, and /learn-more use dark-text navbar
   const isLight = location.pathname === '/products/space-explorer' || location.pathname === '/checkout' || location.pathname === '/learn-more';
@@ -63,11 +73,33 @@ export function Navbar() {
 
  useEffect(() => setMobileMenuOpen(false), [location]);
 
+ const handleSignOut = async () => {
+   setProfileOpen(false);
+   setMobileMenuOpen(false);
+   try {
+     await signOut();
+   } finally {
+     navigate('/');
+   }
+ };
+
+ const Avatar = ({ size = 'sm' }: { size?: 'sm' | 'md' }) => {
+   const cls = size === 'md' ? 'w-10 h-10 text-xs' : 'w-8 h-8 text-[10px]';
+   if (avatarUrl) {
+     return <img src={avatarUrl} alt="" className={`${cls} rounded-full object-cover shrink-0`} />;
+   }
+   return (
+     <span className={`${cls} rounded-full bg-gradient-to-br from-cyan-400 via-indigo-500 to-purple-600 flex items-center justify-center text-white font-black shrink-0`}>
+       {profileInitials}
+     </span>
+   );
+ };
+
  return (
  <nav className="fixed top-0 left-0 right-0 z-[100] pointer-events-none transition-all duration-500">
   <div className="max-w-[1400px] mx-auto px-6 md:px-10 lg:px-16 pt-2 pb-4 md:pt-4 md:pb-6">
         <div 
-          className={`pointer-events-auto relative flex items-center justify-between px-6 py-3 rounded-full transition-all duration-500 border ${
+          className={`pointer-events-auto relative flex items-center px-6 py-3 rounded-full transition-all duration-500 border ${
             isLight
               ? 'bg-white/80 backdrop-blur-xl border-neutral-200 shadow-md'
               : 'bg-[#020617]/80 backdrop-blur-xl border-transparent shadow-2xl'
@@ -80,14 +112,16 @@ export function Navbar() {
           />
  {/* LOGO */}
  <div 
- className="relative z-[110] cursor-pointer w-24 md:w-28 hover:scale-105 transition-transform"
+ className="relative z-[110] cursor-pointer shrink-0 lg:flex-1 hover:scale-105 transition-transform"
  onClick={() => navigate('/')}
  >
-  <ODILogo color={isLight ? "black" : "white"}/>
+  <div className="w-24 md:w-28">
+    <ODILogo color={isLight ? "black" : "white"}/>
+  </div>
  </div>
 
- {/* DESKTOP LINKS */}
- <div className="hidden lg:flex items-center gap-2">
+ {/* DESKTOP LINKS — evenly spaced in the center */}
+ <div className="hidden lg:flex items-center justify-center gap-1 shrink-0">
  {navLinks.map((link) => (
  <div 
  key={link.name}
@@ -97,7 +131,7 @@ export function Navbar() {
  >
  <button
   onClick={() => !link.dropdown && navigate(link.path)}
-  className={`px-4 py-2 text-[11px] font-black tracking-[0.2em] uppercase transition-all flex items-center gap-1.5 ${
+  className={`px-3 py-2 text-[11px] font-black tracking-[0.2em] uppercase transition-all flex items-center gap-1.5 whitespace-nowrap ${
   location.pathname === link.path 
     ? isLight ? 'text-cyan-600' : 'text-cyan-400' 
     : isLight ? 'text-neutral-600 hover:text-black' : 'text-white/70 hover:text-white'
@@ -120,7 +154,7 @@ export function Navbar() {
  initial={{ opacity: 0, y: 10, scale: 0.98 }}
  animate={{ opacity: 1, y: 0, scale: 1 }}
  exit={{ opacity: 0, y: 10, scale: 0.98 }}
- className={`absolute top-full left-0 pt-4 ${link.isMega ? '-left-48 w-[600px]' : 'w-64'}`}
+ className={`absolute top-full left-1/2 -translate-x-1/2 pt-4 ${link.isMega ? 'w-[600px]' : 'w-64'}`}
  >
   <div className={`rounded-[2rem] p-6 shadow-2xl backdrop-blur-2xl ${
     isLight ? 'bg-white border border-neutral-200 shadow-xl' : 'bg-[#0D121F] border border-white/10'
@@ -132,7 +166,6 @@ export function Navbar() {
  onClick={() => navigate(sub.path)}
  className="group flex items-start gap-4 p-3 rounded-xl hover:bg-white/5 transition-all text-left"
  >
- {/* Logic to only show icon if it exists */}
  {sub.icon && (
  <div className="mt-1 w-8 h-8 rounded-lg bg-cyan-500/10 flex items-center justify-center group-hover:bg-cyan-500/20 transition-colors">
  <sub.icon className="w-4 h-4 text-cyan-400"/>
@@ -144,7 +177,6 @@ export function Navbar() {
   }`}>
   {sub.name}
   </div>
-  {/* Logic to only show description if it exists */}
   {sub.desc && (
   <div className={`text-[11px] mt-0.5 leading-tight ${isLight ? 'text-neutral-400' : 'text-white/40'}`}>
   {sub.desc}
@@ -160,32 +192,88 @@ export function Navbar() {
  </AnimatePresence>
  </div>
  ))}
-
- {/* CTA */}
- <div className="ml-6 flex items-center gap-3">
-   <button
-     onClick={() => navigate('/login')}
-     className={`px-5 py-2.5 rounded-full text-[11px] font-black tracking-[0.2em] uppercase transition-all border ${
-       isLight ? 'border-neutral-200 text-neutral-900 hover:bg-neutral-50' : 'border-white/20 text-white hover:bg-white/10'
-     }`}
-   >
-     Login
-   </button>
-   <button
-     onClick={() => navigate('/register')}
-     className={`px-5 py-2.5 rounded-full text-[11px] font-black tracking-[0.2em] uppercase transition-all shadow-xl ${
-       isLight ? 'bg-neutral-900 text-white hover:bg-cyan-600' : 'bg-white text-black hover:bg-cyan-400'
-     }`}
-   >
-     Register
-   </button>
  </div>
+
+ {/* CTA — equal flex weight to logo side */}
+ <div className="hidden lg:flex flex-1 items-center justify-end gap-2.5">
+   {isLoggedIn ? (
+     <>
+       <button
+         onClick={() => navigate(dashboardPath)}
+         className={`px-5 py-2.5 rounded-full text-[11px] font-black tracking-[0.2em] uppercase transition-all shadow-xl whitespace-nowrap ${
+           isLight ? 'bg-neutral-900 text-white hover:bg-cyan-600' : 'bg-white text-black hover:bg-cyan-400'
+         }`}
+       >
+         Dashboard
+       </button>
+
+       <div
+         className="relative"
+         onMouseEnter={() => setProfileOpen(true)}
+         onMouseLeave={() => setProfileOpen(false)}
+       >
+         <button
+           type="button"
+           className="flex items-center justify-center rounded-full p-[2px] transition-all border-2 border-black hover:scale-105"
+           aria-label={`${profileName} profile`}
+           aria-expanded={profileOpen}
+         >
+           <Avatar />
+         </button>
+
+         <AnimatePresence>
+           {profileOpen && (
+             <motion.div
+               initial={{ opacity: 0, y: 8, scale: 0.98 }}
+               animate={{ opacity: 1, y: 0, scale: 1 }}
+               exit={{ opacity: 0, y: 8, scale: 0.98 }}
+               className="absolute top-full right-0 pt-3 z-[120]"
+             >
+               <div className={`min-w-[180px] rounded-2xl p-2 shadow-2xl backdrop-blur-2xl ${
+                 isLight ? 'bg-white border border-neutral-200' : 'bg-[#0D121F] border border-white/10'
+               }`}>
+                 <div className={`px-3 py-2 mb-1 border-b ${isLight ? 'border-neutral-100' : 'border-white/10'}`}>
+                   <p className={`text-xs font-bold truncate ${isLight ? 'text-neutral-900' : 'text-white'}`}>
+                     {profileName}
+                   </p>
+                   <p className={`text-[10px] truncate mt-0.5 ${isLight ? 'text-neutral-400' : 'text-white/40'}`}>
+                     {user?.email || firebaseUser?.email}
+                   </p>
+                 </div>
+                 <button
+                   type="button"
+                   onClick={handleSignOut}
+                   className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-[11px] font-black tracking-[0.15em] uppercase transition-colors ${
+                     isLight
+                       ? 'text-red-600 hover:bg-red-50'
+                       : 'text-red-400 hover:bg-white/5'
+                   }`}
+                 >
+                   <LogOut className="w-3.5 h-3.5" />
+                   Logout
+                 </button>
+               </div>
+             </motion.div>
+           )}
+         </AnimatePresence>
+       </div>
+     </>
+   ) : (
+     <button
+       onClick={() => navigate('/register')}
+       className={`px-5 py-2.5 rounded-full text-[11px] font-black tracking-[0.2em] uppercase transition-all shadow-xl whitespace-nowrap ${
+         isLight ? 'bg-neutral-900 text-white hover:bg-cyan-600' : 'bg-white text-black hover:bg-cyan-400'
+       }`}
+     >
+       Register
+     </button>
+   )}
  </div>
 
  {/* MOBILE TRIGGER */}
   <button
   onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-  className={`lg:hidden relative z-[110] p-3 rounded-xl border transition-all ${
+  className={`lg:hidden relative z-[110] ml-auto p-3 rounded-xl border transition-all ${
     isLight 
       ? 'bg-neutral-900/5 border-neutral-900/10 text-neutral-800' 
       : 'bg-white/5 border-white/10 text-white'
@@ -242,22 +330,43 @@ export function Navbar() {
  </div>
 
  <div className="mt-auto pt-12 pb-8 flex flex-col gap-3">
+ {isLoggedIn ? (
+ <>
  <button
- onClick={() => { setMobileMenuOpen(false); navigate('/login'); }}
- className="w-full py-4 border border-white/20 text-white rounded-2xl font-black tracking-widest uppercase text-xs hover:bg-white/10"
+ onClick={() => { setMobileMenuOpen(false); navigate(dashboardPath); }}
+ className="w-full py-4 bg-white text-black rounded-2xl font-black tracking-widest uppercase text-xs shadow-xl"
  >
- Login
+ Dashboard
  </button>
+ <div className="rounded-2xl border border-white/10 p-4 flex items-center gap-3">
+ <span className="rounded-full border-2 border-black p-[2px] flex">
+ <Avatar size="md" />
+ </span>
+ <div className="min-w-0 flex-1">
+ <p className="text-sm font-bold text-white truncate">{profileName}</p>
+ <p className="text-[11px] text-white/40 truncate">{user?.email || firebaseUser?.email}</p>
+ </div>
+ </div>
+ <button
+ onClick={handleSignOut}
+ className="w-full py-4 border border-red-500/30 text-red-400 rounded-2xl font-black tracking-widest uppercase text-xs hover:bg-red-500/10 flex items-center justify-center gap-2"
+ >
+ <LogOut className="w-4 h-4" />
+ Logout
+ </button>
+ </>
+ ) : (
  <button
  onClick={() => { setMobileMenuOpen(false); navigate('/register'); }}
  className="w-full py-4 bg-white text-black rounded-2xl font-black tracking-widest uppercase text-xs shadow-xl"
  >
  Register
  </button>
+ )}
  </div>
  </motion.div>
  )}
  </AnimatePresence>
  </nav>
  );
-}
+}

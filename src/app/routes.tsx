@@ -29,14 +29,25 @@ import CheckoutPage from "./pages/CheckoutPage"; // Serves as Checkout Details
 import CheckoutPaymentPage from "./pages/checkout/CheckoutPaymentPage";
 import CheckoutSuccessPage from "./pages/checkout/CheckoutSuccessPage";
 
-// --- Dashboard ---
-import DashboardLayout from "./components/dashboard/DashboardLayout";
-import UserOverviewPage from "./pages/dashboard/UserOverviewPage";
-import UserOrdersPage from "./pages/dashboard/UserOrdersPage";
-import UserSettingsPage from "./pages/dashboard/UserSettingsPage";
-import AdminOverviewPage from "./pages/dashboard/AdminOverviewPage";
-import AdminOrdersPage from "./pages/dashboard/AdminOrdersPage";
-import AdminCustomersPage from "./pages/dashboard/AdminCustomersPage";
+// --- Auth guard ---
+import { RequireAuth, RequireAdmin } from "./components/auth/RequireAuth";
+
+// --- Dashboard: User ---
+import UserLayout from "./components/dashboard/UserLayout";
+import UserOverviewPage from "./pages/dashboard/user/OverviewPage";
+import UserBookingsPage from "./pages/dashboard/user/BookingsPage";
+import UserOrdersPage from "./pages/dashboard/user/OrdersPage";
+import UserPaymentsPage from "./pages/dashboard/user/PaymentsPage";
+import UserSettingsPage from "./pages/dashboard/user/SettingsPage";
+
+// --- Dashboard: Admin ---
+import AdminLayout from "./components/dashboard/AdminLayout";
+import AdminOverviewPage from "./pages/dashboard/admin/OverviewPage";
+import AdminBookingsPage from "./pages/dashboard/admin/BookingsPage";
+import AdminProductsPage from "./pages/dashboard/admin/ProductsPage";
+import AdminCustomersPage from "./pages/dashboard/admin/CustomersPage";
+import AdminPaymentsPage from "./pages/dashboard/admin/PaymentsPage";
+import AdminSettingsPage from "./pages/dashboard/admin/SettingsPage";
 
 export const router = createBrowserRouter([
   // Standalone Auth Routes
@@ -55,21 +66,43 @@ export const router = createBrowserRouter([
     ]
   },
 
-  // Dashboard Flow (User & Admin)
+  // Admin Dashboard (signed-in + admin role)
   {
-    path: "/dashboard",
-    Component: DashboardLayout,
+    path: "/dashboard/admin",
+    Component: RequireAdmin,
     ErrorBoundary: ErrorPage,
     children: [
-      // User
-      { index: true, Component: UserOverviewPage },
-      { path: "orders", Component: UserOrdersPage },
-      { path: "settings", Component: UserSettingsPage },
-      // Admin
-      { path: "admin", Component: AdminOverviewPage },
-      { path: "admin/orders", Component: AdminOrdersPage },
-      { path: "admin/customers", Component: AdminCustomersPage },
-    ]
+      {
+        Component: AdminLayout,
+        children: [
+          { index: true, Component: AdminOverviewPage },
+          { path: "bookings", Component: AdminBookingsPage },
+          { path: "products", Component: AdminProductsPage },
+          { path: "customers", Component: AdminCustomersPage },
+          { path: "payments", Component: AdminPaymentsPage },
+          { path: "settings", Component: AdminSettingsPage },
+        ],
+      },
+    ],
+  },
+
+  // User Dashboard (signed-in)
+  {
+    path: "/dashboard",
+    Component: RequireAuth,
+    ErrorBoundary: ErrorPage,
+    children: [
+      {
+        Component: UserLayout,
+        children: [
+          { index: true, Component: UserOverviewPage },
+          { path: "bookings", Component: UserBookingsPage },
+          { path: "orders", Component: UserOrdersPage },
+          { path: "payments", Component: UserPaymentsPage },
+          { path: "settings", Component: UserSettingsPage },
+        ],
+      },
+    ],
   },
 
   // Main Website Flow
