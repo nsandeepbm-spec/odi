@@ -214,7 +214,7 @@ export function Navbar() {
        >
          <button
            type="button"
-           className="flex items-center justify-center rounded-full p-[2px] transition-all border-2 border-black hover:scale-105"
+           className="flex items-center justify-center rounded-full p-[2px] transition-all border-2 border-white hover:scale-105 shadow-sm"
            aria-label={`${profileName} profile`}
            aria-expanded={profileOpen}
          >
@@ -339,7 +339,7 @@ export function Navbar() {
  Dashboard
  </button>
  <div className="rounded-2xl border border-white/10 p-4 flex items-center gap-3">
- <span className="rounded-full border-2 border-black p-[2px] flex">
+ <span className="rounded-full border-2 border-white p-[2px] flex">
  <Avatar size="md" />
  </span>
  <div className="min-w-0 flex-1">
