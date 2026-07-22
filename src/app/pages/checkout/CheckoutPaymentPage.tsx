@@ -1,98 +1,440 @@
-import React from 'react';
-import { useNavigate, Link } from 'react-router';
-import { CreditCard, CheckCircle2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router';
+import {
+  ArrowLeft,
+  ShieldCheck,
+  CreditCard as CreditCardIcon,
+  Banknote,
+  Smartphone,
+  Building2,
+  Check,
+  RefreshCw,
+  Truck,
+  MapPin,
+} from 'lucide-react';
+import { useCheckout, isShippingComplete } from '../../lib/checkout';
+import { CheckoutOrderSummary } from '../../components/checkout/CheckoutOrderSummary';
+import { checkoutInput, checkoutLabel } from '../../components/checkout/CheckoutShell';
+import { discountPercent, formatInr } from '../../data/products';
+import { createCheckoutSession, verifyPayment } from '../../lib/api';
+import { auth } from '../../lib/firebase';
+
+const PAYMENT_METHODS = [
+  { id: 'upi', label: 'UPI', icon: Smartphone, hint: 'Instant via app' },
+  { id: 'card', label: 'Card', icon: CreditCardIcon, hint: 'Credit / Debit' },
+  { id: 'cod', label: 'Cash on Delivery', icon: Banknote, hint: 'Pay at doorstep' },
+  { id: 'netbanking', label: 'Net Banking', icon: Building2, hint: 'All major banks' },
+] as const;
+
+const UPI_APPS = ['Google Pay', 'PhonePe', 'Paytm', 'BHIM'];
+const BANKS = ['State Bank of India', 'HDFC Bank', 'ICICI Bank', 'Axis Bank', 'Kotak Mahindra'];
+
+type PaymentMethod = (typeof PAYMENT_METHODS)[number]['id'];
+
+type RazorpaySuccess = {
+  razorpay_order_id: string;
+  razorpay_payment_id: string;
+  razorpay_signature: string;
+};
+
+type RazorpayInstance = {
+  open: () => void;
+  on: (event: string, cb: (r: { error: { description: string } }) => void) => void;
+};
+
+declare global {
+  interface Window {
+    Razorpay?: new (options: Record<string, unknown>) => RazorpayInstance;
+  }
+}
+
+function newIdempotencyKey() {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+    return crypto.randomUUID();
+  }
+  return `odi_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+}
 
 export default function CheckoutPaymentPage() {
+  const { product, productQuery, quantity, shipping, totalPaise, completeOrder } = useCheckout();
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [activeMethod, setActiveMethod] = useState<PaymentMethod>('upi');
+  const [selectedUpiApp, setSelectedUpiApp] = useState(UPI_APPS[0]);
+  const [selectedBank, setSelectedBank] = useState(BANKS[0]);
 
-  const handlePay = (e: React.FormEvent) => {
+  if (!product) {
+    return (
+      <div className="text-center py-20">
+        <p className="text-neutral-500 mb-4">Product not found.</p>
+        <Link to="/products" className="text-sm font-bold text-indigo-600 hover:underline">
+          Browse products
+        </Link>
+      </div>
+    );
+  }
+
+  if (!isShippingComplete(shipping)) {
+    navigate(`/checkout/review${productQuery}`, { replace: true });
+    return null;
+  }
+
+  const off = discountPercent(product.pricePaise, product.compareAtPaise);
+  const shippingLine = [shipping.street, shipping.city, shipping.postalCode].filter(Boolean).join(', ');
+  const customerName = [shipping.firstName, shipping.lastName].filter(Boolean).join(' ');
+
+  const payLabel =
+    activeMethod === 'cod' ? `Place order · ${formatInr(totalPaise)}` : `Pay ${formatInr(totalPaise)}`;
+
+  const handlePay = async (e: React.FormEvent) => {
     e.preventDefault();
-    navigate('/checkout/success');
+    setLoading(true);
+
+    try {
+      if (activeMethod === 'cod') {
+        completeOrder();
+        navigate('/checkout/success');
+        return;
+      }
+
+      if (!auth.currentUser) {
+        navigate(`/login?redirect=${encodeURIComponent(`/checkout/payment${productQuery}`)}`);
+        return;
+      }
+
+      if (!window.Razorpay) {
+        throw new Error('Razorpay Checkout failed to load. Refresh and try again.');
+      }
+
+      const session = await createCheckoutSession(
+        {
+          items: [{ slug: product.slug, quantity }],
+          shippingAddress: {
+            first_name: shipping.firstName,
+            last_name: shipping.lastName,
+            phone: shipping.phone,
+            email: shipping.email,
+            street: shipping.street,
+            city: shipping.city,
+            postal_code: shipping.postalCode,
+            country: 'IN',
+          },
+        },
+        newIdempotencyKey()
+      );
+
+      if (!session.keyId || !session.razorpayOrderId) {
+        throw new Error('Payment session incomplete. Check Razorpay keys on the server.');
+      }
+
+      const rzp = new window.Razorpay({
+        key: session.keyId,
+        amount: session.amount,
+        currency: session.currency,
+        name: 'ODI',
+        description: `Purchase ${product.name}`,
+        order_id: session.razorpayOrderId,
+        handler: async (response: RazorpaySuccess) => {
+          try {
+            await verifyPayment({
+              orderId: session.orderId,
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+            });
+            completeOrder();
+            navigate(`/checkout/success?order=${encodeURIComponent(session.orderNumber)}`);
+          } catch (verifyErr) {
+            alert(
+              verifyErr instanceof Error
+                ? verifyErr.message
+                : 'Payment received but verification failed. Contact support with your order number.'
+            );
+          }
+        },
+        prefill: { name: customerName, email: shipping.email, contact: shipping.phone },
+        theme: { color: '#111111' },
+      });
+
+      rzp.on('payment.failed', (response) => alert(response.error.description));
+      rzp.open();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Error processing payment');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="max-w-4xl mx-auto bg-white rounded-3xl border border-neutral-100 shadow-sm overflow-hidden flex flex-col md:flex-row">
-      
-      {/* Left: Form */}
-      <div className="w-full md:w-3/5 p-8 md:p-12">
-        <h2 className="text-2xl font-black tracking-tight mb-8">Payment Method</h2>
-        
-        <form onSubmit={handlePay} className="space-y-6">
-          
-          <div className="space-y-4">
-            {/* Credit Card Option (Selected by default) */}
-            <div className="border-2 border-indigo-500 rounded-xl p-4 bg-indigo-50/30 flex items-center gap-4 cursor-pointer">
-              <CheckCircle2 className="w-5 h-5 text-indigo-500" />
-              <div className="flex-1">
-                <div className="font-bold text-neutral-900">Credit / Debit Card</div>
-                <div className="text-xs text-neutral-500">Secure encrypted payment</div>
+    <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-8 py-6 items-start">
+      {/* Left: merged product + payment — matches product / shipping step width */}
+      <div className="lg:col-span-8 flex flex-col gap-5">
+        <div className="bg-white border border-neutral-200 rounded-2xl overflow-hidden shadow-sm">
+          {/* Product gallery */}
+          <div className="p-5 sm:p-6 flex items-center justify-center h-72 sm:h-96 lg:h-[500px] bg-neutral-50/40 border-b border-neutral-100">
+            <img
+              src={product.images[0]}
+              alt={product.name}
+              className="w-full h-full object-contain drop-shadow-md"
+            />
+          </div>
+
+          {/* Meta bar: price · product · address */}
+          <div className="border-b border-neutral-100 px-4 sm:px-6 py-4 flex flex-wrap items-center gap-x-6 gap-y-4">
+            <div className="shrink-0 min-w-[150px]">
+              <div className="flex flex-wrap items-center gap-2 mb-1">
+                <span className="text-[10px] font-bold tracking-[0.2em] uppercase text-neutral-400">
+                  {product.volume}
+                </span>
+                {product.tag && (
+                  <span className="inline-flex px-2 py-0.5 rounded-md bg-[#00a680]/10 text-[#00a680] text-[10px] font-bold">
+                    {product.tag}
+                  </span>
+                )}
               </div>
-              <CreditCard className="w-6 h-6 text-indigo-500" />
+              <h2
+                className="text-lg font-black text-neutral-900 leading-tight mb-1"
+                style={{ letterSpacing: '-0.03em' }}
+              >
+                {product.name}
+              </h2>
+              <div className="flex flex-wrap items-baseline gap-2">
+                <span className="text-2xl font-black text-neutral-900 tracking-tight">
+                  {formatInr(totalPaise)}
+                </span>
+                {off !== null && (
+                  <span className="inline-flex px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200">
+                    {off}% OFF
+                  </span>
+                )}
+              </div>
+              <p className="text-[10px] text-neutral-400 mt-0.5">
+                Qty {quantity} · Inclusive of all taxes
+              </p>
             </div>
 
-            {/* Other Options (Disabled for demo) */}
-            <div className="border border-neutral-200 rounded-xl p-4 flex items-center gap-4 opacity-50 cursor-not-allowed">
-              <div className="w-5 h-5 rounded-full border-2 border-neutral-300" />
-              <div className="flex-1">
-                <div className="font-bold text-neutral-900">UPI / Netbanking</div>
+            <div className="hidden sm:block w-px h-14 bg-neutral-100 shrink-0" />
+
+            <div className="min-w-0 flex-1">
+              <div className="flex items-start gap-2.5">
+                <MapPin className="w-4 h-4 text-neutral-500 shrink-0 mt-0.5" />
+                <div className="min-w-0">
+                  <p className="text-[10px] font-bold tracking-[0.15em] uppercase text-neutral-400 mb-1">
+                    Delivering to
+                  </p>
+                  <p className="text-sm font-bold text-neutral-900">{customerName}</p>
+                  <p className="text-sm text-neutral-600">{shippingLine}</p>
+                  <p className="text-xs text-neutral-500 mt-0.5">
+                    {shipping.phone} · {shipping.email}
+                  </p>
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="space-y-4 pt-6">
-            <div className="space-y-2">
-              <label className="text-xs font-bold tracking-wider uppercase text-neutral-500">Card Number</label>
-              <input type="text" required className="w-full px-4 py-3 rounded-xl border border-neutral-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none" placeholder="0000 0000 0000 0000" />
+          {/* Payment */}
+          <div className="p-5 md:p-7">
+            <div className="flex flex-wrap items-center gap-2 mb-2">
+              <span className="text-[10px] font-bold tracking-[0.2em] uppercase text-neutral-400">
+                Step 3
+              </span>
+              <span className="inline-flex px-2.5 py-0.5 rounded-md bg-[#00a680]/10 text-[#00a680] text-[10px] font-bold">
+                Payment
+              </span>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-xs font-bold tracking-wider uppercase text-neutral-500">Expiry Date</label>
-                <input type="text" required className="w-full px-4 py-3 rounded-xl border border-neutral-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none" placeholder="MM/YY" />
+
+            <h1
+              className="text-2xl font-black text-neutral-900 leading-tight mb-1"
+              style={{ letterSpacing: '-0.03em' }}
+            >
+              Choose payment method
+            </h1>
+            <p className="text-sm text-neutral-600 mb-5">
+              Pay {formatInr(totalPaise)} for {product.name}
+            </p>
+
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 mb-6">
+              {PAYMENT_METHODS.map(({ id, label, icon: Icon, hint }) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setActiveMethod(id)}
+                  className={`flex flex-col items-center gap-2 p-3.5 rounded-xl border text-center transition-all ${
+                    activeMethod === id
+                      ? 'border-neutral-900 bg-neutral-50 ring-2 ring-neutral-900/10'
+                      : 'border-neutral-200 hover:border-neutral-300'
+                  }`}
+                >
+                  <Icon className="w-5 h-5 text-neutral-700" />
+                  <span className="text-[11px] font-bold text-neutral-800 leading-tight">{label}</span>
+                  <span className="text-[10px] text-neutral-500 leading-tight">{hint}</span>
+                </button>
+              ))}
+            </div>
+
+            <form id="payment-form" onSubmit={handlePay} className="flex flex-col">
+              <div className="rounded-xl border border-neutral-200 p-4 md:p-5 mb-5 bg-neutral-50/30 min-h-[180px]">
+              {activeMethod === 'upi' && (
+                <div className="space-y-4">
+                  <p className={checkoutLabel}>Pay with app</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {UPI_APPS.map((app) => (
+                      <button
+                        key={app}
+                        type="button"
+                        onClick={() => setSelectedUpiApp(app)}
+                        className={`px-3 py-2.5 rounded-lg border text-xs font-bold transition-all ${
+                          selectedUpiApp === app
+                            ? 'border-neutral-900 bg-neutral-900 text-white'
+                            : 'border-neutral-200 text-neutral-700 hover:border-neutral-300'
+                        }`}
+                      >
+                        {app}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <label className={checkoutLabel}>Or enter UPI ID</label>
+                    <input type="text" placeholder="name@upi" className={checkoutInput} />
+                  </div>
+                  <p className="text-xs text-neutral-500">
+                    Open {selectedUpiApp} and approve the {formatInr(totalPaise)} request.
+                  </p>
+                </div>
+              )}
+
+              {activeMethod === 'card' && (
+                <div className="space-y-4">
+                  <div className="flex flex-col gap-2">
+                    <label className={checkoutLabel}>Card number</label>
+                    <div className="relative">
+                      <input type="text" placeholder="0000 0000 0000 0000" className={checkoutInput} />
+                      <CreditCardIcon className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="flex flex-col gap-2">
+                      <label className={checkoutLabel}>Expiry</label>
+                      <input type="text" placeholder="MM / YY" className={checkoutInput} />
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <label className={checkoutLabel}>CVV</label>
+                      <input type="text" placeholder="•••" className={checkoutInput} />
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <label className={checkoutLabel}>Name on card</label>
+                    <input type="text" placeholder={customerName} className={checkoutInput} />
+                  </div>
+                </div>
+              )}
+
+              {activeMethod === 'netbanking' && (
+                <div className="space-y-3">
+                  <p className={checkoutLabel}>Select your bank</p>
+                  <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                    {BANKS.map((bank) => (
+                      <button
+                        key={bank}
+                        type="button"
+                        onClick={() => setSelectedBank(bank)}
+                        className={`w-full text-left px-3 py-2.5 rounded-lg border text-sm font-medium transition-all ${
+                          selectedBank === bank
+                            ? 'border-neutral-900 bg-neutral-50 font-bold'
+                            : 'border-neutral-200 hover:border-neutral-300'
+                        }`}
+                      >
+                        {bank}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-xs text-neutral-500">
+                    You&apos;ll be redirected to {selectedBank} to complete payment.
+                  </p>
+                </div>
+              )}
+
+              {activeMethod === 'cod' && (
+                <div className="flex gap-3 items-start">
+                  <Banknote className="w-5 h-5 text-emerald-700 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-bold text-neutral-900">Pay when your kit arrives</p>
+                    <p className="text-sm text-neutral-600 mt-1 leading-relaxed">
+                      Keep {formatInr(totalPaise)} ready in cash for the courier. No online payment
+                      needed now.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="grid grid-cols-3 gap-2 py-3 border-y border-neutral-100 mb-4">
+              <div className="flex flex-col items-center text-center gap-1 px-1">
+                <ShieldCheck className="w-4 h-4 text-neutral-700" />
+                <span className="text-[10px] font-bold text-neutral-700">Secure</span>
               </div>
-              <div className="space-y-2">
-                <label className="text-xs font-bold tracking-wider uppercase text-neutral-500">CVC</label>
-                <input type="text" required className="w-full px-4 py-3 rounded-xl border border-neutral-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none" placeholder="123" />
+              <div className="flex flex-col items-center text-center gap-1 px-1 border-x border-neutral-100">
+                <RefreshCw className="w-4 h-4 text-neutral-700" />
+                <span className="text-[10px] font-bold text-neutral-700">7 Day Return</span>
+              </div>
+              <div className="flex flex-col items-center text-center gap-1 px-1">
+                <Truck className="w-4 h-4 text-neutral-700" />
+                <span className="text-[10px] font-bold text-neutral-700">Free Ship</span>
               </div>
             </div>
-          </div>
 
-          <div className="pt-8 flex items-center gap-4">
-            <Link to="/checkout" className="px-6 py-4 rounded-xl font-bold text-neutral-500 hover:bg-neutral-50 transition-colors">
-              Back
-            </Link>
-            <button type="submit" className="flex-1 py-4 rounded-xl bg-neutral-900 text-white font-bold tracking-wide hover:bg-neutral-800 transition-colors shadow-lg">
-              Pay ₹1299
-            </button>
-          </div>
-        </form>
-      </div>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+              <button
+                type="button"
+                onClick={() => navigate(`/checkout/review${productQuery}`)}
+                className="flex items-center justify-center sm:justify-start gap-2 text-sm font-bold text-neutral-500 hover:text-neutral-900 transition-colors"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Back to shipping
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="px-8 py-3.5 rounded-xl bg-[#f05a13] text-white font-bold tracking-wide hover:bg-[#e0500e] transition-colors shadow-sm text-sm disabled:opacity-60"
+              >
+                {loading ? 'Processing…' : payLabel}
+              </button>
+            </div>
 
-      {/* Right: Order Summary */}
-      <div className="w-full md:w-2/5 bg-neutral-50 p-8 md:p-12 border-l border-neutral-100">
-        <h2 className="text-xl font-bold mb-6">Order Summary</h2>
-        <div className="flex items-start gap-4 mb-6">
-          <div className="w-20 h-24 bg-white rounded-lg border border-neutral-200 flex-shrink-0 overflow-hidden flex items-center justify-center">
-             <img src="/Book Mockup3.png" alt="Space Explorer" className="w-full h-full object-cover" />
-          </div>
-          <div className="flex-1">
-            <h3 className="font-bold text-neutral-900">Space Explorer 3D Book</h3>
-            <p className="text-xs text-neutral-500 mt-1">Includes Glasses & Cards</p>
-            <div className="text-sm font-bold mt-2">₹1299</div>
+            <div className="flex items-center justify-center gap-2 mt-4 text-[10px] font-bold text-neutral-400">
+              <Check className="w-3.5 h-3.5" />
+              <span>Safe and Secure Payments</span>
+            </div>
+          </form>
           </div>
         </div>
+      </div>
 
-        <div className="space-y-3 pt-6 border-t border-neutral-200 text-sm">
-          <div className="flex justify-between text-neutral-600">
-            <span>Subtotal</span>
-            <span>₹1299</span>
+      {/* Right: order summary + sticky pay */}
+      <div className="lg:col-span-4 flex flex-col gap-5 lg:sticky lg:top-28">
+        <CheckoutOrderSummary />
+
+        <div className="bg-white border border-neutral-200 rounded-2xl p-5 shadow-sm">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm font-bold text-neutral-600">Total due</span>
+            <span className="text-2xl font-black text-neutral-900">{formatInr(totalPaise)}</span>
           </div>
-          <div className="flex justify-between text-neutral-600">
-            <span>Shipping</span>
-            <span className="text-emerald-600 font-bold">Free</span>
-          </div>
-          <div className="flex justify-between font-black text-lg pt-4 border-t border-neutral-200">
-            <span>Total</span>
-            <span>₹1299</span>
+          <p className="text-xs text-neutral-500 mb-4 capitalize">
+            via {PAYMENT_METHODS.find((m) => m.id === activeMethod)?.label}
+          </p>
+          <button
+            type="button"
+            disabled={loading}
+            onClick={() =>
+              (document.getElementById('payment-form') as HTMLFormElement | null)?.requestSubmit()
+            }
+            className="w-full py-3.5 rounded-xl bg-[#f05a13] text-white font-bold text-sm hover:bg-[#e0500e] disabled:opacity-60 shadow-sm"
+          >
+            {loading ? 'Processing…' : payLabel}
+          </button>
+          <div className="flex items-center justify-center gap-2 mt-3 text-[10px] font-bold text-neutral-400">
+            <ShieldCheck className="w-3.5 h-3.5" />
+            <span>Safe and Secure Payments</span>
           </div>
         </div>
       </div>

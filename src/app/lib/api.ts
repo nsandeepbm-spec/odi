@@ -19,6 +19,12 @@ export const API = {
   users: {
     list: '/users',
   },
+  checkout: {
+    sessions: '/checkout/sessions',
+  },
+  payments: {
+    verify: '/payments/verify',
+  },
 } as const;
 
 export interface AppUser {
@@ -122,5 +128,58 @@ export async function listUsers(page = 1, perPage = 50): Promise<ListUsersResult
   const body = await authFetch<ApiSuccess<ListUsersResult>>(
     `${API.users.list}?page=${page}&perPage=${perPage}`
   );
+  return body.data;
+}
+
+export interface CheckoutSession {
+  orderId: string;
+  orderNumber: string;
+  razorpayOrderId: string;
+  amount: number;
+  currency: string;
+  keyId: string;
+  reused: boolean;
+}
+
+export interface CheckoutSessionInput {
+  shippingAddress: {
+    first_name: string;
+    last_name: string;
+    phone: string;
+    email?: string | null;
+    street: string;
+    city: string;
+    state?: string | null;
+    postal_code: string;
+    country?: string;
+  };
+  items: Array<{ slug: string; quantity: number } | { productId: string; quantity: number }>;
+  couponCode?: string | null;
+}
+
+/** POST /checkout/sessions — create pending order + Razorpay order. */
+export async function createCheckoutSession(
+  input: CheckoutSessionInput,
+  idempotencyKey: string
+): Promise<CheckoutSession> {
+  const body = await authFetch<ApiSuccess<CheckoutSession>>(API.checkout.sessions, {
+    method: 'POST',
+    headers: { 'Idempotency-Key': idempotencyKey },
+    body: JSON.stringify(input),
+  });
+  return body.data;
+}
+
+/** POST /payments/verify — confirm Razorpay Checkout payment. */
+export async function verifyPayment(payload: {
+  orderId: string;
+  razorpay_order_id: string;
+  razorpay_payment_id: string;
+  razorpay_signature: string;
+}): Promise<{ alreadyPaid: boolean }> {
+  const body = await authFetch<ApiSuccess<{ alreadyPaid: boolean }>>(API.payments.verify, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
   return body.data;
 }

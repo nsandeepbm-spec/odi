@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
- Menu, X, ChevronDown, LogOut,
+ Menu, X, ChevronDown, LogOut, ShoppingBag,
  type LucideIcon 
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router';
 import { ODILogo } from './ODILogo';
 import { displayName, getInitials, useAuth } from '../lib/auth';
+import { useCartStore } from '../store/cartStore';
+import { CartDrawer } from './checkout/CartDrawer';
 
 // --- Interfaces for Type Safety ---
 interface DropdownItem {
@@ -26,6 +28,7 @@ interface NavLink {
 // --- Navigation Data ---
 const navLinks: NavLink[] = [
  { name: 'Home', path: '/' },
+ { name: 'Products', path: '/products' },
  { name: 'About', path: '/about' },
  {
  name: 'Services',
@@ -40,7 +43,7 @@ const navLinks: NavLink[] = [
  name: 'Industries',
  path: '/industries',
  },
- { name: 'Products', path: '/products' },
+ 
  { name: 'Careers', path: '/careers' },
 ];
 
@@ -53,6 +56,8 @@ export function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, firebaseUser, isAdmin, signOut } = useAuth();
+  const { items: cartItems, toggleDrawer } = useCartStore();
+  const cartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
 
   const isLoggedIn = Boolean(firebaseUser);
   const dashboardPath = isAdmin ? '/dashboard/admin' : '/dashboard';
@@ -62,8 +67,10 @@ export function Navbar() {
     : getInitials(firebaseUser?.displayName, firebaseUser?.email || 'U');
   const avatarUrl = user?.avatar_url || firebaseUser?.photoURL || null;
 
-  // Light-bg pages: /products/space-explorer, /checkout, and /learn-more use dark-text navbar
-  const isLight = location.pathname === '/products/space-explorer' || location.pathname === '/checkout' || location.pathname === '/learn-more';
+  const isLight =
+    location.pathname.startsWith('/products') ||
+    location.pathname.startsWith('/checkout') ||
+    location.pathname === '/learn-more';
 
  useEffect(() => {
  const handleScroll = () => setIsScrolled(window.scrollY > 20);
@@ -83,6 +90,26 @@ export function Navbar() {
    }
  };
 
+ const CartButton = ({ className = '' }: { className?: string }) => (
+   <button
+     type="button"
+     onClick={toggleDrawer}
+     aria-label="Open cart"
+     className={`relative p-2 rounded-full border transition-colors flex items-center justify-center ${
+       isLight
+         ? 'border-neutral-200 hover:bg-neutral-50 text-neutral-800'
+         : 'border-white/20 hover:bg-white/10 text-white'
+     } ${className}`}
+   >
+     <ShoppingBag className="w-5 h-5" />
+     {cartCount > 0 && (
+       <span className="absolute -top-1 -right-1 min-w-[1rem] h-4 px-1 bg-indigo-600 text-white text-[10px] font-bold flex items-center justify-center rounded-full shadow-sm">
+         {cartCount > 9 ? '9+' : cartCount}
+       </span>
+     )}
+   </button>
+ );
+
  const Avatar = ({ size = 'sm' }: { size?: 'sm' | 'md' }) => {
    const cls = size === 'md' ? 'w-10 h-10 text-xs' : 'w-8 h-8 text-[10px]';
    if (avatarUrl) {
@@ -96,6 +123,8 @@ export function Navbar() {
  };
 
  return (
+ <>
+ <CartDrawer />
  <nav className="fixed top-0 left-0 right-0 z-[100] pointer-events-none transition-all duration-500">
   <div className="max-w-[1400px] mx-auto px-6 md:px-10 lg:px-16 pt-2 pb-4 md:pt-4 md:pb-6">
         <div 
@@ -207,6 +236,8 @@ export function Navbar() {
          Dashboard
        </button>
 
+       <CartButton />
+
        <div
          className="relative"
          onMouseEnter={() => setProfileOpen(true)}
@@ -259,21 +290,26 @@ export function Navbar() {
        </div>
      </>
    ) : (
-     <button
-       onClick={() => navigate('/register')}
-       className={`px-5 py-2.5 rounded-full text-[11px] font-black tracking-[0.2em] uppercase transition-all shadow-xl whitespace-nowrap ${
-         isLight ? 'bg-neutral-900 text-white hover:bg-cyan-600' : 'bg-white text-black hover:bg-cyan-400'
-       }`}
-     >
-       Register
-     </button>
+     <>
+       <button
+         onClick={() => navigate('/register')}
+         className={`px-5 py-2.5 rounded-full text-[11px] font-black tracking-[0.2em] uppercase transition-all shadow-xl whitespace-nowrap ${
+           isLight ? 'bg-neutral-900 text-white hover:bg-cyan-600' : 'bg-white text-black hover:bg-cyan-400'
+         }`}
+       >
+         Register
+       </button>
+       <CartButton />
+     </>
    )}
  </div>
 
- {/* MOBILE TRIGGER */}
+ {/* MOBILE: cart + menu */}
+ <div className="lg:hidden relative z-[110] ml-auto flex items-center gap-2">
+  <CartButton />
   <button
   onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-  className={`lg:hidden relative z-[110] ml-auto p-3 rounded-xl border transition-all ${
+  className={`p-3 rounded-xl border transition-all ${
     isLight 
       ? 'bg-neutral-900/5 border-neutral-900/10 text-neutral-800' 
       : 'bg-white/5 border-white/10 text-white'
@@ -281,6 +317,7 @@ export function Navbar() {
   >
  {mobileMenuOpen ? <X className="w-6 h-6"/> : <Menu className="w-6 h-6"/>}
  </button>
+ </div>
  </div>
  </div>
 
@@ -368,5 +405,6 @@ export function Navbar() {
  )}
  </AnimatePresence>
  </nav>
+ </>
  );
 }

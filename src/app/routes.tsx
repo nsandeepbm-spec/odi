@@ -26,6 +26,7 @@ import RegisterPage from "./pages/auth/RegisterPage";
 // --- Checkout ---
 import CheckoutLayout from "./components/checkout/CheckoutLayout";
 import CheckoutPage from "./pages/CheckoutPage"; // Serves as Checkout Details
+import CheckoutReviewPage from "./pages/checkout/CheckoutReviewPage";
 import CheckoutPaymentPage from "./pages/checkout/CheckoutPaymentPage";
 import CheckoutSuccessPage from "./pages/checkout/CheckoutSuccessPage";
 
@@ -61,6 +62,7 @@ export const router = createBrowserRouter([
     ErrorBoundary: ErrorPage,
     children: [
       { index: true, Component: CheckoutPage },
+      { path: "review", Component: CheckoutReviewPage },
       { path: "payment", Component: CheckoutPaymentPage },
       { path: "success", Component: CheckoutSuccessPage },
     ]
