@@ -44,10 +44,12 @@ import UserSettingsPage from "./pages/dashboard/user/SettingsPage";
 // --- Dashboard: Admin ---
 import AdminLayout from "./components/dashboard/AdminLayout";
 import AdminOverviewPage from "./pages/dashboard/admin/OverviewPage";
-import AdminBookingsPage from "./pages/dashboard/admin/BookingsPage";
+import AdminOrdersPage from "./pages/dashboard/admin/OrdersPage";
 import AdminProductsPage from "./pages/dashboard/admin/ProductsPage";
+import ProductEditorPage from "./pages/dashboard/admin/ProductEditorPage";
 import AdminCustomersPage from "./pages/dashboard/admin/CustomersPage";
 import AdminPaymentsPage from "./pages/dashboard/admin/PaymentsPage";
+import AdminCouponsPage from "./pages/dashboard/admin/CouponsPage";
 import AdminSettingsPage from "./pages/dashboard/admin/SettingsPage";
 
 export const router = createBrowserRouter([
@@ -78,8 +80,11 @@ export const router = createBrowserRouter([
         Component: AdminLayout,
         children: [
           { index: true, Component: AdminOverviewPage },
-          { path: "bookings", Component: AdminBookingsPage },
+          { path: "orders", Component: AdminOrdersPage },
           { path: "products", Component: AdminProductsPage },
+          { path: "products/new", Component: ProductEditorPage },
+          { path: "products/:id", Component: ProductEditorPage },
+          { path: "coupons", Component: AdminCouponsPage },
           { path: "customers", Component: AdminCustomersPage },
           { path: "payments", Component: AdminPaymentsPage },
           { path: "settings", Component: AdminSettingsPage },

@@ -3,6 +3,7 @@ import {
   LayoutDashboard,
   CalendarCheck,
   Package,
+  Tag,
   Users,
   CreditCard,
   Settings,
@@ -15,13 +16,14 @@ const adminGroups: NavGroup[] = [
     label: 'Main',
     items: [
       { name: 'Overview', path: '/dashboard/admin', icon: LayoutDashboard, end: true },
-      { name: 'Bookings', path: '/dashboard/admin/bookings', icon: CalendarCheck },
+      { name: 'Orders', path: '/dashboard/admin/orders', icon: CalendarCheck },
     ],
   },
   {
     label: 'Catalog',
     items: [
       { name: 'Products', path: '/dashboard/admin/products', icon: Package },
+      { name: 'Coupons', path: '/dashboard/admin/coupons', icon: Tag },
     ],
   },
   {

@@ -8,7 +8,7 @@ const inputCls =
 const labelCls = 'text-[10px] font-bold tracking-[0.18em] uppercase text-neutral-400';
 
 export default function SettingsPage() {
-  const { user, updateProfile } = useAuth();
+  const { user, firebaseUser, updateProfile } = useAuth();
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [saving, setSaving] = useState(false);
@@ -24,6 +24,7 @@ export default function SettingsPage() {
 
   const name = displayName(user);
   const initials = getInitials(user.full_name, user.email);
+  const avatarUrl = user.avatar_url || firebaseUser?.photoURL || null;
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,11 +58,12 @@ export default function SettingsPage() {
         <Card title="Profile">
           <form onSubmit={handleSave} className="p-6">
             <div className="flex items-center gap-4 mb-6">
-              {user.avatar_url ? (
+              {avatarUrl ? (
                 <img
-                  src={user.avatar_url}
+                  src={avatarUrl}
                   alt={name}
                   className="w-16 h-16 rounded-full object-cover"
+                  referrerPolicy="no-referrer"
                 />
               ) : (
                 <div className="w-16 h-16 rounded-full bg-gradient-to-br from-cyan-400 via-indigo-500 to-purple-600 flex items-center justify-center text-white text-lg font-black">

@@ -92,7 +92,7 @@ function CheckoutNavbar() {
                 aria-expanded={profileOpen}
               >
                 {avatarUrl ? (
-                  <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
+                  <img src={avatarUrl} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                 ) : (
                   profileInitials
                 )}

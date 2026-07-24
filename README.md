@@ -42,10 +42,12 @@ Auth and profile use the Express API in `odi-backend/`:
 | `GET /user/me` | Current user profile |
 | `PATCH /user/me` | Update profile |
 | `GET /users` | Admin customer list |
+| `GET /admin/overview` | Admin KPIs + recent orders (`getAdminOverview`) |
+| `GET/POST/PATCH /admin/products` | Admin catalog list + create/edit (`listAdminProducts`, `createAdminProduct`, `updateAdminProduct`) |
 | `POST /checkout/sessions` | Create order + Razorpay order (`createCheckoutSession`) |
 | `POST /payments/verify` | Confirm payment after Razorpay modal (`verifyPayment`) |
 
-Catalog / cart UI is still partly mock (`src/app/data/products.ts`) until `GET /products` is wired. Online checkout talks to the live payment APIs when products exist in Supabase.
+Storefront catalog / cart UI is still partly mock (`src/app/data/products.ts`) until `GET /products` is wired. Admin **Overview** and **Products** use live APIs.
 
 ## Project docs
 

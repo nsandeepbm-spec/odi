@@ -95,6 +95,35 @@ export function BookingBadge({ status }: { status: BookingStatus }) {
   );
 }
 
+/** Real order statuses from backend (`orders.status`). */
+export type OrderStatus =
+  | 'pending'
+  | 'paid'
+  | 'processing'
+  | 'shipped'
+  | 'delivered'
+  | 'cancelled'
+  | 'refunded';
+
+const orderStyles: Record<OrderStatus, string> = {
+  pending: 'bg-amber-50 text-amber-600',
+  paid: 'bg-sky-50 text-sky-600',
+  processing: 'bg-amber-50 text-amber-700',
+  shipped: 'bg-indigo-50 text-indigo-600',
+  delivered: 'bg-emerald-50 text-emerald-600',
+  cancelled: 'bg-red-50 text-red-500',
+  refunded: 'bg-neutral-100 text-neutral-500',
+};
+
+export function OrderBadge({ status }: { status: string }) {
+  const style = orderStyles[status as OrderStatus] ?? 'bg-neutral-100 text-neutral-500';
+  return (
+    <span className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full ${style}`}>
+      {status.replace(/_/g, ' ')}
+    </span>
+  );
+}
+
 const paymentStyles: Record<PaymentStatus, string> = {
   paid: 'bg-emerald-50 text-emerald-600',
   pending: 'bg-amber-50 text-amber-600',
@@ -149,4 +178,9 @@ export function EmptyState({ icon: Icon, title, subtitle }: { icon: LucideIcon; 
 }
 
 // ─── INR FORMAT ───────────────────────────────────────────────────────────────
+/** Format rupees (whole currency units). */
 export const inr = (n: number) => `₹${n.toLocaleString('en-IN')}`;
+
+/** Format integer paise as INR. */
+export const inrFromPaise = (paise: number) =>
+  `₹${(paise / 100).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;

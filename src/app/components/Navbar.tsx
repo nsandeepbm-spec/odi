@@ -55,7 +55,7 @@ export function Navbar() {
  
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, firebaseUser, isAdmin, signOut } = useAuth();
+  const { user, firebaseUser, isAdmin, signOut, loading } = useAuth();
   const { items: cartItems, toggleDrawer } = useCartStore();
   const cartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
 
@@ -113,7 +113,7 @@ export function Navbar() {
  const Avatar = ({ size = 'sm' }: { size?: 'sm' | 'md' }) => {
    const cls = size === 'md' ? 'w-10 h-10 text-xs' : 'w-8 h-8 text-[10px]';
    if (avatarUrl) {
-     return <img src={avatarUrl} alt="" className={`${cls} rounded-full object-cover shrink-0`} />;
+     return <img src={avatarUrl} alt="" className={`${cls} rounded-full object-cover shrink-0`} referrerPolicy="no-referrer" />;
    }
    return (
      <span className={`${cls} rounded-full bg-gradient-to-br from-cyan-400 via-indigo-500 to-purple-600 flex items-center justify-center text-white font-black shrink-0`}>
@@ -225,7 +225,9 @@ export function Navbar() {
 
  {/* CTA — equal flex weight to logo side */}
  <div className="hidden lg:flex flex-1 items-center justify-end gap-2.5">
-   {isLoggedIn ? (
+   {loading ? (
+     <div className={`w-8 h-8 rounded-full animate-pulse ${isLight ? 'bg-neutral-200' : 'bg-white/20'}`} />
+   ) : isLoggedIn ? (
      <>
        <button
          onClick={() => navigate(dashboardPath)}
@@ -367,7 +369,9 @@ export function Navbar() {
  </div>
 
  <div className="mt-auto pt-12 pb-8 flex flex-col gap-3">
- {isLoggedIn ? (
+ {loading ? (
+   <div className="w-full h-14 rounded-2xl animate-pulse bg-white/10" />
+ ) : isLoggedIn ? (
  <>
  <button
  onClick={() => { setMobileMenuOpen(false); navigate(dashboardPath); }}

@@ -28,11 +28,13 @@ export default function DashboardShell({ portal, groups, switchTo }: DashboardSh
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, signOut } = useAuth();
+  const { user, firebaseUser, signOut } = useAuth();
 
-  const name = user ? displayName(user) : 'User';
-  const initials = user ? getInitials(user.full_name, user.email) : 'U';
-  const avatarUrl = user?.avatar_url;
+  const fbName = firebaseUser?.displayName || firebaseUser?.email?.split('@')[0] || 'User';
+  const name = user ? displayName(user) : fbName;
+  const fbEmail = firebaseUser?.email || 'U';
+  const initials = user ? getInitials(user.full_name, user.email) : getInitials(fbName, fbEmail);
+  const avatarUrl = user?.avatar_url || firebaseUser?.photoURL || null;
 
   const handleSignOut = async () => {
     try {
@@ -48,7 +50,7 @@ export default function DashboardShell({ portal, groups, switchTo }: DashboardSh
   const Avatar = ({ size = 'sm' }: { size?: 'sm' | 'md' }) => {
     const cls = size === 'md' ? 'w-9 h-9 text-xs' : 'w-9 h-9 text-xs';
     if (avatarUrl) {
-      return <img src={avatarUrl} alt={name} className={`${cls} rounded-full object-cover shrink-0`} />;
+      return <img src={avatarUrl} alt={name} className={`${cls} rounded-full object-cover shrink-0`} referrerPolicy="no-referrer" />;
     }
     return (
       <div className={`${cls} rounded-full bg-gradient-to-br from-cyan-400 via-indigo-500 to-purple-600 flex items-center justify-center text-white font-black shrink-0`}>

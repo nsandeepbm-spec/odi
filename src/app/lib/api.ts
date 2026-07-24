@@ -25,6 +25,13 @@ export const API = {
   payments: {
     verify: '/payments/verify',
   },
+  admin: {
+    overview: '/admin/overview',
+    products: '/admin/products',
+    orders: '/admin/orders',
+    payments: '/admin/payments',
+    coupons: '/admin/coupons',
+  },
 } as const;
 
 export interface AppUser {
@@ -182,4 +189,261 @@ export async function verifyPayment(payload: {
     body: JSON.stringify(payload),
   });
   return body.data;
+}
+
+// ─── Admin commerce ───────────────────────────────────────────────────────────
+
+export type AdminProductStatus = 'draft' | 'live' | 'coming_soon' | 'archived';
+
+export interface AdminProductImage {
+  id: string;
+  product_id: string;
+  url: string;
+  alt: string | null;
+  sort_order: number;
+  is_primary: boolean;
+}
+
+export interface AdminProduct {
+  id: string;
+  slug: string;
+  name: string;
+  volume: string | null;
+  description: string | null;
+  long_description: string | null;
+  author: string | null;
+  publisher: string | null;
+  language: string | null;
+  age_range: string | null;
+  pages: number | null;
+  price_paise: number;
+  compare_at_paise: number | null;
+  stock_qty: number;
+  status: AdminProductStatus;
+  tag: string | null;
+  features: string[];
+  categories: string[];
+  kit_contents: unknown;
+  sort_order: number;
+  images: AdminProductImage[];
+  rating_avg: number;
+  rating_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AdminOverview {
+  kpis: {
+    revenuePaise: number;
+    orderCount: number;
+    paidOrderCount: number;
+    attentionCount: number;
+    customerCount: number;
+    liveProductCount: number;
+    productCount: number;
+  };
+  revenueSeries: { month: string; revenuePaise: number }[];
+  catalog: {
+    id: string;
+    slug: string;
+    name: string;
+    volume: string | null;
+    status: string;
+    stockQty: number;
+    pricePaise: number;
+    imageUrl: string | null;
+  }[];
+  recentOrders: {
+    id: string;
+    orderNumber: string;
+    status: string;
+    totalPaise: number;
+    createdAt: string;
+    customerName: string;
+    customerEmail: string | null;
+  }[];
+}
+
+export interface AdminProductInput {
+  slug?: string;
+  name: string;
+  volume?: string | null;
+  description?: string | null;
+  long_description?: string | null;
+  author?: string | null;
+  publisher?: string | null;
+  language?: string | null;
+  age_range?: string | null;
+  pages?: number | null;
+  price_paise: number;
+  compare_at_paise?: number | null;
+  stock_qty?: number;
+  status?: AdminProductStatus;
+  tag?: string | null;
+  features?: string[];
+  categories?: string[];
+  kit_contents?: Array<{ name: string; qty: number; detail?: string }>;
+  sort_order?: number;
+  images?: Array<{
+    url: string;
+    alt?: string | null;
+    sort_order?: number;
+    is_primary?: boolean;
+  }>;
+}
+
+export async function getAdminOverview(): Promise<AdminOverview> {
+  const body = await authFetch<ApiSuccess<AdminOverview>>(API.admin.overview);
+  return body.data;
+}
+
+export async function listAdminProducts(page = 1, perPage = 50, status?: string) {
+  const qs = new URLSearchParams({ page: String(page), perPage: String(perPage) });
+  if (status) qs.set('status', status);
+  const body = await authFetch<
+    ApiSuccess<{ products: AdminProduct[]; meta: { total: number; page: number; perPage: number } }>
+  >(`${API.admin.products}?${qs}`);
+  return body.data;
+}
+
+export async function createAdminProduct(input: AdminProductInput & { slug: string }) {
+  const body = await authFetch<ApiSuccess<{ product: AdminProduct }>>(API.admin.products, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+  return body.data.product;
+}
+
+export async function updateAdminProduct(id: string, updates: Partial<AdminProductInput>): Promise<AdminProduct> {
+  const body = await authFetch<ApiSuccess<{ product: AdminProduct }>>(`${API.admin.products}/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(updates),
+  });
+  return body.data.product;
+}
+
+export async function uploadAdminProductImage(file: File): Promise<{ url: string }> {
+  const user = auth.currentUser;
+  if (!user) throw new Error('Not signed in');
+
+  const token = await user.getIdToken();
+  const formData = new FormData();
+  formData.append('image', file);
+
+  const res = await fetch(`${API_URL}/admin/products/upload-image`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: formData,
+  });
+
+  const body = await parseResponse<ApiSuccess<{ url: string }>>(res);
+  return body.data;
+}
+
+export interface AdminOrder {
+  id: string;
+  order_number: string;
+  status: string;
+  total_paise: number;
+  shipping_address: {
+    first_name?: string;
+    last_name?: string;
+    email?: string;
+  };
+  user_id: string;
+  created_at: string;
+  order_items?: Array<{
+    id: string;
+    product_id: string | null;
+    snapshot_name: string;
+    quantity: number;
+  }>;
+  payments?: Array<{
+    status: string;
+  }>;
+}
+
+export async function listAdminOrders(page = 1, perPage = 20, status?: string) {
+  const qs = new URLSearchParams({ page: String(page), perPage: String(perPage) });
+  if (status && status !== 'all') qs.set('status', status);
+  const body = await authFetch<
+    ApiSuccess<{ orders: AdminOrder[]; meta: { total: number; page: number; perPage: number } }>
+  >(`${API.admin.orders}?${qs}`);
+  return body.data;
+}
+
+export async function updateAdminOrderStatus(id: string, status: string) {
+  const body = await authFetch<ApiSuccess<{ order: AdminOrder }>>(`${API.admin.orders}/${id}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status }),
+  });
+  return body.data.order;
+}
+
+export interface AdminPayment {
+  id: string;
+  order_id: string;
+  provider: string;
+  amount_paise: number;
+  status: string;
+  created_at: string;
+  orders?: {
+    order_number: string;
+    shipping_address?: { first_name?: string; last_name?: string };
+    user_id: string;
+  };
+}
+
+export async function listAdminPayments(page = 1, perPage = 50) {
+  const qs = new URLSearchParams({ page: String(page), perPage: String(perPage) });
+  const body = await authFetch<
+    ApiSuccess<{
+      payments: AdminPayment[];
+      kpis: { collectedPaise: number; pendingPaise: number; refundedPaise: number };
+      meta: { total: number; page: number; perPage: number };
+    }>
+  >(`${API.admin.payments}?${qs}`);
+  return body.data;
+}
+
+export interface AdminCoupon {
+  id: string;
+  code: string;
+  type: 'percent' | 'fixed_paise';
+  value: number;
+  min_subtotal_paise: number;
+  max_discount_paise: number | null;
+  max_uses: number | null;
+  per_user_limit: number;
+  used_count: number;
+  starts_at: string | null;
+  ends_at: string | null;
+  active: boolean;
+  created_at: string;
+}
+
+export async function listAdminCoupons(page = 1, perPage = 20) {
+  const qs = new URLSearchParams({ page: String(page), perPage: String(perPage) });
+  const body = await authFetch<
+    ApiSuccess<{ coupons: AdminCoupon[]; meta: { total: number; page: number; perPage: number } }>
+  >(`${API.admin.coupons}?${qs}`);
+  return body.data;
+}
+
+export async function createAdminCoupon(input: Partial<AdminCoupon>) {
+  const body = await authFetch<ApiSuccess<{ coupon: AdminCoupon }>>(API.admin.coupons, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+  return body.data.coupon;
+}
+
+export async function updateAdminCoupon(id: string, updates: Partial<AdminCoupon>) {
+  const body = await authFetch<ApiSuccess<{ coupon: AdminCoupon }>>(`${API.admin.coupons}/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(updates),
+  });
+  return body.data.coupon;
 }
