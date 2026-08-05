@@ -9,6 +9,9 @@ import AboutPage from "./pages/AboutPage";
 import CareersPage from "./pages/CareersPage";
 import ContactPage from "./pages/ContactPage";
 import LearnMorePage from "./pages/LearnMorePage";
+import PrivacyPolicyPage from "./pages/legal/PrivacyPolicyPage";
+import TermsOfServicePage from "./pages/legal/TermsOfServicePage";
+import CookiesPolicyPage from "./pages/legal/CookiesPolicyPage";
 import IndustriesPage from "./pages/industriesPage";
 import Service3DMovieConversion from "./pages/Service3DMovieConversion";
 import Service3DShortFilms from "./pages/Service3DShortFilms";
@@ -38,19 +41,25 @@ import UserLayout from "./components/dashboard/UserLayout";
 import UserOverviewPage from "./pages/dashboard/user/OverviewPage";
 import UserBookingsPage from "./pages/dashboard/user/BookingsPage";
 import UserOrdersPage from "./pages/dashboard/user/OrdersPage";
+import UserOrderDetailPage from "./pages/dashboard/user/OrderDetailPage";
+import UserReviewsPage from "./pages/dashboard/user/ReviewsPage";
 import UserPaymentsPage from "./pages/dashboard/user/PaymentsPage";
 import UserSettingsPage from "./pages/dashboard/user/SettingsPage";
+import UserInboxPage from "./pages/dashboard/user/InboxPage";
 
 // --- Dashboard: Admin ---
 import AdminLayout from "./components/dashboard/AdminLayout";
 import AdminOverviewPage from "./pages/dashboard/admin/OverviewPage";
 import AdminOrdersPage from "./pages/dashboard/admin/OrdersPage";
+import AdminOrderDetailPage from "./pages/dashboard/admin/OrderDetailPage";
 import AdminProductsPage from "./pages/dashboard/admin/ProductsPage";
 import ProductEditorPage from "./pages/dashboard/admin/ProductEditorPage";
 import AdminCustomersPage from "./pages/dashboard/admin/CustomersPage";
 import AdminPaymentsPage from "./pages/dashboard/admin/PaymentsPage";
+import AdminPaymentDetailPage from "./pages/dashboard/admin/PaymentDetailPage";
 import AdminCouponsPage from "./pages/dashboard/admin/CouponsPage";
 import AdminSettingsPage from "./pages/dashboard/admin/SettingsPage";
+import AdminInboxPage from "./pages/dashboard/admin/InboxPage";
 
 export const router = createBrowserRouter([
   // Standalone Auth Routes
@@ -80,13 +89,16 @@ export const router = createBrowserRouter([
         Component: AdminLayout,
         children: [
           { index: true, Component: AdminOverviewPage },
+          { path: "inbox", Component: AdminInboxPage },
           { path: "orders", Component: AdminOrdersPage },
+          { path: "orders/:orderId", Component: AdminOrderDetailPage },
           { path: "products", Component: AdminProductsPage },
           { path: "products/new", Component: ProductEditorPage },
           { path: "products/:id", Component: ProductEditorPage },
           { path: "coupons", Component: AdminCouponsPage },
           { path: "customers", Component: AdminCustomersPage },
           { path: "payments", Component: AdminPaymentsPage },
+          { path: "payments/:paymentId", Component: AdminPaymentDetailPage },
           { path: "settings", Component: AdminSettingsPage },
         ],
       },
@@ -103,8 +115,11 @@ export const router = createBrowserRouter([
         Component: UserLayout,
         children: [
           { index: true, Component: UserOverviewPage },
+          { path: "inbox", Component: UserInboxPage },
           { path: "bookings", Component: UserBookingsPage },
           { path: "orders", Component: UserOrdersPage },
+          { path: "orders/:orderId", Component: UserOrderDetailPage },
+          { path: "reviews", Component: UserReviewsPage },
           { path: "payments", Component: UserPaymentsPage },
           { path: "settings", Component: UserSettingsPage },
         ],
@@ -136,6 +151,9 @@ export const router = createBrowserRouter([
       { path: "careers", Component: CareersPage },
       { path: "contact", Component: ContactPage },
       { path: "learn-more", Component: LearnMorePage },
+      { path: "privacy", Component: PrivacyPolicyPage },
+      { path: "terms", Component: TermsOfServicePage },
+      { path: "cookies", Component: CookiesPolicyPage },
     ],
   },
 ]);

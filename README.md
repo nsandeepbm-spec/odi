@@ -34,6 +34,8 @@ Product catalog for checkout lives in `src/app/data/products.ts` until `GET /pro
 
 ## Backend integration
 
+Full HTTP contract (methods, auth, request/response): **[`../api.md`](../api.md)** — always update that file when wiring or changing APIs.
+
 Auth and profile use the Express API in `odi-backend/`:
 
 | Frontend (`lib/api.ts`) | Backend |

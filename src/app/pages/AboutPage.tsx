@@ -25,12 +25,8 @@ export default function AboutPage() {
           </div>
           <div className="md:w-1/2 relative">
             <div className="aspect-[4/3] rounded-3xl overflow-hidden relative group border border-neutral-100 shadow-xl">
-              <img src="https://images.unsplash.com/photo-1622979135225-d2ba269cf1ac?auto=format&fit=crop&q=80&w=1200" alt="3D Spatial Media" className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" />
+              <img src="/about-image/hero-about.png" alt="3D Spatial Media" className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" />
               <div className="absolute inset-0 bg-gradient-to-t from-neutral-900/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-            </div>
-
-            <div className="absolute -bottom-12 -left-12 aspect-square w-56 rounded-3xl overflow-hidden relative group border border-white shadow-2xl hidden md:block z-10 bg-neutral-100">
-              <img src="https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=600" alt="Precision Technology" className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" />
             </div>
           </div>
         </section>
@@ -59,7 +55,7 @@ export default function AboutPage() {
               </div>
             </div>
             <div className="relative aspect-video border border-neutral-100 rounded-3xl overflow-hidden group bg-neutral-50 shadow-lg">
-              <img src="https://images.unsplash.com/photo-1536440136628-849c177e76a1?auto=format&fit=crop&q=80&w=800" alt="Cinema" className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" />
+              <img src="/about-image/hero%202.png" alt="Cinema" className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" />
               <div className="absolute inset-0 bg-gradient-to-t from-neutral-900/80 via-transparent to-transparent opacity-80" />
               <div className="absolute bottom-6 left-6 flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 shadow-sm">
@@ -86,25 +82,25 @@ export default function AboutPage() {
                 icon: Clock,
                 title: "14 YEARS EXCELLENCE",
                 desc: "A decade of pioneering depth conversion and workflows for cinema.",
-                image: "https://images.unsplash.com/photo-1593305841991-05c297ba4575?auto=format&fit=crop&q=80&w=400"
+                image: "/about-image/Card%2001.png"
               },
               {
                 icon: Award,
                 title: "FRAME PERFECT",
                 desc: "Every individual frame treated with surgical precision.",
-                image: "https://images.unsplash.com/photo-1578632767115-351597cf2477?auto=format&fit=crop&q=80&w=400"
+                image: "/about-image/Card%2002.png"
               },
               {
                 icon: ShieldCheck,
                 title: "TRUSTED PARTNERS",
                 desc: "Collaborating with brands to protect their creative vision.",
-                image: "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&q=80&w=400"
+                image: "/about-image/Card%2003.png"
               },
               {
                 icon: Zap,
                 title: "SPATIAL READY",
                 desc: "Leading the industry in content for immersive displays.",
-                image: "https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?auto=format&fit=crop&q=80&w=400"
+                image: "/about-image/Card%2004.png"
               }
             ].map((item, i) => (
               <div key={i} className="group cursor-pointer relative overflow-hidden border border-neutral-100 aspect-[3/4] bg-neutral-100 rounded-3xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-500">

@@ -17,16 +17,16 @@ interface SummaryItem {
 
 export function CheckoutOrderSummary({ currentItem }: { currentItem?: SummaryItem }) {
   const { items, getTotal } = useCartStore();
-  const { product, quantity, subtotalPaise, discountPaise, totalPaise } = useCheckout();
+  const { product, quantity, subtotalPaise, discountPaise, totalPaise, couponCode } = useCheckout();
 
   const checkoutItem: SummaryItem | null = product
     ? {
         id: product.slug,
         name: product.name,
-        pricePaise: product.pricePaise,
+        pricePaise: product.price_paise,
         quantity,
-        imageUrl: product.images[0],
-        tag: product.tag,
+        imageUrl: product.media?.card?.url ?? product.images?.[0]?.url ?? '',
+        tag: product.tag ?? undefined,
       }
     : null;
 
@@ -36,19 +36,23 @@ export function CheckoutOrderSummary({ currentItem }: { currentItem?: SummaryIte
       ? [checkoutItem]
       : items;
 
-  const total = currentItem
-    ? currentItem.pricePaise * currentItem.quantity
-    : checkoutItem
-      ? totalPaise
+  // Prefer live checkout totals (includes coupon) whenever a checkout product is loaded.
+  const useCheckoutTotals = !!checkoutItem;
+
+  const subtotal = useCheckoutTotals
+    ? subtotalPaise
+    : currentItem
+      ? currentItem.pricePaise * currentItem.quantity
       : getTotal();
 
-  const subtotal = currentItem
-    ? currentItem.pricePaise * currentItem.quantity
-    : checkoutItem
-      ? subtotalPaise
-      : getTotal();
+  const discount = useCheckoutTotals ? discountPaise : 0;
+  const showCoupon = useCheckoutTotals && !!couponCode && discount > 0;
 
-  const discount = checkoutItem && !currentItem ? discountPaise : 0;
+  const total = useCheckoutTotals
+    ? totalPaise
+    : currentItem
+      ? currentItem.pricePaise * currentItem.quantity
+      : getTotal();
 
   return (
     <div className="bg-white border border-neutral-200 rounded-2xl p-6 md:p-7 shadow-sm">
@@ -93,19 +97,15 @@ export function CheckoutOrderSummary({ currentItem }: { currentItem?: SummaryIte
           <span>Subtotal</span>
           <span>{formatInr(subtotal)}</span>
         </div>
-        {discount > 0 && (
-          <div className="flex justify-between text-emerald-600">
-            <span>Discount</span>
+        {showCoupon ? (
+          <div className="flex justify-between text-emerald-600 font-semibold">
+            <span>Coupon · {couponCode}</span>
             <span>−{formatInr(discount)}</span>
           </div>
-        )}
+        ) : null}
         <div className="flex justify-between">
           <span>Shipping</span>
           <span className="text-[#00a680] font-bold">FREE</span>
-        </div>
-        <div className="flex justify-between">
-          <span>Taxes (Included)</span>
-          <span>₹0</span>
         </div>
       </div>
 
@@ -113,7 +113,17 @@ export function CheckoutOrderSummary({ currentItem }: { currentItem?: SummaryIte
 
       <div className="flex justify-between items-center mb-6">
         <span className="font-black text-xl text-neutral-900">Total</span>
-        <span className="font-black text-2xl text-neutral-900">{formatInr(total)}</span>
+        <div className="text-right">
+          {showCoupon && (
+            <p className="text-xs text-neutral-400 line-through mb-0.5">{formatInr(subtotal)}</p>
+          )}
+          <span className="font-black text-2xl text-neutral-900">{formatInr(total)}</span>
+          {showCoupon && (
+            <p className="text-[11px] font-bold text-emerald-600 mt-0.5">
+              Coupon saves {formatInr(discount)}
+            </p>
+          )}
+        </div>
       </div>
 
       <div className="w-full bg-[#f4f6ff] border border-[#e0e7ff] rounded-xl p-4 flex items-center gap-3">

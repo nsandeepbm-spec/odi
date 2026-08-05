@@ -33,4 +33,46 @@ export default defineConfig({
 
   // File types to support raw imports. Never add .css, .tsx, or .ts files to this.
   assetsInclude: ['**/*.svg', '**/*.csv'],
+
+  // Same-origin API proxy — enables one ngrok URL for UI + backend in dev
+  // IMPORTANT: `/products` must NOT steal public assets like `/products-banner.png`.
+  // Bypass any request that looks like a static file.
+  server: {
+    host: true,
+    // Allow ngrok / tunnel hostnames (Vite blocks unknown Host headers by default)
+    allowedHosts: true,
+    proxy: (() => {
+      const target = 'http://127.0.0.1:5000';
+      const bypass = (req: { url?: string; method?: string; headers?: Record<string, string | string[] | undefined> }) => {
+        const url = req.url ?? '';
+        if (/\.(png|jpe?g|webp|gif|svg|mp4|ico|txt|html|css|js|map)(\?.*)?$/i.test(url)) {
+          return url;
+        }
+        // Full page loads / refreshes (browser navigation) ask for text/html — let the
+        // Vite dev server serve index.html so client-side routing (e.g. /products) works.
+        // Real API calls from app code send Accept: application/json (or */*), so they
+        // still get proxied to the backend.
+        const accept = req.headers?.accept;
+        const acceptsHtml = Array.isArray(accept) ? accept.some((a) => a.includes('text/html')) : accept?.includes('text/html');
+        if ((req.method ?? 'GET') === 'GET' && acceptsHtml) {
+          return url;
+        }
+      };
+      const api = { target, changeOrigin: true, bypass };
+      return {
+        '/health': api,
+        '/auth': api,
+        '/user': api,
+        '/users': api,
+        '/products': api,
+        '/reviews': api,
+        '/cart': api,
+        '/coupons': api,
+        '/checkout': api,
+        '/orders': api,
+        '/payments': api,
+        '/admin': api,
+      };
+    })(),
+  },
 })

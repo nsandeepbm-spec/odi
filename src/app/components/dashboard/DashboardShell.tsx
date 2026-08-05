@@ -1,10 +1,19 @@
 import React, { useState } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router';
 import { motion, AnimatePresence } from 'motion/react';
-import { Bell, LogOut, Menu, Search, X, type LucideIcon } from 'lucide-react';
+import { LogOut, Menu, Search, X, type LucideIcon } from 'lucide-react';
 import { displayName, getInitials, useAuth } from '../../lib/auth';
+import NotificationBell from './NotificationBell';
 
-const T = { bg: '#FFFFFF', bgAlt: '#F7F7F5', text: '#111111', sub: '#666666', border: '#E8E8E8' };
+// Premium Dark Theme Tokens
+const T = { 
+  bg: '#050505', 
+  bgAlt: '#0a0a0a', 
+  text: '#fafafa', 
+  sub: '#a1a1aa', 
+  border: '#1f1f22',
+  accent: '#38bdf8'
+};
 
 export interface NavItem {
   name: string;
@@ -50,10 +59,10 @@ export default function DashboardShell({ portal, groups, switchTo }: DashboardSh
   const Avatar = ({ size = 'sm' }: { size?: 'sm' | 'md' }) => {
     const cls = size === 'md' ? 'w-9 h-9 text-xs' : 'w-9 h-9 text-xs';
     if (avatarUrl) {
-      return <img src={avatarUrl} alt={name} className={`${cls} rounded-full object-cover shrink-0`} referrerPolicy="no-referrer" />;
+      return <img src={avatarUrl} alt={name} className={`${cls} rounded-full object-cover shrink-0 ring-1 ring-white/10`} referrerPolicy="no-referrer" />;
     }
     return (
-      <div className={`${cls} rounded-full bg-gradient-to-br from-cyan-400 via-indigo-500 to-purple-600 flex items-center justify-center text-white font-black shrink-0`}>
+      <div className={`${cls} rounded-full bg-gradient-to-br from-cyan-500 via-indigo-600 to-purple-700 flex items-center justify-center text-white font-black shrink-0 ring-1 ring-white/10 shadow-[0_0_15px_rgba(99,102,241,0.4)]`}>
         {initials}
       </div>
     );
@@ -61,19 +70,19 @@ export default function DashboardShell({ portal, groups, switchTo }: DashboardSh
 
   const SidebarContent = (
     <>
-      <div className="px-6 pt-6 pb-5" style={{ borderBottom: `1px solid ${T.border}` }}>
+      <div className="px-6 pt-7 pb-6 flex items-center gap-3" style={{ borderBottom: `1px solid ${T.border}` }}>
         <Link to="/" className="block w-fit" onClick={() => setSidebarOpen(false)}>
-          <img src="/Logo.svg" alt="ODI" className="h-8 w-auto" />
+          <span className="text-2xl font-black tracking-tighter bg-gradient-to-br from-white to-neutral-400 bg-clip-text text-transparent">ODI.</span>
         </Link>
-        <div className="mt-2 text-[10px] font-bold tracking-[0.25em] uppercase" style={{ color: T.sub }}>
-          {portal} Portal
+        <div className="px-2 py-0.5 rounded text-[9px] font-bold tracking-[0.25em] uppercase border border-neutral-800 bg-neutral-900" style={{ color: T.text }}>
+          {portal}
         </div>
       </div>
 
-      <nav className="flex-1 overflow-y-auto px-4 py-5 space-y-7">
+      <nav className="flex-1 overflow-y-auto px-4 py-6 space-y-8 custom-scrollbar">
         {groups.map((group) => (
           <div key={group.label}>
-            <div className="px-3 mb-2 text-[10px] font-bold tracking-[0.2em] uppercase" style={{ color: '#A3A3A3' }}>
+            <div className="px-3 mb-3 text-[10px] font-bold tracking-[0.2em] uppercase" style={{ color: T.sub }}>
               {group.label}
             </div>
             <div className="space-y-1">
@@ -85,13 +94,19 @@ export default function DashboardShell({ portal, groups, switchTo }: DashboardSh
                     key={item.path}
                     to={item.path}
                     onClick={() => setSidebarOpen(false)}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
+                    className={`group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-300 ${
                       active
-                        ? 'bg-neutral-900 text-white shadow-sm'
-                        : 'text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900'
+                        ? 'bg-white/10 text-white shadow-[0_0_20px_rgba(255,255,255,0.03)] border border-white/5'
+                        : 'text-neutral-400 hover:bg-white/5 hover:text-neutral-200 border border-transparent'
                     }`}
                   >
-                    <Icon className={`w-[18px] h-[18px] ${active ? 'text-white' : 'text-neutral-400'}`} />
+                    {active && (
+                      <motion.div
+                        layoutId="active-indicator"
+                        className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-gradient-to-b from-cyan-400 to-indigo-500 rounded-r-full shadow-[0_0_10px_rgba(56,189,248,0.5)]"
+                      />
+                    )}
+                    <Icon className={`w-[18px] h-[18px] transition-colors ${active ? 'text-cyan-400' : 'text-neutral-500 group-hover:text-neutral-300'}`} />
                     {item.name}
                   </Link>
                 );
@@ -102,10 +117,10 @@ export default function DashboardShell({ portal, groups, switchTo }: DashboardSh
       </nav>
 
       <div className="p-4 space-y-2" style={{ borderTop: `1px solid ${T.border}` }}>
-        <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl" style={{ background: T.bgAlt }}>
+        <div className="flex items-center gap-3 px-3 py-3 rounded-xl border border-white/5 shadow-inner" style={{ background: 'linear-gradient(145deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%)' }}>
           <Avatar />
           <div className="min-w-0 flex-1">
-            <div className="text-sm font-bold truncate">{name}</div>
+            <div className="text-sm font-bold truncate text-white">{name}</div>
             <div className="text-[10px] font-semibold tracking-wider uppercase truncate" style={{ color: T.sub }}>
               {user?.email ?? portal}
             </div>
@@ -115,15 +130,15 @@ export default function DashboardShell({ portal, groups, switchTo }: DashboardSh
           <Link
             to={switchTo.path}
             onClick={() => setSidebarOpen(false)}
-            className="flex items-center gap-3 px-3 py-2.5 text-sm font-semibold text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 rounded-xl transition-colors"
+            className="flex items-center gap-3 px-3 py-2.5 text-sm font-semibold text-neutral-400 hover:bg-white/5 hover:text-neutral-200 rounded-xl transition-all border border-transparent hover:border-white/5"
           >
-            <switchTo.icon className="w-[18px] h-[18px] text-neutral-400" />
+            <switchTo.icon className="w-[18px] h-[18px] text-neutral-500" />
             {switchTo.label}
           </Link>
         )}
         <button
           onClick={handleSignOut}
-          className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-semibold text-red-500 hover:bg-red-50 rounded-xl transition-colors"
+          className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-semibold text-red-400 hover:bg-red-500/10 hover:text-red-300 rounded-xl transition-all border border-transparent hover:border-red-500/10"
         >
           <LogOut className="w-[18px] h-[18px]" />
           Sign Out
@@ -133,10 +148,10 @@ export default function DashboardShell({ portal, groups, switchTo }: DashboardSh
   );
 
   return (
-    <div className="min-h-screen flex" style={{ background: T.bgAlt, color: T.text, fontFamily: 'Inter, system-ui, sans-serif' }}>
+    <div className="min-h-screen flex selection:bg-cyan-500/30 selection:text-cyan-100 [&_input:-webkit-autofill]:![box-shadow:0_0_0_100px_#111113_inset] [&_input:-webkit-autofill]:![-webkit-text-fill-color:#d4d4d8]" style={{ background: T.bg, color: T.text, fontFamily: 'Inter, system-ui, sans-serif' }}>
       <aside
-        className="hidden md:flex sticky top-0 h-screen w-64 flex-col bg-white shrink-0"
-        style={{ borderRight: `1px solid ${T.border}` }}
+        className="hidden md:flex sticky top-0 h-screen w-64 flex-col shrink-0"
+        style={{ background: T.bgAlt, borderRight: `1px solid ${T.border}` }}
       >
         {SidebarContent}
       </aside>
@@ -148,7 +163,7 @@ export default function DashboardShell({ portal, groups, switchTo }: DashboardSh
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/25 z-30 md:hidden"
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 md:hidden"
               onClick={() => setSidebarOpen(false)}
             />
             <motion.aside
@@ -156,12 +171,12 @@ export default function DashboardShell({ portal, groups, switchTo }: DashboardSh
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ type: 'spring', stiffness: 320, damping: 32 }}
-              className="fixed top-0 left-0 h-screen w-72 flex flex-col bg-white z-40 md:hidden"
-              style={{ borderRight: `1px solid ${T.border}` }}
+              className="fixed top-0 left-0 h-screen w-72 flex flex-col z-40 md:hidden shadow-2xl shadow-black"
+              style={{ background: T.bgAlt, borderRight: `1px solid ${T.border}` }}
             >
               <button
                 onClick={() => setSidebarOpen(false)}
-                className="absolute top-5 right-4 p-1.5 rounded-lg hover:bg-neutral-100 transition-colors"
+                className="absolute top-5 right-4 p-1.5 rounded-lg hover:bg-white/10 text-neutral-400 hover:text-white transition-colors"
                 aria-label="Close menu"
               >
                 <X className="w-5 h-5" />
@@ -172,40 +187,52 @@ export default function DashboardShell({ portal, groups, switchTo }: DashboardSh
         )}
       </AnimatePresence>
 
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 relative">
+        <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] pointer-events-none mix-blend-overlay" />
+        
         <header
-          className="sticky top-0 z-20 flex items-center gap-3 px-4 md:px-8 h-16 bg-white/90 backdrop-blur"
+          className="sticky top-0 z-20 flex items-center gap-3 px-4 md:px-8 h-[60px] bg-[#050505]/80 backdrop-blur-xl"
           style={{ borderBottom: `1px solid ${T.border}` }}
         >
           <button
             onClick={() => setSidebarOpen(true)}
-            className="md:hidden p-2 -ml-2 rounded-lg hover:bg-neutral-100 transition-colors"
+            className="md:hidden p-2 -ml-1 rounded-xl hover:bg-white/[0.06] text-neutral-500 hover:text-white transition-colors"
             aria-label="Open menu"
           >
             <Menu className="w-5 h-5" />
           </button>
 
-          <div className="hidden sm:flex items-center gap-2 flex-1 max-w-sm px-3.5 py-2 rounded-xl" style={{ background: T.bgAlt, border: `1px solid ${T.border}` }}>
-            <Search className="w-4 h-4 shrink-0" style={{ color: '#A3A3A3' }} />
+          <div className="hidden sm:flex items-center gap-2 flex-1 max-w-sm px-3.5 py-2 rounded-xl border border-white/[0.07] bg-[#111113] focus-within:bg-[#141416] focus-within:border-white/[0.12] transition-all">
+            <Search className="w-3.5 h-3.5 shrink-0 text-neutral-600 flex-none" />
             <input
-              type="text"
-              placeholder={portal === 'Admin' ? 'Search bookings, customers…' : 'Search your bookings…'}
-              className="w-full bg-transparent text-sm outline-none placeholder:text-neutral-400"
+              type="search"
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck={false}
+              placeholder={portal === 'Admin' ? 'Search orders, customers…' : 'Search your orders…'}
+              className="w-full bg-transparent text-sm outline-none placeholder:text-neutral-600 text-neutral-300"
+              style={{ WebkitTextFillColor: 'inherit' }}
             />
           </div>
 
           <div className="flex-1 sm:hidden" />
 
           <div className="flex items-center gap-2 ml-auto">
-            <button className="relative p-2 rounded-xl hover:bg-neutral-100 transition-colors" aria-label="Notifications">
-              <Bell className="w-5 h-5 text-neutral-500" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-gradient-to-br from-cyan-400 to-indigo-500" />
-            </button>
-            <Avatar size="md" />
+            <NotificationBell
+              inboxPath={portal === 'Admin' ? '/dashboard/admin/inbox' : '/dashboard/inbox'}
+            />
+
+            <div className="flex items-center gap-2.5 pl-2 pr-3 py-1.5 rounded-xl border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04] transition-colors cursor-default">
+              <Avatar size="sm" />
+              <div className="hidden md:block min-w-0">
+                <p className="text-xs font-bold text-white truncate max-w-[120px]">{name}</p>
+                <p className="text-[10px] text-neutral-500 truncate max-w-[120px]">{portal} Portal</p>
+              </div>
+            </div>
           </div>
         </header>
 
-        <main className="flex-1 p-4 md:p-8 w-full max-w-7xl mx-auto">
+        <main className="flex-1 p-4 md:p-8 w-full max-w-7xl mx-auto relative z-10">
           <Outlet />
         </main>
       </div>

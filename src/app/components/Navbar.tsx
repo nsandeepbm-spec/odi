@@ -67,10 +67,15 @@ export function Navbar() {
     : getInitials(firebaseUser?.displayName, firebaseUser?.email || 'U');
   const avatarUrl = user?.avatar_url || firebaseUser?.photoURL || null;
 
+  // Dark glass + white nav text over dark product hero; light chrome for white storefront pages
   const isLight =
-    location.pathname.startsWith('/products') ||
     location.pathname.startsWith('/checkout') ||
-    location.pathname === '/learn-more';
+    location.pathname === '/learn-more' ||
+    location.pathname === '/careers' ||
+    location.pathname === '/contact' ||
+    location.pathname === '/privacy' ||
+    location.pathname === '/terms' ||
+    location.pathname === '/cookies';
 
  useEffect(() => {
  const handleScroll = () => setIsScrolled(window.scrollY > 20);

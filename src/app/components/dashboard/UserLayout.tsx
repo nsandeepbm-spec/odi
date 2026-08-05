@@ -6,6 +6,8 @@ import {
   CreditCard,
   Settings,
   ShieldCheck,
+  Star,
+  Inbox,
 } from 'lucide-react';
 import DashboardShell, { type NavGroup } from './DashboardShell';
 import { useAuth } from '../../lib/auth';
@@ -17,6 +19,7 @@ const userGroups: NavGroup[] = [
       { name: 'Overview', path: '/dashboard', icon: LayoutDashboard, end: true },
       { name: 'My Bookings', path: '/dashboard/bookings', icon: CalendarCheck },
       { name: 'Orders', path: '/dashboard/orders', icon: ShoppingBag },
+      { name: 'Reviews', path: '/dashboard/reviews', icon: Star },
     ],
   },
   {
@@ -26,8 +29,9 @@ const userGroups: NavGroup[] = [
     ],
   },
   {
-    label: 'Preferences',
+    label: 'System',
     items: [
+      { name: 'Inbox', path: '/dashboard/inbox', icon: Inbox },
       { name: 'Settings', path: '/dashboard/settings', icon: Settings },
     ],
   },

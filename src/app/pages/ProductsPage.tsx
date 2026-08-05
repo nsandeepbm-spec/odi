@@ -1,27 +1,20 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import {
   ArrowRight,
   Bell,
-  BookOpen,
   ChevronDown,
-  Glasses,
   Heart,
-  Layers,
-  Package,
   Play,
+  RefreshCw,
   Search,
   ShoppingBag,
-  Sparkles,
   Star,
-  Sticker,
-  Truck,
   X,
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router';
 import {
   CATEGORY_FILTERS,
-  PRODUCTS,
   discountPercent,
   formatInr,
   getProductBadge,
@@ -29,18 +22,33 @@ import {
   type StoreProduct,
 } from '../data/products';
 import { persistCheckoutProduct } from '../lib/checkout';
+import { invalidatePublicCache, peekPublicProductsCache } from '../lib/api';
 import { useCartStore } from '../store/cartStore';
-import { useWishlistStore } from '../store/wishlistStore';
+import { useWishlistStore, WishlistAuthError, bindWishlistAuthSync } from '../store/wishlistStore';
+import { useNotifyMeStore, NotifyMeAuthError, bindNotifyMeAuthSync } from '../store/notifyMeStore';
 
 const CTA = '#f05a13';
 const ACCENT = '#1a4fd6';
 
-const INTEREST_TILES: { label: string; category: ProductCategory; slug: string; tall?: boolean }[] = [
-  { label: 'Space', category: 'space', slug: 'space-explorer', tall: true },
-  { label: 'Ocean', category: 'nature', slug: 'ocean-explorer' },
-  { label: 'Dinosaurs', category: 'animals', slug: 'dinosaur-explorer' },
-  { label: 'Anatomy', category: 'human-body', slug: 'human-body' },
-  { label: 'Animals', category: 'animals', slug: 'wildlife' },
+/** Static interest tiles — images live in `public/` (see mock.ts + seed catalog). */
+const INTEREST_TILES: {
+  label: string;
+  category: ProductCategory;
+  image: string;
+  tall?: boolean;
+  thumbnails?: string[];
+}[] = [
+  {
+    label: 'Space',
+    category: 'space',
+    image: '/product-image/4.png',
+    tall: true,
+    thumbnails: ['/Ocean Explorer.png', '/Dinosaur Explorer.png', '/Human Body.png'],
+  },
+  { label: 'Ocean', category: 'nature', image: '/Ocean Explorer.png' },
+  { label: 'Dinosaurs', category: 'animals', image: '/Dinosaur Explorer.png' },
+  { label: 'Anatomy', category: 'human-body', image: '/Human Body.png' },
+  { label: 'Animals', category: 'animals', image: '/Wildlife.png' },
 ];
 
 const FAQS = [
@@ -58,14 +66,6 @@ const FAQS = [
   },
 ];
 
-const KIT_ICONS: Record<string, React.ElementType> = {
-  'Fact Book': BookOpen,
-  'Explorer Cards': Layers,
-  'Cardboard 3D Glasses': Glasses,
-  'Plastic 3D Glasses': Glasses,
-  'Sticker Sheet': Sticker,
-  '3D Glasses': Glasses,
-};
 
 function useDebouncedValue<T>(value: T, delay = 250): T {
   const [debounced, setDebounced] = useState(value);
@@ -92,11 +92,15 @@ function Stars({ rating }: { rating: number }) {
 function ProductCard({ product }: { product: StoreProduct }) {
   const navigate = useNavigate();
   const { addItem, toggleDrawer } = useCartStore();
-  const liked = useWishlistStore((s) => s.slugs.includes(product.slug));
+  const liked = useWishlistStore((s) => s.isFavorite(product.slug));
   const toggleLike = useWishlistStore((s) => s.toggle);
+  const subscribed = useNotifyMeStore((s) => s.isSubscribed(product.slug));
+  const subscribeNotify = useNotifyMeStore((s) => s.subscribe);
+  const [wishlistBusy, setWishlistBusy] = useState(false);
+  const [notifyBusy, setNotifyBusy] = useState(false);
   const [notifyMsg, setNotifyMsg] = useState<string | null>(null);
   const badge = getProductBadge(product);
-  const off = discountPercent(product.pricePaise, product.compareAtPaise);
+  const off = discountPercent(product.price_paise, product.compare_at_paise);
 
   const goToProduct = () => {
     if (!product.available) return;
@@ -109,16 +113,38 @@ function ProductCard({ product }: { product: StoreProduct }) {
     addItem({
       id: product.slug,
       name: product.name,
-      pricePaise: product.pricePaise,
+      pricePaise: product.price_paise,
       quantity: 1,
-      imageUrl: product.images[0],
+      imageUrl: product.media?.card?.url ?? product.images?.[0]?.url ?? '',
     });
     toggleDrawer();
   };
 
-  const notifyMe = () => {
-    setNotifyMsg(`We'll email you when ${product.name} launches.`);
-    setTimeout(() => setNotifyMsg(null), 3000);
+  const notifyMe = async () => {
+    if (subscribed) {
+      setNotifyMsg(`You're on the list for ${product.name}.`);
+      setTimeout(() => setNotifyMsg(null), 3000);
+      return;
+    }
+    setNotifyBusy(true);
+    try {
+      const result = await subscribeNotify(product.slug);
+      setNotifyMsg(
+        result === 'already'
+          ? `You're already on the list for ${product.name}.`
+          : `We'll email you when ${product.name} launches.`
+      );
+      setTimeout(() => setNotifyMsg(null), 3000);
+    } catch (err) {
+      if (err instanceof NotifyMeAuthError) {
+        navigate(`/login?redirect=${encodeURIComponent('/products')}`);
+        return;
+      }
+      setNotifyMsg('Could not save Notify Me. Try again.');
+      setTimeout(() => setNotifyMsg(null), 3000);
+    } finally {
+      setNotifyBusy(false);
+    }
   };
 
   return (
@@ -131,11 +157,22 @@ function ProductCard({ product }: { product: StoreProduct }) {
         </span>
         <button
           type="button"
-          onClick={(e) => {
+          disabled={wishlistBusy}
+          onClick={async (e) => {
             e.stopPropagation();
-            toggleLike(product.slug);
+            setWishlistBusy(true);
+            try {
+              await toggleLike(product.slug);
+            } catch (err) {
+              if (err instanceof WishlistAuthError) {
+                navigate(`/login?redirect=${encodeURIComponent('/products')}`);
+                return;
+              }
+            } finally {
+              setWishlistBusy(false);
+            }
           }}
-          className="absolute top-3 right-3 md:top-5 md:right-5 z-20 w-8 h-8 rounded-full bg-white/95 border border-neutral-200/80 flex items-center justify-center shadow-sm hover:scale-105 active:scale-95 transition-transform"
+          className="absolute top-3 right-3 md:top-5 md:right-5 z-20 w-8 h-8 rounded-full bg-white/95 border border-neutral-200/80 flex items-center justify-center shadow-sm hover:scale-105 active:scale-95 transition-transform disabled:opacity-60"
           aria-label={liked ? `Remove ${product.name} from wishlist` : `Save ${product.name} to wishlist`}
           aria-pressed={liked}
         >
@@ -152,7 +189,7 @@ function ProductCard({ product }: { product: StoreProduct }) {
           className="w-full h-full min-h-[128px] md:min-h-0 md:aspect-[4/3] bg-neutral-50 rounded-xl overflow-hidden flex items-center justify-center disabled:cursor-default"
         >
           <img
-            src={product.images[0]}
+            src={product.media?.card?.url ?? product.images?.[0]?.url ?? ''}
             alt={product.name}
             loading="lazy"
             className={`max-h-full max-w-full ${
@@ -175,10 +212,10 @@ function ProductCard({ product }: { product: StoreProduct }) {
           </h3>
         </button>
 
-        {product.ratingCount > 0 ? (
+        {(product.rating_count || 0) > 0 ? (
           <div className="flex items-center gap-1.5 mt-1.5">
-            <Stars rating={product.ratingAvg} />
-            <span className="text-xs text-neutral-500">({product.ratingCount})</span>
+            <Stars rating={product.rating_avg || 0} />
+            <span className="text-xs text-neutral-500">({product.rating_count})</span>
           </div>
         ) : (
           <p className="text-xs text-neutral-400 mt-1.5">Launching soon</p>
@@ -187,11 +224,11 @@ function ProductCard({ product }: { product: StoreProduct }) {
         <p className="text-xs text-neutral-500 mt-2 line-clamp-2 flex-1">{product.description}</p>
 
         <div className="mt-3 flex flex-wrap items-baseline gap-2">
-          <span className="text-lg font-black text-neutral-900">{formatInr(product.pricePaise)}</span>
-          {product.compareAtPaise && product.compareAtPaise > product.pricePaise && (
+          <span className="text-lg font-black text-neutral-900">{formatInr(product.price_paise)}</span>
+          {product.compare_at_paise != null && product.compare_at_paise > product.price_paise && (
             <>
               <span className="text-sm text-neutral-400 line-through">
-                {formatInr(product.compareAtPaise)}
+                {formatInr(product.compare_at_paise)}
               </span>
               {off !== null && (
                 <span className="text-[10px] font-bold text-emerald-600">{off}% off</span>
@@ -225,11 +262,12 @@ function ProductCard({ product }: { product: StoreProduct }) {
           ) : (
             <button
               type="button"
-              onClick={notifyMe}
-              className="w-full py-2.5 rounded-lg border border-neutral-200 text-xs font-bold text-neutral-600 hover:bg-neutral-50 flex items-center justify-center gap-1.5"
+              onClick={() => void notifyMe()}
+              disabled={notifyBusy}
+              className="w-full py-2.5 rounded-lg border border-neutral-200 text-xs font-bold text-neutral-600 hover:bg-neutral-50 flex items-center justify-center gap-1.5 disabled:opacity-60"
             >
-              <Bell className="w-3.5 h-3.5" />
-              Notify Me
+              <Bell className={`w-3.5 h-3.5 ${subscribed ? 'fill-neutral-600' : ''}`} />
+              {subscribed ? 'Subscribed' : 'Notify Me'}
             </button>
           )}
         </div>
@@ -241,17 +279,75 @@ function ProductCard({ product }: { product: StoreProduct }) {
 export default function ProductsPage() {
   const navigate = useNavigate();
   const shopRef = useRef<HTMLElement>(null);
-  const { addItem, toggleDrawer } = useCartStore();
+  // Seed from the module-level cache so re-visits show data instantly (no skeleton flash).
+  const [allProducts, setAllProducts] = useState<StoreProduct[]>(() => peekPublicProductsCache() ?? []);
+  const [isLoading, setIsLoading] = useState(() => peekPublicProductsCache() === null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const fetchProducts = useCallback((opts?: { force?: boolean }) => {
+    let cancelled = false;
+    if (opts?.force) {
+      invalidatePublicCache('public:products');
+      setIsRefreshing(true);
+    }
+    import('../lib/api').then(({ listPublicProducts }) => {
+      listPublicProducts()
+        .then((res) => {
+          if (!cancelled) {
+            setAllProducts(res.products);
+            setIsLoading(false);
+            setIsRefreshing(false);
+          }
+        })
+        .catch(() => {
+          if (!cancelled) {
+            setIsLoading(false);
+            setIsRefreshing(false);
+          }
+        });
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    return fetchProducts();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const refreshCatalog = () => {
+    if (isRefreshing || isLoading) return;
+    fetchProducts({ force: true });
+  };
+
+  useEffect(() => {
+    const unsubWishlist = bindWishlistAuthSync();
+    const unsubNotify = bindNotifyMeAuthSync();
+    void useWishlistStore.getState().hydrateFromServer();
+    void useNotifyMeStore.getState().hydrateFromServer();
+    return () => {
+      unsubWishlist();
+      unsubNotify();
+    };
+  }, []);
 
   const [category, setCategory] = useState<ProductCategory | 'all'>('all');
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState<'default' | 'price-asc' | 'rating'>('default');
-  const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [openFaq, setOpenFaq] = useState<number | null>(0);
 
   const debouncedSearch = useDebouncedValue(search);
-  const featured = PRODUCTS.find((p) => p.slug === 'space-explorer')!;
-  const featuredSeries = PRODUCTS.slice(0, 3);
-  const featuredOff = discountPercent(featured.pricePaise, featured.compareAtPaise);
+
+  // Featured Immersive Series: admin toggles `is_featured` on Product Editor (Publish panel).
+  // Only live / coming_soon products with the flag appear — pick up to 3 kits.
+  const featuredSeries = useMemo(() => {
+    return allProducts
+      .filter(
+        (p) =>
+          Boolean(p.is_featured) &&
+          (p.status === 'live' || p.status === 'coming_soon')
+      )
+      .slice(0, 3);
+  }, [allProducts]);
 
   const scrollToShop = () => {
     shopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -262,7 +358,7 @@ export default function ProductsPage() {
   };
 
   const products = useMemo(() => {
-    let list = [...PRODUCTS];
+    let list = [...allProducts];
 
     if (category !== 'all') {
       list = list.filter((p) => p.categories.includes(category));
@@ -273,26 +369,26 @@ export default function ProductsPage() {
       list = list.filter(
         (p) =>
           p.name.toLowerCase().includes(q) ||
-          p.volume.toLowerCase().includes(q) ||
-          p.description.toLowerCase().includes(q) ||
+          (p.volume ?? '').toLowerCase().includes(q) ||
+          (p.description ?? '').toLowerCase().includes(q) ||
           p.slug.replace(/-/g, ' ').includes(q) ||
           p.features.some((f) => f.toLowerCase().includes(q))
       );
     }
 
     if (sort === 'price-asc') {
-      list.sort((a, b) => a.pricePaise - b.pricePaise);
+      list.sort((a, b) => a.price_paise - b.price_paise);
     } else if (sort === 'rating') {
-      list.sort((a, b) => b.ratingAvg - a.ratingAvg);
+      list.sort((a, b) => b.rating_avg - a.rating_avg);
     } else {
       list.sort((a, b) => Number(b.available) - Number(a.available));
     }
 
     return list;
-  }, [category, debouncedSearch, sort]);
+  }, [allProducts, category, debouncedSearch, sort]);
 
   const goToProduct = (slug: string) => {
-    const p = PRODUCTS.find((x) => x.slug === slug);
+    const p = allProducts.find((x) => x.slug === slug);
     if (!p?.available) {
       scrollToShop();
       return;
@@ -303,39 +399,38 @@ export default function ProductsPage() {
 
   return (
     <main className="min-h-screen bg-white text-neutral-900">
-      {/* Hero — compact */}
-      <section className="relative pt-24 sm:pt-28 min-h-[360px] sm:min-h-[400px] flex items-end overflow-hidden">
+      {/* Hero — full-bleed banner */}
+      <section className="relative flex items-end overflow-hidden min-h-[520px] sm:min-h-[560px] lg:min-h-[640px]">
         <img
-          src="https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=1200&q=80"
-          alt="Kids learning in classroom"
-          className="absolute inset-0 w-full h-full object-cover"
+          src="/shop-banner.png"
+          alt="Kids exploring an immersive 3D learning book"
+          className="absolute inset-0 w-full h-full object-cover object-center"
           fetchPriority="high"
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/50 to-transparent" />
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 pb-10 sm:pb-12 w-full">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 pt-28 sm:pt-32 pb-14 sm:pb-16 w-full">
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            className="max-w-lg text-white"
+            className="max-w-lg text-white [text-shadow:0_2px_12px_rgba(0,0,0,0.55)]"
           >
-            <h1 className="text-3xl sm:text-4xl font-black leading-tight tracking-tight mb-3">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black leading-tight tracking-tight mb-3 text-white">
               Learning Beyond the Page
             </h1>
-            <p className="text-sm text-white/80 leading-relaxed mb-5">
+            <p className="text-sm sm:text-base text-white/90 leading-relaxed mb-6 max-w-md">
               Immersive 3D books, explorer cards, and glasses for curious kids.
             </p>
             <div className="flex flex-wrap gap-3">
               <button
                 type="button"
                 onClick={scrollToShop}
-                className="px-6 py-2.5 rounded-lg text-sm font-bold text-white"
+                className="px-6 py-2.5 rounded-lg text-sm font-bold text-white shadow-none [text-shadow:none]"
                 style={{ background: CTA }}
               >
                 Shop All Kits
               </button>
               <Link
                 to="/learn-more"
-                className="px-6 py-2.5 rounded-lg border border-white/40 text-white text-sm font-bold hover:bg-white/10 flex items-center gap-2"
+                className="px-6 py-2.5 rounded-lg border border-white/70 text-white text-sm font-bold hover:bg-white/10 flex items-center gap-2 [text-shadow:none]"
               >
                 <Play className="w-4 h-4" />
                 Learn More
@@ -397,43 +492,86 @@ export default function ProductsPage() {
               </button>
             ))}
           </div>
+
+          <button
+            type="button"
+            onClick={refreshCatalog}
+            disabled={isRefreshing || isLoading}
+            title="Refresh catalog"
+            aria-label="Refresh catalog"
+            className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-full border border-neutral-200 bg-neutral-50 text-xs font-bold text-neutral-700 hover:bg-neutral-100 hover:border-neutral-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
         </div>
       </div>
 
-      {/* Featured — from PRODUCTS */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 py-10 sm:py-12">
         <h2 className="text-xl font-black mb-6">Featured Immersive Series</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {featuredSeries.map((item) => (
-            <button
-              key={item.slug}
-              type="button"
-              onClick={() => (item.available ? goToProduct(item.slug) : selectCategory(item.categories[0]))}
-              className="group relative rounded-2xl overflow-hidden aspect-[4/5] text-left"
-            >
-              <img
-                src={item.images[0]}
-                alt={item.name}
-                loading="lazy"
-                className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent" />
-              {!item.available && (
-                <span className="absolute top-4 left-4 px-2 py-0.5 bg-white/90 text-[9px] font-black tracking-widest rounded text-neutral-900">
-                  COMING SOON
-                </span>
-              )}
-              <div className="absolute bottom-0 left-0 right-0 p-5 text-white">
-                <h3 className="text-xl font-black">{item.name}</h3>
-                <p className="text-xs text-white/70 mt-1 line-clamp-2">{item.description}</p>
-                <div className="flex items-center justify-between mt-3">
-                  <span className="font-black">{formatInr(item.pricePaise)}</span>
-                  <ArrowRight className="w-4 h-4 opacity-70 group-hover:translate-x-1 transition-transform" />
+        {isLoading ? (
+          <div className="flex items-center justify-center py-20 text-neutral-400">Loading...</div>
+        ) : featuredSeries.length === 0 ? (
+          <p className="text-sm text-neutral-500 py-8">
+            No featured kits yet. In admin, open a product and turn on <strong>Featured series</strong> next to Status
+            (live or coming soon).
+          </p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {featuredSeries.map((item) => {
+              const isComingSoon = item.status === 'coming_soon' || !item.available;
+              return (
+              <button
+                key={item.slug}
+                type="button"
+                onClick={() => {
+                  if (item.available) {
+                    goToProduct(item.slug);
+                    return;
+                  }
+                  document.getElementById('shop')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  selectCategory('all');
+                }}
+                className="group relative rounded-2xl overflow-hidden aspect-[4/5] text-left bg-neutral-100"
+              >
+                <img
+                  src={item.media?.card?.url ?? item.images?.[0]?.url}
+                  alt={item.name}
+                  loading="lazy"
+                  className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
+                {isComingSoon ? (
+                  <span className="absolute top-4 left-4 px-2.5 py-1 bg-neutral-900 text-white text-[9px] font-black tracking-widest rounded">
+                    COMING SOON
+                  </span>
+                ) : item.tag?.toLowerCase() === 'bestseller' ? (
+                  <span className="absolute top-4 left-4 px-2.5 py-1 bg-amber-400 text-neutral-900 text-[9px] font-black tracking-widest rounded">
+                    BESTSELLER
+                  </span>
+                ) : null}
+                <div className="absolute bottom-0 left-0 right-0 p-5 text-white">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-white/60 mb-1">
+                    {item.volume}
+                  </p>
+                  <h3 className="text-xl font-black">{item.name}</h3>
+                  <p className="text-xs text-white/70 mt-1 line-clamp-2">{item.description}</p>
+                  <div className="flex items-center justify-between mt-3 gap-2">
+                    <span className="font-black">{formatInr(item.price_paise)}</span>
+                    {isComingSoon ? (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-white/90 bg-white/15 border border-white/20 px-2.5 py-1 rounded-lg">
+                        <Bell className="w-3 h-3" /> Notify
+                      </span>
+                    ) : (
+                      <ArrowRight className="w-4 h-4 opacity-70 group-hover:translate-x-1 transition-transform shrink-0" />
+                    )}
+                  </div>
                 </div>
-              </div>
-            </button>
-          ))}
-        </div>
+              </button>
+              );
+            })}
+          </div>
+        )}
       </section>
 
       {/* Shop grid */}
@@ -452,12 +590,16 @@ export default function ProductsPage() {
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 lg:gap-6">
-            {products.map((product) => (
-              <ProductCard key={product.slug} product={product} />
-            ))}
+            {isLoading ? (
+              <div className="col-span-full py-16 text-center text-neutral-500">Loading products...</div>
+            ) : (
+              products.map((product) => (
+                <ProductCard key={product.slug} product={product} />
+              ))
+            )}
           </div>
 
-          {products.length === 0 && (
+          {!isLoading && products.length === 0 && (
             <div className="text-center py-16">
               <p className="text-neutral-500 text-sm mb-3">No products found.</p>
               <button
@@ -480,9 +622,8 @@ export default function ProductsPage() {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 py-10 sm:py-12">
         <h2 className="text-xl font-black mb-6">Discover by Interest</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 auto-rows-[130px] sm:auto-rows-[150px]">
-          {INTEREST_TILES.map((tile) => {
-            const product = PRODUCTS.find((p) => p.slug === tile.slug);
-            return (
+          {INTEREST_TILES.map((tile) =>
+            tile.tall ? (
               <button
                 key={tile.label}
                 type="button"
@@ -490,10 +631,42 @@ export default function ProductsPage() {
                   selectCategory(tile.category);
                   scrollToShop();
                 }}
-                className={`relative rounded-2xl overflow-hidden group ${tile.tall ? 'row-span-2' : ''}`}
+                className="relative row-span-2 rounded-2xl overflow-hidden bg-neutral-100 border border-neutral-200/80 flex flex-col group hover:shadow-md transition-shadow"
+              >
+                <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-5 min-h-0">
+                  <img
+                    src={tile.image}
+                    alt={tile.label}
+                    loading="lazy"
+                    className="w-full max-h-[52%] object-contain group-hover:scale-[1.02] transition-transform duration-500"
+                  />
+                  <span className="mt-3 text-lg font-black text-neutral-900">{tile.label}</span>
+                </div>
+                {tile.thumbnails && (
+                  <div className="grid grid-cols-3 gap-2 p-3 pt-0">
+                    {tile.thumbnails.map((thumb) => (
+                      <div
+                        key={thumb}
+                        className="rounded-lg overflow-hidden aspect-[3/4] bg-white border border-neutral-200/60"
+                      >
+                        <img src={thumb} alt="" loading="lazy" className="w-full h-full object-cover" />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </button>
+            ) : (
+              <button
+                key={tile.label}
+                type="button"
+                onClick={() => {
+                  selectCategory(tile.category);
+                  scrollToShop();
+                }}
+                className="relative rounded-2xl overflow-hidden group"
               >
                 <img
-                  src={product?.images[0] ?? ''}
+                  src={tile.image}
                   alt={tile.label}
                   loading="lazy"
                   className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
@@ -503,160 +676,13 @@ export default function ProductsPage() {
                   {tile.label}
                 </span>
               </button>
-            );
-          })}
+            )
+          )}
         </div>
       </section>
 
-      {/* Spotlight + FAQ */}
+      {/* FAQ */}
       <section className="relative overflow-hidden bg-[#f7f8fa]">
-        {/* Spotlight */}
-        <div className="relative bg-[#0b1220] text-white overflow-hidden">
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_20%_50%,rgba(26,79,214,0.25),transparent)]" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_90%_20%,rgba(240,90,19,0.12),transparent)]" />
-          <div className="absolute top-20 right-10 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
-
-          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 py-14 sm:py-20">
-            <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5 }}
-                className="relative order-2 lg:order-1"
-              >
-                <div className="relative rounded-3xl border border-neutral-200/80 bg-white p-6 sm:p-10 shadow-xl shadow-black/20">
-                  <img
-                    src={featured.images[0]}
-                    alt={featured.name}
-                    loading="lazy"
-                    className="w-full max-h-64 sm:max-h-80 object-contain mx-auto"
-                  />
-                  <div className="absolute top-5 left-5 flex flex-wrap gap-2">
-                    <span className="px-2.5 py-1 rounded-full text-[10px] font-black tracking-widest bg-amber-400 text-neutral-900">
-                      BESTSELLER
-                    </span>
-                    <span className="px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wide bg-neutral-100 border border-neutral-200 text-neutral-700">
-                      {featured.volume}
-                    </span>
-                  </div>
-                </div>
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: 0.1 }}
-                className="order-1 lg:order-2"
-              >
-                <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-indigo-300 mb-3">
-                  Featured Kit
-                </p>
-                <h2 className="text-3xl sm:text-4xl font-black tracking-tight mb-3">{featured.name}</h2>
-
-                <div className="flex flex-wrap items-center gap-3 mb-4">
-                  <div className="flex items-center gap-1.5">
-                    <Stars rating={featured.ratingAvg} />
-                    <span className="text-sm text-white/70">
-                      {featured.ratingAvg} ({featured.ratingCount} reviews)
-                    </span>
-                  </div>
-                  <span className="w-1 h-1 rounded-full bg-white/30 hidden sm:block" />
-                  <span className="text-sm text-white/60">Ages {featured.ageRange}</span>
-                </div>
-
-                <p className="text-white/70 text-sm sm:text-base leading-relaxed mb-6 max-w-lg">
-                  {featured.description}
-                </p>
-
-                <div className="grid grid-cols-2 gap-2.5 mb-6">
-                  {featured.kitContents.slice(0, 4).map((item) => {
-                    const Icon = KIT_ICONS[item.name] ?? Package;
-                    return (
-                      <div
-                        key={item.name}
-                        className="flex items-center gap-2.5 rounded-xl bg-white/[0.06] border border-white/10 px-3 py-2.5"
-                      >
-                        <span className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
-                          <Icon className="w-4 h-4 text-amber-300" />
-                        </span>
-                        <div className="min-w-0">
-                          <p className="text-xs font-bold text-white truncate">
-                            {item.qty}× {item.name}
-                          </p>
-                          <p className="text-[10px] text-white/45 truncate">{item.detail}</p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <div className="flex flex-wrap gap-2 mb-6">
-                  {featured.features.slice(0, 3).map((f) => (
-                    <span
-                      key={f}
-                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-white/5 border border-white/10 text-white/80"
-                    >
-                      <Sparkles className="w-3 h-3 text-amber-400" />
-                      {f}
-                    </span>
-                  ))}
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-500/15 border border-emerald-400/20 text-emerald-300">
-                    <Truck className="w-3 h-3" />
-                    Free Shipping
-                  </span>
-                </div>
-
-                <div className="flex flex-wrap items-end gap-3 mb-6">
-                  <span className="text-3xl sm:text-4xl font-black">{formatInr(featured.pricePaise)}</span>
-                  {featured.compareAtPaise && featured.compareAtPaise > featured.pricePaise && (
-                    <>
-                      <span className="text-lg text-white/40 line-through mb-0.5">
-                        {formatInr(featured.compareAtPaise)}
-                      </span>
-                      {featuredOff !== null && (
-                        <span className="mb-1 px-2 py-0.5 rounded-md text-xs font-bold bg-emerald-500/20 text-emerald-300">
-                          Save {featuredOff}%
-                        </span>
-                      )}
-                    </>
-                  )}
-                </div>
-
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <button
-                    type="button"
-                    onClick={() => goToProduct(featured.slug)}
-                    className="flex-1 sm:flex-none px-8 py-3.5 rounded-xl text-sm font-bold text-white shadow-lg shadow-orange-500/20 hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
-                    style={{ background: CTA }}
-                  >
-                    Buy Now
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      addItem({
-                        id: featured.slug,
-                        name: featured.name,
-                        pricePaise: featured.pricePaise,
-                        quantity: 1,
-                        imageUrl: featured.images[0],
-                      });
-                      toggleDrawer();
-                    }}
-                    className="flex-1 sm:flex-none px-8 py-3.5 rounded-xl border border-white/20 text-sm font-bold hover:bg-white/10 transition-colors flex items-center justify-center gap-2"
-                  >
-                    <ShoppingBag className="w-4 h-4" />
-                    Add to Cart
-                  </button>
-                </div>
-              </motion.div>
-            </div>
-          </div>
-        </div>
-
         {/* FAQ */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 py-14 sm:py-16">
           <div className="grid lg:grid-cols-5 gap-8 lg:gap-12">

@@ -99,7 +99,7 @@ function ProductBlock({ section, index }: { section: ProductSection; index: numb
           <p className="text-xl md:text-2xl leading-relaxed mb-12 max-w-2xl text-neutral-500 font-light tracking-wide">
             {section.description}
           </p>
-          <BuyLink onClick={() => navigate('/checkout?product=space-explorer')} />
+          <BuyLink onClick={() => navigate('/products')} />
         </motion.div>
 
         {/* Product Image */}

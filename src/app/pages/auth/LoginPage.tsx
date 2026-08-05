@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { Link, useNavigate, useSearchParams } from 'react-router';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { AuthShell, authInput } from './AuthShell';
 import { signInWithEmail, signInWithGoogle, authErrorMessage } from '../../lib/firebase';
@@ -18,8 +18,14 @@ function GoogleIcon() {
   );
 }
 
+function safeRedirect(raw: string | null): string {
+  if (!raw || !raw.startsWith('/') || raw.startsWith('//')) return '/';
+  return raw;
+}
+
 export default function LoginPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -28,7 +34,7 @@ export default function LoginPage() {
 
   const finishLogin = async (user: Parameters<typeof syncUserWithBackend>[0]) => {
     await syncUserWithBackend(user);
-    navigate('/dashboard');
+    navigate(safeRedirect(searchParams.get('redirect')));
   };
 
   const handleEmailLogin = async (e: React.FormEvent) => {

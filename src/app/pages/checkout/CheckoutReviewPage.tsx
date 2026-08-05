@@ -84,7 +84,8 @@ export default function CheckoutReviewPage() {
 
   return (
     <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-8 py-6 items-start">
-      <div className="lg:col-span-8">
+      {/* Shipping form — 2nd on mobile, left column on desktop */}
+      <div className="order-2 lg:order-1 lg:col-span-8">
         <div className="bg-white border border-neutral-200 rounded-2xl p-5 md:p-7 shadow-sm">
           <div className="flex items-start justify-between gap-4 mb-6">
             <div className="min-w-0">
@@ -310,7 +311,7 @@ export default function CheckoutReviewPage() {
               <button
                 type="button"
                 onClick={() => navigate(`/checkout${productQuery}`)}
-                className="flex items-center justify-center sm:justify-start gap-2 text-sm font-bold text-neutral-500 hover:text-neutral-900 transition-colors"
+                className="flex items-center justify-center sm:justify-start gap-2 px-4 py-3 rounded-xl border border-neutral-300 text-sm font-bold text-neutral-600 bg-transparent hover:bg-neutral-50 hover:border-neutral-400 transition-colors"
               >
                 <ArrowLeft className="w-4 h-4" />
                 Back to product
@@ -333,7 +334,8 @@ export default function CheckoutReviewPage() {
         </div>
       </div>
 
-      <div className="lg:col-span-4 lg:sticky lg:top-28">
+      {/* Order summary — 1st on mobile, right column on desktop */}
+      <div className="order-1 lg:order-2 lg:col-span-4 lg:sticky lg:top-28">
         <CheckoutOrderSummary />
       </div>
     </div>

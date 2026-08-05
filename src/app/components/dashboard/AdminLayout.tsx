@@ -8,6 +8,7 @@ import {
   CreditCard,
   Settings,
   User,
+  Inbox,
 } from 'lucide-react';
 import DashboardShell, { type NavGroup } from './DashboardShell';
 
@@ -41,6 +42,7 @@ const adminGroups: NavGroup[] = [
   {
     label: 'System',
     items: [
+      { name: 'Inbox', path: '/dashboard/admin/inbox', icon: Inbox },
       { name: 'Settings', path: '/dashboard/admin/settings', icon: Settings },
     ],
   },

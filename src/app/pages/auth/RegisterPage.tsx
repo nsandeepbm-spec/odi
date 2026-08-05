@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { Link, useNavigate, useSearchParams } from 'react-router';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { AuthShell, authInput } from './AuthShell';
 import { registerWithEmail, signInWithGoogle, authErrorMessage } from '../../lib/firebase';
@@ -18,8 +18,14 @@ function GoogleIcon() {
   );
 }
 
+function safeRedirect(raw: string | null): string {
+  if (!raw || !raw.startsWith('/') || raw.startsWith('//')) return '/';
+  return raw;
+}
+
 export default function RegisterPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -29,7 +35,7 @@ export default function RegisterPage() {
 
   const finishSignup = async (user: Parameters<typeof syncUserWithBackend>[0]) => {
     await syncUserWithBackend(user);
-    navigate('/dashboard');
+    navigate(safeRedirect(searchParams.get('redirect')));
   };
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -177,7 +183,15 @@ export default function RegisterPage() {
       </form>
 
       <p className="mt-6 text-[11px] leading-relaxed" style={{ color: '#A3A3A3' }}>
-        By creating an account you agree to our Terms of Service and Privacy Policy.
+        By creating an account you agree to our{' '}
+        <Link to="/terms" className="font-bold underline underline-offset-2" style={{ color: T.text }}>
+          Terms of Service
+        </Link>{' '}
+        and{' '}
+        <Link to="/privacy" className="font-bold underline underline-offset-2" style={{ color: T.text }}>
+          Privacy Policy
+        </Link>
+        .
       </p>
 
       <div className="mt-8 flex items-center gap-4">

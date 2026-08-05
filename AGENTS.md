@@ -157,14 +157,16 @@ All authenticated calls use `Authorization: Bearer <firebase-id-token>` via `aut
 
 ## Documentation maintenance (required)
 
-**Always update `odinew/README.md`** in the same change when you:
+**Always update docs** in the same change when you:
 
 - Add or change routes (`routes.tsx`)
 - Add env vars (e.g. `VITE_API_URL`)
 - Change how to run, build, or deploy the app
-- Wire a new backend API in `lib/api.ts`
+- Wire a new backend API in `lib/api.ts` → also update root **[`../api.md`](../api.md)**
 - Replace mock data with live API integration
+
+**API rules:** use endpoints documented in `api.md`; do not invent duplicate paths for the same job; keep helpers in `lib/api.ts`.
 
 Also update root `AGENTS.md` if you introduce a new frontend convention that future agents should follow.
 
-Docs are not optional — outdated README is a bug.
+Docs are not optional — outdated `api.md` / README is a bug.

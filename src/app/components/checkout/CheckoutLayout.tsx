@@ -8,6 +8,7 @@ import { useCartStore } from '../../store/cartStore';
 import { CartDrawer } from './CartDrawer';
 import { ODILogo } from '../ODILogo';
 import { ScrollToTop } from '../ScrollToTop';
+import { Footer } from '../Footer';
 
 const T = { bgAlt: '#F7F7F5', text: '#111111' };
 
@@ -209,12 +210,12 @@ function CheckoutLayoutInner() {
       <CheckoutNavbar />
 
       {!isSuccess && (
-        <div className="w-full max-w-7xl mx-auto px-4 pt-6 pb-2">
+        <div className="hidden sm:block w-full max-w-7xl mx-auto px-4 pt-6 pb-2">
           <CheckoutStepper />
         </div>
       )}
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 pb-20 pt-2">
+      <main className={`flex-1 max-w-7xl w-full mx-auto px-4 pt-2 ${isSuccess ? 'pb-0' : 'pb-20'}`}>
         <motion.div
           key={location.pathname}
           initial={{ opacity: 0, y: 10 }}
@@ -224,6 +225,8 @@ function CheckoutLayoutInner() {
           <Outlet />
         </motion.div>
       </main>
+
+      {isSuccess && <Footer />}
     </div>
   );
 }

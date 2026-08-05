@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import {
   ArrowLeft,
@@ -20,14 +20,25 @@ import { createCheckoutSession, verifyPayment } from '../../lib/api';
 import { auth } from '../../lib/firebase';
 
 const PAYMENT_METHODS = [
-  { id: 'upi', label: 'UPI', icon: Smartphone, hint: 'Instant via app' },
+  { id: 'upi', label: 'UPI', icon: Smartphone, hint: 'GPay · PhonePe · BHIM' },
   { id: 'card', label: 'Card', icon: CreditCardIcon, hint: 'Credit / Debit' },
   { id: 'cod', label: 'Cash on Delivery', icon: Banknote, hint: 'Pay at doorstep' },
   { id: 'netbanking', label: 'Net Banking', icon: Building2, hint: 'All major banks' },
 ] as const;
 
-const UPI_APPS = ['Google Pay', 'PhonePe', 'Paytm', 'BHIM'];
 const BANKS = ['State Bank of India', 'HDFC Bank', 'ICICI Bank', 'Axis Bank', 'Kotak Mahindra'];
+
+/** Small styled brand badge used in payment panels */
+function PayBadge({ label, color }: { label: string; color: string }) {
+  return (
+    <span
+      className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-black border"
+      style={{ color, borderColor: `${color}55`, background: `${color}0f` }}
+    >
+      {label}
+    </span>
+  );
+}
 
 type PaymentMethod = (typeof PAYMENT_METHODS)[number]['id'];
 
@@ -48,19 +59,40 @@ declare global {
   }
 }
 
-function newIdempotencyKey() {
-  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
-    return crypto.randomUUID();
-  }
-  return `odi_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+const RAZORPAY_URL = 'https://checkout.razorpay.com/v1/checkout.js';
+
+/** Load the Razorpay SDK once, only when this component mounts. */
+function useRazorpayScript() {
+  const loaded = useRef(!!window.Razorpay);
+  useEffect(() => {
+    if (loaded.current) return;
+    const script = document.createElement('script');
+    script.src = RAZORPAY_URL;
+    script.async = true;
+    script.onload = () => { loaded.current = true; };
+    document.body.appendChild(script);
+    return () => {
+      // Leave the script in DOM so it stays cached if user navigates back
+    };
+  }, []);
 }
 
 export default function CheckoutPaymentPage() {
-  const { product, productQuery, quantity, shipping, totalPaise, completeOrder } = useCheckout();
+  const {
+    product,
+    productQuery,
+    quantity,
+    shipping,
+    totalPaise,
+    completeOrder,
+    idempotencyKey,
+    couponCode,
+    discountPaise,
+  } = useCheckout();
   const navigate = useNavigate();
+  useRazorpayScript();
   const [loading, setLoading] = useState(false);
   const [activeMethod, setActiveMethod] = useState<PaymentMethod>('upi');
-  const [selectedUpiApp, setSelectedUpiApp] = useState(UPI_APPS[0]);
   const [selectedBank, setSelectedBank] = useState(BANKS[0]);
 
   if (!product) {
@@ -79,29 +111,51 @@ export default function CheckoutPaymentPage() {
     return null;
   }
 
-  const off = discountPercent(product.pricePaise, product.compareAtPaise);
+  const off = discountPercent(product.price_paise, product.compare_at_paise);
   const shippingLine = [shipping.street, shipping.city, shipping.postalCode].filter(Boolean).join(', ');
   const customerName = [shipping.firstName, shipping.lastName].filter(Boolean).join(' ');
 
   const payLabel =
     activeMethod === 'cod' ? `Place order · ${formatInr(totalPaise)}` : `Pay ${formatInr(totalPaise)}`;
 
+  const buildShippingAddress = () => ({
+    first_name: shipping.firstName,
+    last_name: shipping.lastName,
+    phone: shipping.phone,
+    email: shipping.email,
+    street: shipping.street,
+    city: shipping.city,
+    postal_code: shipping.postalCode,
+    country: 'IN' as const,
+  });
+
   const handlePay = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      if (activeMethod === 'cod') {
-        completeOrder();
-        navigate('/checkout/success');
-        return;
-      }
-
       if (!auth.currentUser) {
         navigate(`/login?redirect=${encodeURIComponent(`/checkout/payment${productQuery}`)}`);
         return;
       }
 
+      if (activeMethod === 'cod') {
+        // COD: create a real pending order in the DB, no Razorpay
+        const session = await createCheckoutSession(
+          {
+            items: [{ slug: product.slug, quantity }],
+            shippingAddress: buildShippingAddress(),
+            paymentMethod: 'cod',
+            couponCode: couponCode || null,
+          },
+          idempotencyKey
+        );
+        completeOrder(session.orderNumber);
+        navigate(`/checkout/success?order=${encodeURIComponent(session.orderNumber)}`);
+        return;
+      }
+
+      // Online payment via Razorpay
       if (!window.Razorpay) {
         throw new Error('Razorpay Checkout failed to load. Refresh and try again.');
       }
@@ -109,23 +163,22 @@ export default function CheckoutPaymentPage() {
       const session = await createCheckoutSession(
         {
           items: [{ slug: product.slug, quantity }],
-          shippingAddress: {
-            first_name: shipping.firstName,
-            last_name: shipping.lastName,
-            phone: shipping.phone,
-            email: shipping.email,
-            street: shipping.street,
-            city: shipping.city,
-            postal_code: shipping.postalCode,
-            country: 'IN',
-          },
+          shippingAddress: buildShippingAddress(),
+          paymentMethod: 'razorpay',
+          couponCode: couponCode || null,
         },
-        newIdempotencyKey()
+        idempotencyKey
       );
 
       if (!session.keyId || !session.razorpayOrderId) {
-        throw new Error('Payment session incomplete. Check Razorpay keys on the server.');
+        throw new Error('Payment session incomplete — Razorpay keys not configured on server.');
       }
+
+      // Map our tab to Razorpay's prefill method value
+      const rzpMethod = activeMethod === 'upi' ? 'upi'
+        : activeMethod === 'card' ? 'card'
+        : activeMethod === 'netbanking' ? 'netbanking'
+        : undefined;
 
       const rzp = new window.Razorpay({
         key: session.keyId,
@@ -142,7 +195,7 @@ export default function CheckoutPaymentPage() {
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
             });
-            completeOrder();
+            completeOrder(session.orderNumber);
             navigate(`/checkout/success?order=${encodeURIComponent(session.orderNumber)}`);
           } catch (verifyErr) {
             alert(
@@ -152,7 +205,12 @@ export default function CheckoutPaymentPage() {
             );
           }
         },
-        prefill: { name: customerName, email: shipping.email, contact: shipping.phone },
+        prefill: {
+          name: customerName,
+          email: shipping.email,
+          contact: shipping.phone,
+          ...(rzpMethod ? { method: rzpMethod } : {}),
+        },
         theme: { color: '#111111' },
       });
 
@@ -173,7 +231,7 @@ export default function CheckoutPaymentPage() {
           {/* Product gallery */}
           <div className="p-5 sm:p-6 flex items-center justify-center h-72 sm:h-96 lg:h-[500px] bg-neutral-50/40 border-b border-neutral-100">
             <img
-              src={product.images[0]}
+              src={product.media?.card?.url ?? product.images?.[0]?.url ?? ''}
               alt={product.name}
               className="w-full h-full object-contain drop-shadow-md"
             />
@@ -209,7 +267,10 @@ export default function CheckoutPaymentPage() {
                 )}
               </div>
               <p className="text-[10px] text-neutral-400 mt-0.5">
-                Qty {quantity} · Inclusive of all taxes
+                Qty {quantity}
+                {couponCode && discountPaise > 0
+                  ? ` · ${couponCode} −${formatInr(discountPaise)}`
+                  : ''}
               </p>
             </div>
 
@@ -273,66 +334,53 @@ export default function CheckoutPaymentPage() {
             </div>
 
             <form id="payment-form" onSubmit={handlePay} className="flex flex-col">
-              <div className="rounded-xl border border-neutral-200 p-4 md:p-5 mb-5 bg-neutral-50/30 min-h-[180px]">
+              <div className="rounded-xl border border-neutral-200 p-4 md:p-5 mb-5 bg-neutral-50/30 min-h-[160px]">
+
               {activeMethod === 'upi' && (
                 <div className="space-y-4">
-                  <p className={checkoutLabel}>Pay with app</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    {UPI_APPS.map((app) => (
-                      <button
-                        key={app}
-                        type="button"
-                        onClick={() => setSelectedUpiApp(app)}
-                        className={`px-3 py-2.5 rounded-lg border text-xs font-bold transition-all ${
-                          selectedUpiApp === app
-                            ? 'border-neutral-900 bg-neutral-900 text-white'
-                            : 'border-neutral-200 text-neutral-700 hover:border-neutral-300'
-                        }`}
-                      >
-                        {app}
-                      </button>
-                    ))}
-                  </div>
                   <div className="flex flex-col gap-2">
-                    <label className={checkoutLabel}>Or enter UPI ID</label>
+                    <label className={checkoutLabel}>UPI ID (optional)</label>
                     <input type="text" placeholder="name@upi" className={checkoutInput} />
                   </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-[10px] text-neutral-500 font-medium">Accepted:</span>
+                    <PayBadge label="Google Pay" color="#4285F4" />
+                    <PayBadge label="PhonePe" color="#5f259f" />
+                    <PayBadge label="Paytm" color="#00b9f1" />
+                    <PayBadge label="BHIM" color="#00794f" />
+                    <span className="text-[10px] text-neutral-400">& all UPI apps</span>
+                  </div>
                   <p className="text-xs text-neutral-500">
-                    Open {selectedUpiApp} and approve the {formatInr(totalPaise)} request.
+                    Click <strong>Pay Now</strong> — Razorpay will handle the UPI payment securely.
                   </p>
                 </div>
               )}
 
               {activeMethod === 'card' && (
                 <div className="space-y-4">
-                  <div className="flex flex-col gap-2">
-                    <label className={checkoutLabel}>Card number</label>
-                    <div className="relative">
-                      <input type="text" placeholder="0000 0000 0000 0000" className={checkoutInput} />
-                      <CreditCardIcon className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400" />
-                    </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-[10px] text-neutral-500 font-medium">Accepted:</span>
+                    <PayBadge label="VISA" color="#1a1f71" />
+                    <PayBadge label="Mastercard" color="#eb001b" />
+                    <PayBadge label="RuPay" color="#097dc6" />
+                    <PayBadge label="Amex" color="#006fcf" />
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="flex flex-col gap-2">
-                      <label className={checkoutLabel}>Expiry</label>
-                      <input type="text" placeholder="MM / YY" className={checkoutInput} />
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <label className={checkoutLabel}>CVV</label>
-                      <input type="text" placeholder="•••" className={checkoutInput} />
-                    </div>
+                  <div className="flex items-start gap-2.5 rounded-lg bg-white border border-neutral-200 p-3">
+                    <ShieldCheck className="w-4 h-4 text-[#00a680] shrink-0 mt-0.5" />
+                    <p className="text-xs text-neutral-600 leading-relaxed">
+                      Your card details are securely entered in <strong>Razorpay's PCI-DSS compliant</strong> hosted checkout — no card data is stored on our servers.
+                    </p>
                   </div>
-                  <div className="flex flex-col gap-2">
-                    <label className={checkoutLabel}>Name on card</label>
-                    <input type="text" placeholder={customerName} className={checkoutInput} />
-                  </div>
+                  <p className="text-xs text-neutral-500">
+                    Click <strong>Pay Now</strong> to open Razorpay's secure card form.
+                  </p>
                 </div>
               )}
 
               {activeMethod === 'netbanking' && (
                 <div className="space-y-3">
                   <p className={checkoutLabel}>Select your bank</p>
-                  <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                  <div className="space-y-2 max-h-44 overflow-y-auto pr-1">
                     {BANKS.map((bank) => (
                       <button
                         key={bank}
@@ -349,7 +397,7 @@ export default function CheckoutPaymentPage() {
                     ))}
                   </div>
                   <p className="text-xs text-neutral-500">
-                    You&apos;ll be redirected to {selectedBank} to complete payment.
+                    You&apos;ll be redirected to <strong>{selectedBank}</strong> via Razorpay to complete payment.
                   </p>
                 </div>
               )}
@@ -360,8 +408,7 @@ export default function CheckoutPaymentPage() {
                   <div>
                     <p className="text-sm font-bold text-neutral-900">Pay when your kit arrives</p>
                     <p className="text-sm text-neutral-600 mt-1 leading-relaxed">
-                      Keep {formatInr(totalPaise)} ready in cash for the courier. No online payment
-                      needed now.
+                      Keep {formatInr(totalPaise)} ready in cash for the courier. No online payment needed now.
                     </p>
                   </div>
                 </div>
@@ -387,7 +434,7 @@ export default function CheckoutPaymentPage() {
               <button
                 type="button"
                 onClick={() => navigate(`/checkout/review${productQuery}`)}
-                className="flex items-center justify-center sm:justify-start gap-2 text-sm font-bold text-neutral-500 hover:text-neutral-900 transition-colors"
+                className="flex items-center justify-center sm:justify-start gap-2 px-4 py-3 rounded-xl border border-neutral-300 text-sm font-bold text-neutral-600 bg-transparent hover:bg-neutral-50 hover:border-neutral-400 transition-colors"
               >
                 <ArrowLeft className="w-4 h-4" />
                 Back to shipping
@@ -401,42 +448,26 @@ export default function CheckoutPaymentPage() {
               </button>
             </div>
 
-            <div className="flex items-center justify-center gap-2 mt-4 text-[10px] font-bold text-neutral-400">
-              <Check className="w-3.5 h-3.5" />
-              <span>Safe and Secure Payments</span>
+            <div className="flex flex-col items-center gap-1.5 mt-4">
+              <div className="flex items-center gap-2 text-[10px] font-bold text-neutral-400">
+                <Check className="w-3.5 h-3.5" />
+                <span>Safe and Secure Payments</span>
+              </div>
+              {activeMethod !== 'cod' && (
+                <p className="text-[10px] text-neutral-400">
+                  Payments powered by{' '}
+                  <span className="font-black text-[#3395FF]">Razorpay</span>
+                </p>
+              )}
             </div>
           </form>
           </div>
         </div>
       </div>
 
-      {/* Right: order summary + sticky pay */}
-      <div className="lg:col-span-4 flex flex-col gap-5 lg:sticky lg:top-28">
+      {/* Right: order summary */}
+      <div className="lg:col-span-4 lg:sticky lg:top-28">
         <CheckoutOrderSummary />
-
-        <div className="bg-white border border-neutral-200 rounded-2xl p-5 shadow-sm">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-bold text-neutral-600">Total due</span>
-            <span className="text-2xl font-black text-neutral-900">{formatInr(totalPaise)}</span>
-          </div>
-          <p className="text-xs text-neutral-500 mb-4 capitalize">
-            via {PAYMENT_METHODS.find((m) => m.id === activeMethod)?.label}
-          </p>
-          <button
-            type="button"
-            disabled={loading}
-            onClick={() =>
-              (document.getElementById('payment-form') as HTMLFormElement | null)?.requestSubmit()
-            }
-            className="w-full py-3.5 rounded-xl bg-[#f05a13] text-white font-bold text-sm hover:bg-[#e0500e] disabled:opacity-60 shadow-sm"
-          >
-            {loading ? 'Processing…' : payLabel}
-          </button>
-          <div className="flex items-center justify-center gap-2 mt-3 text-[10px] font-bold text-neutral-400">
-            <ShieldCheck className="w-3.5 h-3.5" />
-            <span>Safe and Secure Payments</span>
-          </div>
-        </div>
       </div>
     </div>
   );
