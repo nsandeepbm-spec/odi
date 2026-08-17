@@ -7,6 +7,7 @@ import {
   Trash2,
   ImageIcon,
   Check,
+  Truck,
   AlertCircle,
 } from 'lucide-react';
 import { PageHeader, inrFromPaise } from '../../../components/dashboard/shared';
@@ -62,6 +63,10 @@ type FormState = {
   language: string;
   pages: string;
   ageRange: string;
+  weightGrams: string;
+  lengthCm: string;
+  widthCm: string;
+  heightCm: string;
 };
 
 const EMPTY_FORM: FormState = {
@@ -87,6 +92,10 @@ const EMPTY_FORM: FormState = {
   language: 'English',
   pages: '',
   ageRange: '6–12 years',
+  weightGrams: '650',
+  lengthCm: '28',
+  widthCm: '22',
+  heightCm: '5',
 };
 
 function productToForm(p: Parameters<typeof editorImagesFromProduct>[0] & {
@@ -114,6 +123,10 @@ function productToForm(p: Parameters<typeof editorImagesFromProduct>[0] & {
   language: string | null;
   pages: number | null;
   age_range: string | null;
+  weight_grams: number | null;
+  length_cm: number | null;
+  width_cm: number | null;
+  height_cm: number | null;
 }): FormState {
   const { cardUrl, galleryUrls } = editorImagesFromProduct(p);
   const kitContentsText =
@@ -144,6 +157,10 @@ function productToForm(p: Parameters<typeof editorImagesFromProduct>[0] & {
     language: p.language ?? 'English',
     pages: p.pages != null ? String(p.pages) : '',
     ageRange: p.age_range ?? '',
+    weightGrams: p.weight_grams != null ? String(p.weight_grams) : '',
+    lengthCm: p.length_cm != null ? String(p.length_cm) : '',
+    widthCm: p.width_cm != null ? String(p.width_cm) : '',
+    heightCm: p.height_cm != null ? String(p.height_cm) : '',
   };
 }
 
@@ -173,6 +190,31 @@ function SectionCard({
 
 function statusLabel(s: AdminProductStatus) {
   return s.replace(/_/g, ' ');
+}
+
+function parsePositiveInt(raw: string): number | null {
+  const t = raw.trim();
+  if (!t) return null;
+  const n = Number(t);
+  if (!Number.isFinite(n) || n <= 0 || !Number.isInteger(n)) return null;
+  return n;
+}
+
+function parsePositiveDim(raw: string): number | null {
+  const t = raw.trim();
+  if (!t) return null;
+  const n = Number(t);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return Math.round(n * 10) / 10;
+}
+
+function hasCompletePackaging(form: FormState): boolean {
+  return (
+    parsePositiveInt(form.weightGrams) != null &&
+    parsePositiveDim(form.lengthCm) != null &&
+    parsePositiveDim(form.widthCm) != null &&
+    parsePositiveDim(form.heightCm) != null
+  );
 }
 
 export default function ProductEditorPage() {
@@ -300,6 +342,27 @@ export default function ProductEditorPage() {
       return;
     }
 
+    const weightGrams = parsePositiveInt(form.weightGrams);
+    const lengthCm = parsePositiveDim(form.lengthCm);
+    const widthCm = parsePositiveDim(form.widthCm);
+    const heightCm = parsePositiveDim(form.heightCm);
+
+    const anyPackaging =
+      form.weightGrams.trim() ||
+      form.lengthCm.trim() ||
+      form.widthCm.trim() ||
+      form.heightCm.trim();
+
+    if (anyPackaging && !hasCompletePackaging(form)) {
+      setFormError('Enter all parcel fields: weight (g) and length × width × height (cm)');
+      return;
+    }
+
+    if (form.status === 'live' && !hasCompletePackaging(form)) {
+      setFormError('Live products require parcel weight (g) and L × W × H (cm) for shipping');
+      return;
+    }
+
     const pricePaise = Math.round(price * 100);
     const comparePaise = compare != null ? Math.round(compare * 100) : null;
     const categories = form.categories.split(',').map((c) => c.trim()).filter(Boolean);
@@ -339,6 +402,10 @@ export default function ProductEditorPage() {
         language: form.language.trim() || null,
         pages: form.pages.trim() ? Number(form.pages) : null,
         age_range: form.ageRange.trim() || null,
+        weight_grams: weightGrams,
+        length_cm: lengthCm,
+        width_cm: widthCm,
+        height_cm: heightCm,
         images,
       };
 
@@ -369,7 +436,7 @@ export default function ProductEditorPage() {
     { ok: Boolean(form.slug.trim()), label: 'Slug' },
     { ok: Boolean(form.cardImageUrl.trim()), label: 'Card image' },
     { ok: Number.isFinite(previewPrice) && previewPrice >= 0, label: 'Price' },
-    { ok: form.status === 'live' ? gallery.length >= 0 && Boolean(form.cardImageUrl) : true, label: 'Ready for live' },
+    { ok: form.status !== 'live' || hasCompletePackaging(form), label: 'Parcel size (live)' },
   ];
 
   if (loadingProduct) {
@@ -557,6 +624,69 @@ export default function ProductEditorPage() {
                     value={form.kitContents}
                     onChange={(e) => patchForm({ kitContents: e.target.value })}
                     placeholder="Fact Book | 1 | Premium stereoscopic book"
+                  />
+                </div>
+              </div>
+            </SectionCard>
+
+            <SectionCard
+              title="Shipping & packaging"
+              hint="Parcel weight and box size for Delhivery. Required when status is Live."
+            >
+              <div className="flex items-start gap-3 rounded-2xl border border-cyan-500/15 bg-cyan-500/5 px-4 py-3">
+                <Truck className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
+                <p className="text-xs text-neutral-400 leading-relaxed">
+                  Measure the packed kit (book + glasses + box). Weight in grams; dimensions in cm
+                  (longest edge = length). Shown on checkout as package info.
+                </p>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div>
+                  <label className={labelCls}>Weight (g)</label>
+                  <input
+                    className={fieldCls}
+                    type="number"
+                    min={1}
+                    step={1}
+                    value={form.weightGrams}
+                    onChange={(e) => patchForm({ weightGrams: e.target.value })}
+                    placeholder="650"
+                  />
+                </div>
+                <div>
+                  <label className={labelCls}>Length (cm)</label>
+                  <input
+                    className={fieldCls}
+                    type="number"
+                    min={0.1}
+                    step={0.1}
+                    value={form.lengthCm}
+                    onChange={(e) => patchForm({ lengthCm: e.target.value })}
+                    placeholder="28"
+                  />
+                </div>
+                <div>
+                  <label className={labelCls}>Width (cm)</label>
+                  <input
+                    className={fieldCls}
+                    type="number"
+                    min={0.1}
+                    step={0.1}
+                    value={form.widthCm}
+                    onChange={(e) => patchForm({ widthCm: e.target.value })}
+                    placeholder="22"
+                  />
+                </div>
+                <div>
+                  <label className={labelCls}>Height (cm)</label>
+                  <input
+                    className={fieldCls}
+                    type="number"
+                    min={0.1}
+                    step={0.1}
+                    value={form.heightCm}
+                    onChange={(e) => patchForm({ heightCm: e.target.value })}
+                    placeholder="5"
                   />
                 </div>
               </div>

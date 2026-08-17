@@ -232,7 +232,7 @@ export default function CheckoutPage() {
                         {formatInr(product.compare_at_paise)}
                       </span>
                       <span className="text-emerald-600 font-bold ml-1.5 sm:ml-2">
-                        Save {formatInr(product.compare_at_paise - product.price_paise)} vs M.R.P.
+                        Save {formatInr(product.compare_at_paise - product.price_paise)} 
                       </span>
                     </p>
                   )}
@@ -334,6 +334,22 @@ export default function CheckoutPage() {
                       <dd className="font-bold text-neutral-900">{product.pages}</dd>
                     </div>
                   )}
+                  {product.weight_grams != null && (
+                    <div className="flex gap-3 border-b border-neutral-100 pb-2">
+                      <dt className="text-neutral-400 font-medium shrink-0">Package weight</dt>
+                      <dd className="font-bold text-neutral-900">{product.weight_grams} g</dd>
+                    </div>
+                  )}
+                  {product.length_cm != null &&
+                    product.width_cm != null &&
+                    product.height_cm != null && (
+                      <div className="flex gap-3 border-b border-neutral-100 pb-2">
+                        <dt className="text-neutral-400 font-medium shrink-0">Package size</dt>
+                        <dd className="font-bold text-neutral-900">
+                          {product.length_cm} × {product.width_cm} × {product.height_cm} cm
+                        </dd>
+                      </div>
+                    )}
                   <div className="flex gap-3 border-b border-neutral-100 pb-2">
                     <dt className="text-neutral-400 font-medium shrink-0">Volume</dt>
                     <dd className="font-bold text-neutral-900">{product.volume}</dd>
@@ -500,7 +516,7 @@ export default function CheckoutPage() {
                 </p>
                 {off !== null && (
                   <p className="text-sm font-bold text-emerald-600">
-                    Save {formatInr(product.compare_at_paise - product.price_paise)} vs M.R.P.
+                    Save {formatInr(product.compare_at_paise - product.price_paise)}
                   </p>
                 )}
               </div>

@@ -630,6 +630,10 @@ export interface AdminProduct {
   language: string | null;
   age_range: string | null;
   pages: number | null;
+  weight_grams: number | null;
+  length_cm: number | null;
+  width_cm: number | null;
+  height_cm: number | null;
   price_paise: number;
   compare_at_paise: number | null;
   stock_qty: number;
@@ -699,6 +703,10 @@ export interface AdminProductInput {
   language?: string | null;
   age_range?: string | null;
   pages?: number | null;
+  weight_grams?: number | null;
+  length_cm?: number | null;
+  width_cm?: number | null;
+  height_cm?: number | null;
   price_paise: number;
   compare_at_paise?: number | null;
   stock_qty?: number;
