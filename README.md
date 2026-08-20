@@ -24,7 +24,7 @@ npm run build
 Multi-step checkout at `/checkout` (standalone layout — no main site navbar):
 
 1. **Product** — `/checkout?product=space-explorer` — gallery, qty, price, discount
-2. **Review** — `/checkout/review` — order recap + delivery address
+2. **Review** — `/checkout/review` — order recap + delivery address + **Delhivery PIN check** (`GET /shipping/pincode/:pincode`) + **expected TAT** (`GET /shipping/tat/:destinationPin`) + **shipping cost** (`GET /shipping/charges/:destinationPin`)
 3. **Payment** — `/checkout/payment` — Razorpay Checkout (`POST /checkout/sessions` → modal → `POST /payments/verify`)
 4. **Success** — `/checkout/success`
 
@@ -47,6 +47,9 @@ Auth and profile use the Express API in `odi-backend/`:
 | `GET /admin/overview` | Admin KPIs + recent orders (`getAdminOverview`) |
 | `GET/POST/PATCH /admin/products` | Admin catalog list + create/edit (`listAdminProducts`, `createAdminProduct`, `updateAdminProduct`) |
 | `POST /checkout/sessions` | Create order + Razorpay order (`createCheckoutSession`) |
+| `GET /shipping/pincode/:pincode` | Delhivery serviceability before checkout (`checkPincodeServiceability`) |
+| `GET /shipping/tat/:destinationPin` | Delhivery expected delivery time after PIN is serviceable (`getExpectedTat`) |
+| `GET /shipping/charges/:destinationPin` | Delhivery shipping cost for Order Summary (`getShippingQuote`) |
 | `POST /payments/verify` | Confirm payment after Razorpay modal (`verifyPayment`) |
 
 Storefront catalog / cart UI is still partly mock (`src/app/data/products.ts`) until `GET /products` is wired. Admin **Overview** and **Products** use live APIs.

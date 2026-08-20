@@ -9,6 +9,7 @@ import {
   Settings,
   User,
   Inbox,
+  Truck,
 } from 'lucide-react';
 import DashboardShell, { type NavGroup } from './DashboardShell';
 
@@ -18,6 +19,7 @@ const adminGroups: NavGroup[] = [
     items: [
       { name: 'Overview', path: '/dashboard/admin', icon: LayoutDashboard, end: true },
       { name: 'Orders', path: '/dashboard/admin/orders', icon: CalendarCheck },
+      { name: 'Shipments', path: '/dashboard/admin/shipments', icon: Truck },
     ],
   },
   {

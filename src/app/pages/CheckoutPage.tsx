@@ -651,7 +651,7 @@ export default function CheckoutPage() {
             </div>
             <div className="flex flex-col items-center text-center gap-1.5 px-1">
               <Truck className="w-4 h-4 text-neutral-700" />
-              <span className="text-[10px] font-bold text-neutral-700 leading-tight">Free Shipping</span>
+              <span className="text-[10px] font-bold text-neutral-700 leading-tight">Delhivery shipping</span>
             </div>
           </div>
 

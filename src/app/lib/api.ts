@@ -56,6 +56,15 @@ export const API = {
   public: {
     products: '/products',
   },
+  shipping: {
+    pincode: (pincode: string) => `/shipping/pincode/${pincode}`,
+    tat: (destinationPin: string, mot?: 'E' | 'S') =>
+      mot ? `/shipping/tat/${destinationPin}?mot=${mot}` : `/shipping/tat/${destinationPin}`,
+    charges: (destinationPin: string, slug: string, quantity: number) => {
+      const qs = new URLSearchParams({ slug, quantity: String(quantity) });
+      return `/shipping/charges/${destinationPin}?${qs.toString()}`;
+    },
+  },
   reviews: {
     item: (id: string) => `/reviews/${id}`,
   },
@@ -253,7 +262,9 @@ export interface CheckoutSession {
 }
 
 export interface CheckoutSessionInput {
-  shippingAddress: {
+  /** Prefer saved address UUID from user_addresses when available. */
+  addressId?: string;
+  shippingAddress?: {
     first_name: string;
     last_name: string;
     phone: string;
@@ -308,6 +319,90 @@ export interface CouponValidation {
   discount_paise: number;
   total_paise: number;
   currency: string;
+}
+
+// ─── Shipping (Delhivery pincode) ─────────────────────────────────────────────
+
+export interface PincodeServiceability {
+  pincode: string;
+  serviceable: boolean;
+  prepaid: boolean;
+  cod: boolean;
+  /** Original JSON from Delhivery (`delivery_codes`, etc.). */
+  delhivery?: {
+    delivery_codes?: Array<{ postal_code?: Record<string, unknown> }>;
+  };
+  requestUrl?: string;
+  provider: string;
+  environment: string;
+  baseUrl?: string;
+}
+
+/** GET /shipping/pincode/:pincode — Delhivery serviceability (public, read-only). */
+export async function checkPincodeServiceability(pincode: string): Promise<PincodeServiceability> {
+  const digits = pincode.replace(/\D/g, '');
+  if (digits.length !== 6) {
+    throw new Error('Enter a valid 6-digit PIN code');
+  }
+  const body = await publicFetch<ApiSuccess<PincodeServiceability>>(API.shipping.pincode(digits));
+  return body.data;
+}
+
+export interface ExpectedTat {
+  originPin: string;
+  destinationPin: string;
+  mot: 'E' | 'S';
+  pdt: string;
+  days: number | null;
+  label: string;
+  delhivery?: Record<string, unknown>;
+  requestUrl?: string;
+  provider: string;
+  environment: string;
+  baseUrl?: string;
+}
+
+/** GET /shipping/tat/:destinationPin — Delhivery expected TAT (public, read-only). */
+export async function getExpectedTat(
+  destinationPin: string,
+  mot?: 'E' | 'S'
+): Promise<ExpectedTat> {
+  const digits = destinationPin.replace(/\D/g, '');
+  if (digits.length !== 6) {
+    throw new Error('Enter a valid 6-digit PIN code');
+  }
+  const body = await publicFetch<ApiSuccess<ExpectedTat>>(API.shipping.tat(digits, mot));
+  return body.data;
+}
+
+export interface ShippingQuote {
+  originPin: string;
+  destinationPin: string;
+  mot: 'E' | 'S';
+  pt: string;
+  chargeableGrams: number;
+  shippingPaise: number;
+  delhivery?: Record<string, unknown> | Array<Record<string, unknown>>;
+  requestUrl?: string;
+  provider: string;
+  environment: string;
+  baseUrl?: string;
+}
+
+/** GET /shipping/charges/:destinationPin — Delhivery shipping cost (public, read-only). */
+export async function getShippingQuote(input: {
+  destinationPin: string;
+  slug: string;
+  quantity: number;
+}): Promise<ShippingQuote> {
+  const digits = input.destinationPin.replace(/\D/g, '');
+  if (digits.length !== 6) {
+    throw new Error('Enter a valid 6-digit PIN code');
+  }
+  const body = await publicFetch<ApiSuccess<ShippingQuote>>(
+    API.shipping.charges(digits, input.slug, input.quantity)
+  );
+  return body.data;
 }
 
 /** POST /coupons/validate — preview discount for a code (auth required). */
@@ -925,6 +1020,9 @@ export interface AdminOrder {
   user_id: string;
   created_at: string;
   paid_at?: string | null;
+  delhivery_waybill?: string | null;
+  delhivery_status?: string | null;
+  delhivery_pickup_token?: string | null;
   order_items?: AdminOrderItem[];
   payments?: Array<{
     id: string;
@@ -972,6 +1070,20 @@ export async function updateAdminOrderStatus(id: string, status: string) {
   const body = await authFetch<ApiSuccess<{ order: AdminOrder }>>(`${API.admin.orders}/${id}/status`, {
     method: 'PATCH',
     body: JSON.stringify({ status }),
+  });
+  return body.data.order;
+}
+
+export async function createAdminOrderShipment(id: string) {
+  const body = await authFetch<ApiSuccess<{ order: AdminOrder }>>(`${API.admin.orders}/${id}/shipment`, {
+    method: 'POST',
+  });
+  return body.data.order;
+}
+
+export async function createAdminOrderPickup(id: string) {
+  const body = await authFetch<ApiSuccess<{ order: AdminOrder }>>(`${API.admin.orders}/${id}/pickup`, {
+    method: 'POST',
   });
   return body.data.order;
 }
@@ -1156,6 +1268,7 @@ export interface UserOrder {
   status: UserOrderStatus;
   subtotal_paise: number;
   discount_paise: number;
+  shipping_paise: number;
   total_paise: number;
   coupon_code: string | null;
   shipping_address: {

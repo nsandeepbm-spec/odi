@@ -12,7 +12,7 @@ import {
   Truck,
   MapPin,
 } from 'lucide-react';
-import { useCheckout, isShippingComplete } from '../../lib/checkout';
+import { useCheckout, isShippingComplete, isDbAddressId } from '../../lib/checkout';
 import { CheckoutOrderSummary } from '../../components/checkout/CheckoutOrderSummary';
 import { checkoutInput, checkoutLabel } from '../../components/checkout/CheckoutShell';
 import { discountPercent, formatInr } from '../../data/products';
@@ -81,6 +81,7 @@ export default function CheckoutPaymentPage() {
   const {
     product,
     productQuery,
+    selectedAddressId,
     quantity,
     shipping,
     totalPaise,
@@ -88,12 +89,20 @@ export default function CheckoutPaymentPage() {
     idempotencyKey,
     couponCode,
     discountPaise,
+    shippingQuoteStatus,
+    refreshShippingQuote,
   } = useCheckout();
   const navigate = useNavigate();
   useRazorpayScript();
   const [loading, setLoading] = useState(false);
   const [activeMethod, setActiveMethod] = useState<PaymentMethod>('upi');
   const [selectedBank, setSelectedBank] = useState(BANKS[0]);
+
+  useEffect(() => {
+    if (shippingQuoteStatus === 'ready' || shippingQuoteStatus === 'loading') return;
+    const pin = shipping.postalCode.replace(/\D/g, '').slice(0, 6);
+    if (pin.length === 6) void refreshShippingQuote(pin);
+  }, [shipping.postalCode, shippingQuoteStatus, refreshShippingQuote]);
 
   if (!product) {
     return (
@@ -129,6 +138,15 @@ export default function CheckoutPaymentPage() {
     country: 'IN' as const,
   });
 
+  const buildCheckoutPayload = (paymentMethod: 'razorpay' | 'cod') => ({
+    items: [{ slug: product.slug, quantity }],
+    ...(isDbAddressId(selectedAddressId)
+      ? { addressId: selectedAddressId }
+      : { shippingAddress: buildShippingAddress() }),
+    paymentMethod,
+    couponCode: couponCode || null,
+  });
+
   const handlePay = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -140,16 +158,7 @@ export default function CheckoutPaymentPage() {
       }
 
       if (activeMethod === 'cod') {
-        // COD: create a real pending order in the DB, no Razorpay
-        const session = await createCheckoutSession(
-          {
-            items: [{ slug: product.slug, quantity }],
-            shippingAddress: buildShippingAddress(),
-            paymentMethod: 'cod',
-            couponCode: couponCode || null,
-          },
-          idempotencyKey
-        );
+        const session = await createCheckoutSession(buildCheckoutPayload('cod'), idempotencyKey);
         completeOrder(session.orderNumber);
         navigate(`/checkout/success?order=${encodeURIComponent(session.orderNumber)}`);
         return;
@@ -160,15 +169,7 @@ export default function CheckoutPaymentPage() {
         throw new Error('Razorpay Checkout failed to load. Refresh and try again.');
       }
 
-      const session = await createCheckoutSession(
-        {
-          items: [{ slug: product.slug, quantity }],
-          shippingAddress: buildShippingAddress(),
-          paymentMethod: 'razorpay',
-          couponCode: couponCode || null,
-        },
-        idempotencyKey
-      );
+      const session = await createCheckoutSession(buildCheckoutPayload('razorpay'), idempotencyKey);
 
       if (!session.keyId || !session.razorpayOrderId) {
         throw new Error('Payment session incomplete — Razorpay keys not configured on server.');

@@ -35,6 +35,7 @@ interface DashboardShellProps {
 
 export default function DashboardShell({ portal, groups, switchTo }: DashboardShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [desktopCollapsed, setDesktopCollapsed] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { user, firebaseUser, signOut } = useAuth();
@@ -68,94 +69,110 @@ export default function DashboardShell({ portal, groups, switchTo }: DashboardSh
     );
   };
 
-  const SidebarContent = (
-    <>
-      <div className="px-6 pt-7 pb-6 flex items-center gap-3" style={{ borderBottom: `1px solid ${T.border}` }}>
-        <Link to="/" className="block w-fit" onClick={() => setSidebarOpen(false)}>
-          <span className="text-2xl font-black tracking-tighter bg-gradient-to-br from-white to-neutral-400 bg-clip-text text-transparent">ODI.</span>
-        </Link>
-        <div className="px-2 py-0.5 rounded text-[9px] font-bold tracking-[0.25em] uppercase border border-neutral-800 bg-neutral-900" style={{ color: T.text }}>
-          {portal}
+  const renderSidebarContent = (isMobile: boolean) => {
+    const collapsed = !isMobile && desktopCollapsed;
+    return (
+      <>
+        <div className={`px-4 pt-7 pb-6 flex items-center ${collapsed ? 'justify-center' : 'justify-between'} gap-3 h-[85px]`} style={{ borderBottom: `1px solid ${T.border}` }}>
+          {!collapsed && (
+            <Link to="/" className="block w-fit" onClick={() => setSidebarOpen(false)}>
+              <span className="text-2xl font-black tracking-tighter bg-gradient-to-br from-white to-neutral-400 bg-clip-text text-transparent">ODI.</span>
+            </Link>
+          )}
+          {!isMobile && (
+            <button onClick={() => setDesktopCollapsed(!desktopCollapsed)} className="p-1.5 rounded-lg hover:bg-white/5 text-neutral-400 transition-colors shrink-0">
+              <Menu className="w-5 h-5" />
+            </button>
+          )}
         </div>
-      </div>
 
-      <nav className="flex-1 overflow-y-auto px-4 py-6 space-y-8 custom-scrollbar">
-        {groups.map((group) => (
-          <div key={group.label}>
-            <div className="px-3 mb-3 text-[10px] font-bold tracking-[0.2em] uppercase" style={{ color: T.sub }}>
-              {group.label}
+        <nav className={`flex-1 overflow-y-auto py-6 space-y-8 custom-scrollbar ${collapsed ? 'px-2' : 'px-4'}`}>
+          {groups.map((group) => (
+            <div key={group.label}>
+              {!collapsed && (
+                <div className="px-3 mb-3 text-[10px] font-bold tracking-[0.2em] uppercase" style={{ color: T.sub }}>
+                  {group.label}
+                </div>
+              )}
+              <div className="space-y-1">
+                {group.items.map((item) => {
+                  const active = isActive(item);
+                  const Icon = item.icon;
+                  return (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      title={collapsed ? item.name : undefined}
+                      onClick={() => setSidebarOpen(false)}
+                      className={`group relative flex items-center ${collapsed ? 'justify-center p-3' : 'gap-3 px-3 py-2.5'} rounded-xl text-sm font-semibold transition-all duration-300 ${
+                        active
+                          ? 'bg-white/10 text-white shadow-[0_0_20px_rgba(255,255,255,0.03)] border border-white/5'
+                          : 'text-neutral-400 hover:bg-white/5 hover:text-neutral-200 border border-transparent'
+                      }`}
+                    >
+                      {active && (
+                        <motion.div
+                          layoutId={isMobile ? `mobile-active-indicator-${item.path}` : `active-indicator-${item.path}`}
+                          className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-gradient-to-b from-cyan-400 to-indigo-500 rounded-r-full shadow-[0_0_10px_rgba(56,189,248,0.5)]"
+                        />
+                      )}
+                      <Icon className={`w-[18px] h-[18px] transition-colors shrink-0 ${active ? 'text-cyan-400' : 'text-neutral-500 group-hover:text-neutral-300'}`} />
+                      {!collapsed && <span className="truncate">{item.name}</span>}
+                    </Link>
+                  );
+                })}
+              </div>
             </div>
-            <div className="space-y-1">
-              {group.items.map((item) => {
-                const active = isActive(item);
-                const Icon = item.icon;
-                return (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    onClick={() => setSidebarOpen(false)}
-                    className={`group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-300 ${
-                      active
-                        ? 'bg-white/10 text-white shadow-[0_0_20px_rgba(255,255,255,0.03)] border border-white/5'
-                        : 'text-neutral-400 hover:bg-white/5 hover:text-neutral-200 border border-transparent'
-                    }`}
-                  >
-                    {active && (
-                      <motion.div
-                        layoutId="active-indicator"
-                        className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-gradient-to-b from-cyan-400 to-indigo-500 rounded-r-full shadow-[0_0_10px_rgba(56,189,248,0.5)]"
-                      />
-                    )}
-                    <Icon className={`w-[18px] h-[18px] transition-colors ${active ? 'text-cyan-400' : 'text-neutral-500 group-hover:text-neutral-300'}`} />
-                    {item.name}
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
-        ))}
-      </nav>
+          ))}
+        </nav>
 
-      <div className="p-4 space-y-2" style={{ borderTop: `1px solid ${T.border}` }}>
-        <div className="flex items-center gap-3 px-3 py-3 rounded-xl border border-white/5 shadow-inner" style={{ background: 'linear-gradient(145deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%)' }}>
-          <Avatar />
-          <div className="min-w-0 flex-1">
-            <div className="text-sm font-bold truncate text-white">{name}</div>
-            <div className="text-[10px] font-semibold tracking-wider uppercase truncate" style={{ color: T.sub }}>
-              {user?.email ?? portal}
-            </div>
+        <div className={`p-4 space-y-2 ${collapsed ? 'flex flex-col items-center' : ''}`} style={{ borderTop: `1px solid ${T.border}` }}>
+          <div className={`flex items-center ${collapsed ? 'justify-center p-2' : 'gap-3 px-3 py-3'} rounded-xl border border-white/5 shadow-inner w-full`} style={{ background: 'linear-gradient(145deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%)' }}>
+            <Avatar />
+            {!collapsed && (
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-bold truncate text-white">{name}</div>
+                <div className="text-[10px] font-semibold tracking-wider uppercase truncate" style={{ color: T.sub }}>
+                  {user?.email ?? portal}
+                </div>
+              </div>
+            )}
           </div>
-        </div>
-        {switchTo && (
-          <Link
-            to={switchTo.path}
-            onClick={() => setSidebarOpen(false)}
-            className="flex items-center gap-3 px-3 py-2.5 text-sm font-semibold text-neutral-400 hover:bg-white/5 hover:text-neutral-200 rounded-xl transition-all border border-transparent hover:border-white/5"
+          {switchTo && (
+            <Link
+              to={switchTo.path}
+              title={collapsed ? switchTo.label : undefined}
+              onClick={() => setSidebarOpen(false)}
+              className={`flex items-center ${collapsed ? 'justify-center p-3' : 'gap-3 px-3 py-2.5'} w-full text-sm font-semibold text-neutral-400 hover:bg-white/5 hover:text-neutral-200 rounded-xl transition-all border border-transparent hover:border-white/5`}
+            >
+              <switchTo.icon className="w-[18px] h-[18px] text-neutral-500 shrink-0" />
+              {!collapsed && <span className="truncate">{switchTo.label}</span>}
+            </Link>
+          )}
+          <button
+            onClick={handleSignOut}
+            title={collapsed ? "Sign Out" : undefined}
+            className={`flex items-center ${collapsed ? 'justify-center p-3' : 'gap-3 px-3 py-2.5'} w-full text-sm font-semibold text-red-400 hover:bg-red-500/10 hover:text-red-300 rounded-xl transition-all border border-transparent hover:border-red-500/10`}
           >
-            <switchTo.icon className="w-[18px] h-[18px] text-neutral-500" />
-            {switchTo.label}
-          </Link>
-        )}
-        <button
-          onClick={handleSignOut}
-          className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-semibold text-red-400 hover:bg-red-500/10 hover:text-red-300 rounded-xl transition-all border border-transparent hover:border-red-500/10"
-        >
-          <LogOut className="w-[18px] h-[18px]" />
-          Sign Out
-        </button>
-      </div>
-    </>
-  );
+            <LogOut className="w-[18px] h-[18px] shrink-0" />
+            {!collapsed && <span>Sign Out</span>}
+          </button>
+        </div>
+      </>
+    );
+  };
 
   return (
     <div className="min-h-screen flex selection:bg-cyan-500/30 selection:text-cyan-100 [&_input:-webkit-autofill]:![box-shadow:0_0_0_100px_#111113_inset] [&_input:-webkit-autofill]:![-webkit-text-fill-color:#d4d4d8]" style={{ background: T.bg, color: T.text, fontFamily: 'Inter, system-ui, sans-serif' }}>
+      {/* Desktop Sidebar */}
       <aside
-        className="hidden md:flex sticky top-0 h-screen w-64 flex-col shrink-0"
+        className={`hidden md:flex sticky top-0 h-screen flex-col shrink-0 transition-all duration-300 ease-in-out ${desktopCollapsed ? 'w-[88px]' : 'w-64'}`}
         style={{ background: T.bgAlt, borderRight: `1px solid ${T.border}` }}
       >
-        {SidebarContent}
+        {renderSidebarContent(false)}
       </aside>
 
+      {/* Mobile Sidebar */}
       <AnimatePresence>
         {sidebarOpen && (
           <>
@@ -181,13 +198,13 @@ export default function DashboardShell({ portal, groups, switchTo }: DashboardSh
               >
                 <X className="w-5 h-5" />
               </button>
-              {SidebarContent}
+              {renderSidebarContent(true)}
             </motion.aside>
           </>
         )}
       </AnimatePresence>
 
-      <div className="flex-1 flex flex-col min-w-0 relative">
+      <div className="flex-1 flex flex-col min-w-0 relative transition-all duration-300 ease-in-out">
         <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] pointer-events-none mix-blend-overlay" />
         
         <header
@@ -232,7 +249,7 @@ export default function DashboardShell({ portal, groups, switchTo }: DashboardSh
           </div>
         </header>
 
-        <main className="flex-1 p-4 md:p-8 w-full max-w-7xl mx-auto relative z-10">
+        <main className="flex-1 p-4 md:p-8 w-full max-w-7xl mx-auto relative z-10 transition-all duration-300">
           <Outlet />
         </main>
       </div>

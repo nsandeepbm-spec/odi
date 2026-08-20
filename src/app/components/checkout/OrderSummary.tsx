@@ -1,9 +1,24 @@
 import React from 'react';
 import { formatInr } from '../../data/products';
-import { useCheckout } from '../../lib/checkout';
+import { useCheckout, type ShippingQuoteStatus } from '../../lib/checkout';
+
+function shippingLine(status: ShippingQuoteStatus, paise: number) {
+  if (status === 'loading') return 'Calculating…';
+  if (status === 'idle') return 'At shipping step';
+  if (status === 'error') return 'Unavailable';
+  return formatInr(paise);
+}
 
 export function OrderSummary({ compact = false }: { compact?: boolean }) {
-  const { product, quantity, subtotalPaise, discountPaise, totalPaise, shippingFree } = useCheckout();
+  const {
+    product,
+    quantity,
+    subtotalPaise,
+    discountPaise,
+    totalPaise,
+    shippingPaise,
+    shippingQuoteStatus,
+  } = useCheckout();
 
   if (!product) return null;
 
@@ -21,7 +36,7 @@ export function OrderSummary({ compact = false }: { compact?: boolean }) {
             {product.volume}
           </p>
           <p className="text-xs text-neutral-500 mt-1">Qty {quantity}</p>
-          <p className="text-sm font-black mt-1">{formatInr(product.pricePaise * quantity)}</p>
+          <p className="text-sm font-black mt-1">{formatInr(product.price_paise * quantity)}</p>
         </div>
       </div>
 
@@ -38,9 +53,7 @@ export function OrderSummary({ compact = false }: { compact?: boolean }) {
         )}
         <div className="flex justify-between text-neutral-600">
           <span>Shipping</span>
-          <span className={shippingFree ? 'text-emerald-600 font-bold' : ''}>
-            {shippingFree ? 'Free' : formatInr(0)}
-          </span>
+          <span className="font-bold">{shippingLine(shippingQuoteStatus, shippingPaise)}</span>
         </div>
         <div className="flex justify-between font-black text-lg pt-3 border-t border-neutral-200">
           <span>Total</span>

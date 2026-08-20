@@ -52,6 +52,7 @@ import AdminLayout from "./components/dashboard/AdminLayout";
 import AdminOverviewPage from "./pages/dashboard/admin/OverviewPage";
 import AdminOrdersPage from "./pages/dashboard/admin/OrdersPage";
 import AdminOrderDetailPage from "./pages/dashboard/admin/OrderDetailPage";
+import AdminShipmentsPage from "./pages/dashboard/admin/ShipmentsPage";
 import AdminProductsPage from "./pages/dashboard/admin/ProductsPage";
 import ProductEditorPage from "./pages/dashboard/admin/ProductEditorPage";
 import AdminCustomersPage from "./pages/dashboard/admin/CustomersPage";
@@ -92,6 +93,7 @@ export const router = createBrowserRouter([
           { path: "inbox", Component: AdminInboxPage },
           { path: "orders", Component: AdminOrdersPage },
           { path: "orders/:orderId", Component: AdminOrderDetailPage },
+          { path: "shipments", Component: AdminShipmentsPage },
           { path: "products", Component: AdminProductsPage },
           { path: "products/new", Component: ProductEditorPage },
           { path: "products/:id", Component: ProductEditorPage },

@@ -58,6 +58,7 @@ export type InvoiceDetail = {
     discount_paise: number;
     total_paise: number;
     coupon_code?: string | null;
+    shipping_paise?: number;
     shipping_address?: {
       first_name?: string;
       last_name?: string;
@@ -284,7 +285,10 @@ export function downloadOrderInvoice(detail: InvoiceDetail | AdminOrderDetail) {
       deduct: true,
     });
   }
-  totalLines.push({ label: 'Shipping', value: 'FREE' });
+  totalLines.push({
+    label: 'Shipping',
+    value: (order.shipping_paise ?? 0) > 0 ? pdfMoney(order.shipping_paise ?? 0) : 'FREE',
+  });
   totalLines.push({ label: 'Total Amount Paid', value: pdfMoney(order.total_paise), highlight: true });
 
   const boxW = 240;

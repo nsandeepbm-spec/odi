@@ -9,6 +9,7 @@ import {
   Loader2,
   AlertCircle,
   FileDown,
+  Truck,
 } from 'lucide-react';
 import {
   PageHeader,
@@ -21,6 +22,8 @@ import {
 import {
   getAdminOrderDetail,
   updateAdminOrderStatus,
+  createAdminOrderShipment,
+  createAdminOrderPickup,
   type AdminOrderDetail,
 } from '../../../lib/api';
 import { getInitials } from '../../../lib/auth';
@@ -84,6 +87,7 @@ export default function OrderDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
+  const [shippingAction, setShippingAction] = useState<string | null>(null);
 
   useEffect(() => {
     if (!orderId) return;
@@ -120,6 +124,36 @@ export default function OrderDetailPage() {
       alert(err instanceof Error ? err.message : 'Failed to update status');
     } finally {
       setUpdating(false);
+    }
+  };
+
+  const handleCreateShipment = async () => {
+    if (!detail) return;
+    setShippingAction('shipment');
+    try {
+      const updated = await createAdminOrderShipment(detail.order.id);
+      setDetail((d) =>
+        d ? { ...d, order: { ...d.order, ...updated } } : d
+      );
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to create shipment (API may not be implemented yet)');
+    } finally {
+      setShippingAction(null);
+    }
+  };
+
+  const handleRequestPickup = async () => {
+    if (!detail) return;
+    setShippingAction('pickup');
+    try {
+      const updated = await createAdminOrderPickup(detail.order.id);
+      setDetail((d) =>
+        d ? { ...d, order: { ...d.order, ...updated } } : d
+      );
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to request pickup (API may not be implemented yet)');
+    } finally {
+      setShippingAction(null);
     }
   };
 
@@ -260,6 +294,63 @@ export default function OrderDetailPage() {
                     </span>
                   }
                 />
+              </div>
+            </div>
+          </Card>
+
+          {/* Fulfillment */}
+          <Card>
+            <div className="p-5 sm:p-6">
+              <SectionTitle icon={Truck}>Fulfillment (Delhivery)</SectionTitle>
+              <div className="bg-white/[0.02] border border-white/[0.04] rounded-2xl p-4 flex flex-col gap-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <p className="text-[11px] font-bold tracking-widest uppercase text-neutral-500 mb-1">Waybill (Tracking)</p>
+                    {order.delhivery_waybill ? (
+                      <p className="font-black text-cyan-400 font-mono text-lg">{order.delhivery_waybill}</p>
+                    ) : (
+                      <p className="text-sm font-medium text-neutral-400">No shipment created yet.</p>
+                    )}
+                  </div>
+                  {!order.delhivery_waybill && (
+                    <button
+                      type="button"
+                      disabled={shippingAction !== null || (order.status !== 'paid' && order.status !== 'processing')}
+                      onClick={handleCreateShipment}
+                      className="shrink-0 inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold tracking-wide bg-gradient-to-r from-cyan-400 to-indigo-500 text-white shadow-[0_0_18px_rgba(56,189,248,0.22)] hover:shadow-[0_0_24px_rgba(99,102,241,0.35)] transition-all rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {shippingAction === 'shipment' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Package className="w-4 h-4" />}
+                      Create Shipment
+                    </button>
+                  )}
+                </div>
+
+                {order.delhivery_waybill && (
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-white/[0.04]">
+                    <div>
+                      <p className="text-[11px] font-bold tracking-widest uppercase text-neutral-500 mb-1">Pickup Status</p>
+                      {order.delhivery_pickup_token ? (
+                        <div>
+                          <p className="font-black text-emerald-400">Scheduled</p>
+                          <p className="text-xs font-medium text-neutral-500 mt-0.5">Token: {order.delhivery_pickup_token}</p>
+                        </div>
+                      ) : (
+                        <p className="text-sm font-medium text-neutral-400">Pickup not requested.</p>
+                      )}
+                    </div>
+                    {!order.delhivery_pickup_token && (
+                      <button
+                        type="button"
+                        disabled={shippingAction !== null}
+                        onClick={handleRequestPickup}
+                        className="shrink-0 inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold tracking-wide border border-white/[0.1] text-white bg-black/40 hover:bg-white/[0.04] hover:border-white/[0.2] transition-all rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {shippingAction === 'pickup' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Truck className="w-4 h-4" />}
+                        Request Pickup
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </Card>
