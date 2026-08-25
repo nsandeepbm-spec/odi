@@ -1,15 +1,24 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'motion/react';
-import { Truck, Package, CheckCircle2, AlertCircle, CalendarX } from 'lucide-react';
+import { Truck, Package, CheckCircle2, AlertCircle, CalendarX, MapPin, Loader2, Search, X } from 'lucide-react';
 import {
   PageHeader,
   Card,
-  OrderBadge,
   EmptyState,
   inrFromPaise,
   DashboardSkeleton,
 } from '../../../components/dashboard/shared';
-import { listMyOrders, type UserOrder, type UserOrderStatus } from '../../../lib/api';
+import { OrderProgressStepper } from '../../../components/dashboard/OrderProgressStepper';
+import { ShipmentStatusChip } from '../../../components/dashboard/ShipmentStatusChip';
+import { BookingDetailDrawer } from '../../../components/dashboard/BookingDetailDrawer';
+import {
+  listMyOrders,
+  type UserOrder,
+  type UserOrderStatus,
+  type ShipmentTracking,
+} from '../../../lib/api';
+import { useOrdersTracking } from '../../../lib/useOrdersTracking';
+import { deliveryLocationLine, isInTransitPhase, resolveShipmentPhase } from '../../../lib/shipmentStatus';
 
 type Tab = 'active' | 'delivered' | 'all';
 
@@ -21,17 +30,6 @@ const TABS: { label: string; value: Tab }[] = [
 
 const ACTIVE_STATUSES: UserOrderStatus[] = ['paid', 'processing', 'shipped'];
 
-const ORDER_STEPS: { key: UserOrderStatus; label: string }[] = [
-  { key: 'paid', label: 'Confirmed' },
-  { key: 'processing', label: 'Processing' },
-  { key: 'shipped', label: 'Shipped' },
-  { key: 'delivered', label: 'Delivered' },
-];
-
-function stepIndex(status: UserOrderStatus): number {
-  return ORDER_STEPS.findIndex((s) => s.key === status);
-}
-
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-IN', {
     day: 'numeric',
@@ -40,13 +38,34 @@ function formatDate(iso: string) {
   });
 }
 
-// ─── Single booking row with tracker ─────────────────────────────────────────
+function matchesSearch(order: UserOrder, query: string): boolean {
+  const q = query.trim().toLowerCase().replace(/^#/, '');
+  if (!q) return true;
+  const number = (order.order_number ?? '').toLowerCase();
+  const id = order.id.toLowerCase();
+  const waybill = (order.delhivery_waybill ?? '').toLowerCase();
+  return number.includes(q) || id.includes(q) || waybill.includes(q);
+}
 
-function BookingRow({ order }: { order: UserOrder }) {
-  const current = stepIndex(order.status);
+function BookingRow({
+  order,
+  tracking,
+  trackingLoading,
+  onOpen,
+}: {
+  order: UserOrder;
+  tracking?: ShipmentTracking | null;
+  trackingLoading?: boolean;
+  onOpen: () => void;
+}) {
+  const locationLine = deliveryLocationLine(order, tracking);
 
   return (
-    <div className="px-6 py-5 hover:bg-white/[0.02] transition-colors border-b border-white/[0.04] last:border-0">
+    <button
+      type="button"
+      onClick={onOpen}
+      className="w-full text-left px-6 py-5 hover:bg-white/[0.02] transition-colors border-b border-white/[0.04] last:border-0 cursor-pointer"
+    >
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-5">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-white/[0.03] border border-white/[0.05] flex items-center justify-center shrink-0">
@@ -54,58 +73,27 @@ function BookingRow({ order }: { order: UserOrder }) {
           </div>
           <div>
             <p className="font-black text-white text-sm tracking-tight">
-              Order #{order.order_number ?? order.id.slice(0, 8).toUpperCase()}
+              Order #{order.order_number}
             </p>
             <p className="text-[11px] text-neutral-500 font-semibold mt-0.5">
               {formatDate(order.created_at)} · {inrFromPaise(order.total_paise)}
             </p>
+            {order.delhivery_waybill && (
+              <p className="text-[10px] text-neutral-600 font-medium mt-0.5">
+                AWB {order.delhivery_waybill}
+              </p>
+            )}
           </div>
         </div>
-        <OrderBadge status={order.status} />
+        <ShipmentStatusChip order={order} tracking={tracking} />
       </div>
 
-      {/* Progress stepper — shown only for in-progress orders */}
       {ACTIVE_STATUSES.includes(order.status) && (
-        <div className="flex items-center mb-4 mt-2">
-          {ORDER_STEPS.map((step, i) => {
-            const done = i <= current;
-            const isActive = i === current;
-            return (
-              <React.Fragment key={step.key}>
-                {i > 0 && (
-                  <div
-                    className={`flex-1 h-0.5 ${done ? 'bg-gradient-to-r from-cyan-500 to-indigo-500' : 'bg-white/[0.06]'}`}
-                  />
-                )}
-                <div className="flex flex-col items-center gap-1.5 shrink-0">
-                  <div
-                    className={`w-7 h-7 rounded-full flex items-center justify-center border-2 transition-all ${
-                      done
-                        ? 'bg-gradient-to-br from-cyan-400 to-indigo-500 border-transparent shadow-[0_0_10px_rgba(56,189,248,0.4)]'
-                        : 'bg-[#0A0A0A] border-white/[0.08]'
-                    } ${isActive ? 'ring-4 ring-cyan-500/20' : ''}`}
-                  >
-                    {done ? (
-                      <CheckCircle2 className="w-3.5 h-3.5 text-white" />
-                    ) : (
-                      <span className="w-2 h-2 rounded-full bg-white/[0.08]" />
-                    )}
-                  </div>
-                  <span
-                    className={`text-[9px] font-bold tracking-wider uppercase whitespace-nowrap ${
-                      done ? 'text-neutral-200' : 'text-neutral-600'
-                    }`}
-                  >
-                    {step.label}
-                  </span>
-                </div>
-              </React.Fragment>
-            );
-          })}
+        <div className="mb-4 mt-2 pointer-events-none">
+          <OrderProgressStepper order={order} tracking={tracking} compact />
         </div>
       )}
 
-      {/* Delivered indicator */}
       {order.status === 'delivered' && (
         <div className="flex items-center gap-2 text-xs font-semibold text-emerald-400 mt-1">
           <CheckCircle2 className="w-3.5 h-3.5" />
@@ -113,29 +101,41 @@ function BookingRow({ order }: { order: UserOrder }) {
         </div>
       )}
 
-      {order.shipping_address?.city && (
-        <p className="text-[11px] text-neutral-600 font-medium mt-1.5">
-          📍 {order.shipping_address.city}
-          {order.shipping_address.postal_code ? ` – ${order.shipping_address.postal_code}` : ''}
+      {trackingLoading && order.delhivery_waybill ? (
+        <p className="text-[11px] text-neutral-600 font-medium mt-1.5 flex items-center gap-1.5">
+          <Loader2 className="w-3 h-3 animate-spin" /> Updating location…
         </p>
-      )}
-    </div>
+      ) : locationLine ? (
+        <p className="text-[11px] text-neutral-400 font-medium mt-1.5 flex items-center gap-1.5">
+          <MapPin className="w-3 h-3 text-cyan-400/80 shrink-0" />
+          {tracking?.statusLocation ? `Latest · ${locationLine}` : locationLine}
+        </p>
+      ) : null}
+
+      <p className="text-[10px] font-bold text-cyan-400/80 mt-3 uppercase tracking-widest">
+        Tap for route →
+      </p>
+    </button>
   );
 }
-
-// ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function BookingsPage() {
   const [orders, setOrders] = useState<UserOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>('active');
+  const [query, setQuery] = useState('');
+  const [selectedOrder, setSelectedOrder] = useState<UserOrder | null>(null);
+  const [trackingOverrides, setTrackingOverrides] = useState<Record<string, ShipmentTracking>>({});
 
   useEffect(() => {
     let cancelled = false;
     listMyOrders(1, 50)
       .then((res) => {
-        if (!cancelled) { setOrders(res.orders); setLoading(false); }
+        if (!cancelled) {
+          setOrders(res.orders);
+          setLoading(false);
+        }
       })
       .catch((err) => {
         if (!cancelled) {
@@ -143,16 +143,41 @@ export default function BookingsPage() {
           setLoading(false);
         }
       });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
+  const { trackingMap: fetchedTracking, trackingLoading } = useOrdersTracking(orders);
+
+  const trackingMap = useMemo(
+    () => ({ ...fetchedTracking, ...trackingOverrides }),
+    [fetchedTracking, trackingOverrides],
+  );
+
   const filtered = useMemo(() => {
+    let list: UserOrder[];
     switch (tab) {
-      case 'active':    return orders.filter((o) => ACTIVE_STATUSES.includes(o.status));
-      case 'delivered': return orders.filter((o) => o.status === 'delivered');
-      default:          return orders.filter((o) => !['cancelled', 'refunded', 'pending'].includes(o.status));
+      case 'active':
+        list = orders.filter((o) => ACTIVE_STATUSES.includes(o.status));
+        break;
+      case 'delivered':
+        list = orders.filter((o) => o.status === 'delivered');
+        break;
+      default:
+        list = orders.filter((o) => !['cancelled', 'refunded', 'pending'].includes(o.status));
     }
-  }, [tab, orders]);
+    if (!query.trim()) return list;
+    return list.filter((o) => matchesSearch(o, query));
+  }, [tab, orders, query]);
+
+  const phaseByOrderId = useMemo(() => {
+    const map: Record<string, ReturnType<typeof resolveShipmentPhase>> = {};
+    for (const o of orders) {
+      map[o.id] = resolveShipmentPhase(o, trackingMap[o.id]);
+    }
+    return map;
+  }, [orders, trackingMap]);
 
   if (loading) return <DashboardSkeleton cols={5} rows={5} />;
 
@@ -167,6 +192,12 @@ export default function BookingsPage() {
   }
 
   const activeCount = orders.filter((o) => ACTIVE_STATUSES.includes(o.status)).length;
+  const selectedTracking = selectedOrder ? trackingMap[selectedOrder.id] : null;
+  const inTransitCount = orders.filter((o) => isInTransitPhase(phaseByOrderId[o.id])).length;
+  const processingCount = orders.filter((o) => {
+    const p = phaseByOrderId[o.id];
+    return p === 'preparing' || p === 'ready_to_ship';
+  }).length;
 
   return (
     <motion.div
@@ -178,17 +209,20 @@ export default function BookingsPage() {
         eyebrow="Shipment Tracking"
         title="My"
         accent="Bookings."
-        subtitle="Track every order you've placed, past and present."
+        subtitle="Tap any booking to see the delivery route — location by location."
       />
 
-      {/* Summary bar */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8 relative z-10">
         {[
-          { label: 'Total Orders',  value: orders.length,                                                   icon: Package },
-          { label: 'In Transit',    value: orders.filter((o) => o.status === 'shipped').length,             icon: Truck },
-          { label: 'Processing',    value: orders.filter((o) => ['paid','processing'].includes(o.status)).length, icon: Package },
-          { label: 'Delivered',     value: orders.filter((o) => o.status === 'delivered').length,           icon: CheckCircle2 },
-        ].map((stat, i) => (
+          { label: 'Total Orders', value: orders.length, icon: Package },
+          { label: 'In Transit', value: inTransitCount, icon: Truck },
+          { label: 'Processing', value: processingCount, icon: Package },
+          {
+            label: 'Delivered',
+            value: orders.filter((o) => o.status === 'delivered').length,
+            icon: CheckCircle2,
+          },
+        ].map((stat) => (
           <div
             key={stat.label}
             className="bg-[#0A0A0A] rounded-2xl border border-white/[0.06] p-4 flex items-center gap-3 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.5)]"
@@ -198,51 +232,111 @@ export default function BookingsPage() {
             </div>
             <div>
               <p className="text-xl font-black text-white">{stat.value}</p>
-              <p className="text-[10px] font-bold tracking-[0.15em] uppercase text-neutral-500">{stat.label}</p>
+              <p className="text-[10px] font-bold tracking-[0.15em] uppercase text-neutral-500">
+                {stat.label}
+              </p>
             </div>
           </div>
         ))}
       </div>
 
       <Card className="relative z-10">
-        {/* Tabs */}
-        <div className="px-5 pt-4 pb-4 flex gap-1.5 border-b border-white/[0.04] flex-wrap">
-          {TABS.map((t) => (
-            <button
-              key={t.value}
-              onClick={() => setTab(t.value)}
-              className={`px-4 py-1.5 text-xs font-bold rounded-full transition-all ${
-                tab === t.value
-                  ? 'bg-white/10 text-white border border-white/10 shadow-[0_0_12px_rgba(255,255,255,0.04)]'
-                  : 'bg-transparent text-neutral-400 border border-white/[0.04] hover:bg-white/[0.04] hover:text-neutral-200'
-              }`}
-            >
-              {t.label}
-              {t.value === 'active' && activeCount > 0 && (
-                <span className={`ml-1.5 text-[10px] font-black px-1.5 py-0.5 rounded-full ${
-                  tab === 'active' ? 'bg-cyan-500/20 text-cyan-400' : 'bg-white/[0.04] text-neutral-500'
-                }`}>
-                  {activeCount}
-                </span>
-              )}
-            </button>
-          ))}
+        <div className="px-5 pt-4 pb-4 flex flex-col gap-3 border-b border-white/[0.04]">
+          <div className="flex items-center gap-3 max-w-md px-3.5 py-2.5 rounded-xl border border-white/[0.07] bg-[#111113] focus-within:border-white/[0.15] transition-colors">
+            <Search className="w-3.5 h-3.5 shrink-0 text-neutral-600" />
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search by order ID or AWB…"
+              className="w-full bg-transparent text-sm outline-none placeholder:text-neutral-600 text-neutral-200"
+              aria-label="Search bookings by order ID or waybill"
+            />
+            {query && (
+              <button
+                type="button"
+                onClick={() => setQuery('')}
+                className="p-0.5 rounded text-neutral-500 hover:text-white transition-colors"
+                aria-label="Clear search"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+
+          <div className="flex gap-1.5 flex-wrap">
+            {TABS.map((t) => (
+              <button
+                key={t.value}
+                type="button"
+                onClick={() => setTab(t.value)}
+                className={`px-4 py-1.5 text-xs font-bold rounded-full transition-all ${
+                  tab === t.value
+                    ? 'bg-white/10 text-white border border-white/10 shadow-[0_0_12px_rgba(255,255,255,0.04)]'
+                    : 'bg-transparent text-neutral-400 border border-white/[0.04] hover:bg-white/[0.04] hover:text-neutral-200'
+                }`}
+              >
+                {t.label}
+                {t.value === 'active' && activeCount > 0 && (
+                  <span
+                    className={`ml-1.5 text-[10px] font-black px-1.5 py-0.5 rounded-full ${
+                      tab === 'active'
+                        ? 'bg-cyan-500/20 text-cyan-400'
+                        : 'bg-white/[0.04] text-neutral-500'
+                    }`}
+                  >
+                    {activeCount}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
         </div>
 
         {filtered.length === 0 ? (
           <EmptyState
             icon={CalendarX}
-            title="No bookings here"
-            subtitle={tab === 'active' ? 'You have no active orders right now.' : 'No orders match this filter.'}
+            title={query.trim() ? 'No matching bookings' : 'No bookings here'}
+            subtitle={
+              query.trim()
+                ? `No results for "${query.trim()}". Try order number or AWB.`
+                : tab === 'active'
+                  ? 'You have no active orders right now.'
+                  : 'No orders match this filter.'
+            }
           />
         ) : (
           <div>
             {filtered.map((o) => (
-              <BookingRow key={o.id} order={o} />
+              <BookingRow
+                key={o.id}
+                order={o}
+                tracking={trackingMap[o.id]}
+                trackingLoading={
+                  trackingLoading && Boolean(o.delhivery_waybill) && !trackingMap[o.id]
+                }
+                onOpen={() => setSelectedOrder(o)}
+              />
             ))}
           </div>
         )}
       </Card>
+
+      {selectedOrder && (
+        <BookingDetailDrawer
+          order={selectedOrder}
+          tracking={selectedTracking}
+          trackingLoading={
+            trackingLoading &&
+            Boolean(selectedOrder.delhivery_waybill) &&
+            !selectedTracking
+          }
+          onClose={() => setSelectedOrder(null)}
+          onTrackingUpdated={(t) => {
+            if (t) setTrackingOverrides((prev) => ({ ...prev, [selectedOrder.id]: t }));
+          }}
+        />
+      )}
     </motion.div>
   );
 }

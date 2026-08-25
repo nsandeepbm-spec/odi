@@ -1023,6 +1023,10 @@ export interface AdminOrder {
   delhivery_waybill?: string | null;
   delhivery_status?: string | null;
   delhivery_pickup_token?: string | null;
+  delhivery_pickup_date?: string | null;
+  delhivery_pickup_time?: string | null;
+  /** Includes pickup_schedule { date, time } after admin schedules pickup. */
+  delhivery_raw?: Record<string, unknown> | null;
   order_items?: AdminOrderItem[];
   payments?: Array<{
     id: string;
@@ -1081,16 +1085,134 @@ export async function createAdminOrderShipment(id: string) {
   return body.data.order;
 }
 
-export async function createAdminOrderPickup(id: string) {
+export async function createAdminOrderPickup(
+  id: string,
+  options?: { pickupDate?: string; pickupTime?: string; packageCount?: number }
+) {
   const body = await authFetch<ApiSuccess<{ order: AdminOrder }>>(`${API.admin.orders}/${id}/pickup`, {
     method: 'POST',
+    body: JSON.stringify(options ?? {}),
   });
   return body.data.order;
+}
+
+export type AdminPickupRow = {
+  id: string;
+  orderNumber: string;
+  status: string;
+  delhiveryStatus: string | null;
+  createdAt: string;
+  waybill: string;
+  pickupToken: string | null;
+  pickupDate: string | null;
+  pickupTime: string | null;
+  pickupTimeLabel: string | null;
+  customerName: string;
+  city: string | null;
+  state: string | null;
+};
+
+/** GET /admin/pickups — needs + scheduled rows with pickup date/time */
+export async function listAdminPickups() {
+  const body = await authFetch<
+    ApiSuccess<{ needs: AdminPickupRow[]; scheduled: AdminPickupRow[] }>
+  >('/admin/pickups');
+  return body.data;
 }
 
 export async function getAdminOrderDetail(id: string): Promise<AdminOrderDetail> {
   const body = await authFetch<ApiSuccess<AdminOrderDetail>>(`${API.admin.orders}/${id}`);
   return body.data;
+}
+
+export type ShipmentTrackingScan = {
+  scan: string;
+  scanType: string | null;
+  statusCode: string | null;
+  instructions: string | null;
+  scannedLocation: string | null;
+  scanDateTime: string | null;
+};
+
+export type ShipmentTracking = {
+  waybill: string;
+  status: string | null;
+  statusType: string | null;
+  statusCode: string | null;
+  statusLocation: string | null;
+  statusDateTime: string | null;
+  instructions: string | null;
+  origin: string | null;
+  destination: string | null;
+  expectedDeliveryDate: string | null;
+  pickedUpDate: string | null;
+  deliveryDate: string | null;
+  orderType: string | null;
+  scans: ShipmentTrackingScan[];
+};
+
+/** GET /admin/orders/:id/tracking */
+export async function getAdminOrderTracking(id: string): Promise<ShipmentTracking> {
+  const body = await authFetch<ApiSuccess<{ tracking: ShipmentTracking }>>(
+    `${API.admin.orders}/${id}/tracking`
+  );
+  return body.data.tracking;
+}
+
+export type AdminPackingSlip = {
+  waybill: string;
+  orderNumber: string;
+  sortCode: string | null;
+  payment: string | null;
+  mot: string | null;
+  status: string | null;
+  consignee: {
+    name: string;
+    address: string;
+    city: string;
+    pin: string;
+    phone: string;
+    state: string;
+  };
+  seller: {
+    name: string;
+    address: string;
+    city: string;
+    state: string;
+    pin: string;
+    phone: string;
+    email: string;
+  };
+  productsDesc: string;
+  quantity: number | string | null;
+  weight: number | string | null;
+  totalPaise: number;
+  codAmountPaise: number | null;
+  items: Array<{
+    snapshot_name: string;
+    quantity: number;
+    unit_price_paise: number;
+    line_total_paise?: number;
+  }>;
+  delhiveryPackage: { raw?: Record<string, unknown> } | null;
+  delhiveryRaw: unknown;
+  delhiveryEnvironment: string;
+};
+
+/** GET /admin/orders/:id/packing-slip — Delhivery JSON merged with order snapshot */
+export async function getAdminPackingSlip(orderId: string): Promise<AdminPackingSlip> {
+  const body = await authFetch<ApiSuccess<AdminPackingSlip>>(
+    `${API.admin.orders}/${orderId}/packing-slip`
+  );
+  return body.data;
+}
+
+/** GET /orders/:id/tracking — signed-in owner */
+export async function getMyOrderTracking(id: string): Promise<ShipmentTracking> {
+  const body = await authFetch<ApiSuccess<{ tracking: ShipmentTracking }>>(
+    `${API.orders.detail(id)}/tracking`
+  );
+  return body.data.tracking;
 }
 
 export async function adminUpdateUser(
@@ -1291,6 +1413,9 @@ export interface UserOrder {
   paid_at: string | null;
   created_at: string;
   updated_at?: string;
+  delhivery_waybill?: string | null;
+  delhivery_status?: string | null;
+  delhivery_pickup_token?: string | null;
   /** Included in list and detail responses. */
   order_items?: UserOrderItem[];
 }

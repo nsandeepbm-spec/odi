@@ -9,23 +9,29 @@ import {
   Sparkles,
   AlertCircle,
   ShoppingBag,
-  CheckCircle2,
   MapPin,
   ChevronRight,
+  Loader2,
 } from 'lucide-react';
 import {
   PageHeader,
   StatCard,
   Card,
-  OrderBadge,
   EmptyState,
   inrFromPaise,
   DashboardSkeleton,
 } from '../../../components/dashboard/shared';
+import { OrderProgressStepper } from '../../../components/dashboard/OrderProgressStepper';
+import { ShipmentStatusChip } from '../../../components/dashboard/ShipmentStatusChip';
 import { displayName, useAuth } from '../../../lib/auth';
-import { listMyOrders, type UserOrder, type UserOrderStatus } from '../../../lib/api';
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+import {
+  getMyOrderTracking,
+  listMyOrders,
+  type UserOrder,
+  type UserOrderStatus,
+  type ShipmentTracking,
+} from '../../../lib/api';
+import { deliveryLocationLine } from '../../../lib/shipmentStatus';
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-IN', {
@@ -35,32 +41,24 @@ function formatDate(iso: string) {
   });
 }
 
-const ORDER_STEPS: { key: UserOrderStatus; label: string }[] = [
-  { key: 'paid', label: 'Confirmed' },
-  { key: 'processing', label: 'Processing' },
-  { key: 'shipped', label: 'Shipped' },
-  { key: 'delivered', label: 'Delivered' },
-];
-
-function stepIndex(status: UserOrderStatus): number {
-  return ORDER_STEPS.findIndex((s) => s.key === status);
-}
-
 const ACTIVE_STATUSES: UserOrderStatus[] = ['paid', 'processing', 'shipped'];
-
-// ─── Component ───────────────────────────────────────────────────────────────
 
 export default function OverviewPage() {
   const { user } = useAuth();
   const [orders, setOrders] = useState<UserOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeTracking, setActiveTracking] = useState<ShipmentTracking | null>(null);
+  const [trackingLoading, setTrackingLoading] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     listMyOrders(1, 20)
       .then((res) => {
-        if (!cancelled) { setOrders(res.orders); setLoading(false); }
+        if (!cancelled) {
+          setOrders(res.orders);
+          setLoading(false);
+        }
       })
       .catch((err) => {
         if (!cancelled) {
@@ -68,15 +66,42 @@ export default function OverviewPage() {
           setLoading(false);
         }
       });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  const firstName = user ? displayName(user).split(' ')[0] : 'there';
   const activeOrder = orders.find((o) => ACTIVE_STATUSES.includes(o.status));
+
+  useEffect(() => {
+    if (!activeOrder?.delhivery_waybill) {
+      setActiveTracking(null);
+      return;
+    }
+    let cancelled = false;
+    setTrackingLoading(true);
+    getMyOrderTracking(activeOrder.id)
+      .then((t) => {
+        if (!cancelled) setActiveTracking(t);
+      })
+      .catch(() => {
+        if (!cancelled) setActiveTracking(null);
+      })
+      .finally(() => {
+        if (!cancelled) setTrackingLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeOrder?.id, activeOrder?.delhivery_waybill]);
+
   const totalSpent = orders
     .filter((o) => !['pending', 'cancelled', 'refunded'].includes(o.status))
     .reduce((s, o) => s + o.total_paise, 0);
   const recentOrders = orders.slice(0, 5);
+  const inTransitCount = orders.filter(
+    (o) => o.status === 'shipped' || activeTracking?.status?.toLowerCase().includes('transit')
+  ).length;
 
   if (loading) return <DashboardSkeleton cols={5} rows={6} />;
 
@@ -92,6 +117,7 @@ export default function OverviewPage() {
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  const locationLine = activeOrder ? deliveryLocationLine(activeOrder, activeTracking) : null;
 
   return (
     <motion.div
@@ -102,7 +128,7 @@ export default function OverviewPage() {
       <PageHeader
         eyebrow={greeting}
         title="Welcome back,"
-        accent={firstName}
+        accent={user ? displayName(user).split(' ')[0] : 'there'}
         subtitle="Here's a live summary of your orders and activity."
         action={
           <Link
@@ -114,70 +140,60 @@ export default function OverviewPage() {
         }
       />
 
-      {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8 relative z-10">
-        <StatCard label="Total Orders"  value={String(orders.length)}         icon={Package}    delay={0} />
-        <StatCard label="In Transit"    value={String(orders.filter((o) => o.status === 'shipped').length)} icon={Truck} delay={0.06} />
-        <StatCard label="Total Spent"   value={inrFromPaise(totalSpent)}       icon={CreditCard} delay={0.12} />
+        <StatCard label="Total Orders" value={String(orders.length)} icon={Package} delay={0} />
+        <StatCard label="In Transit" value={String(inTransitCount)} icon={Truck} delay={0.06} />
+        <StatCard label="Total Spent" value={inrFromPaise(totalSpent)} icon={CreditCard} delay={0.12} />
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-8 relative z-10">
-        {/* Active shipment tracker */}
         <Card title="Active Shipment" className="xl:col-span-2">
           {activeOrder ? (
             <div className="p-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-8">
                 <div>
-                  <p className="font-black text-base tracking-tight text-white">
-                    Order #{activeOrder.order_number ?? activeOrder.id.slice(0, 8).toUpperCase()}
-                  </p>
+                  <Link
+                    to={`/dashboard/orders/${activeOrder.id}`}
+                    className="font-black text-base tracking-tight text-white hover:text-cyan-300 transition-colors"
+                  >
+                    Order #{activeOrder.order_number}
+                  </Link>
                   <p className="text-xs text-neutral-400 font-semibold mt-0.5">
                     Placed {formatDate(activeOrder.created_at)} · {inrFromPaise(activeOrder.total_paise)}
                   </p>
                 </div>
-                <OrderBadge status={activeOrder.status} />
+                <ShipmentStatusChip order={activeOrder} tracking={activeTracking} />
               </div>
 
-              {/* Progress stepper */}
-              <div className="flex items-center">
-                {ORDER_STEPS.map((step, i) => {
-                  const current = stepIndex(activeOrder.status);
-                  const done = i <= current;
-                  const isActive = i === current;
-                  return (
-                    <React.Fragment key={step.key}>
-                      {i > 0 && (
-                        <div className={`flex-1 h-0.5 ${done ? 'bg-gradient-to-r from-cyan-500 to-indigo-500' : 'bg-white/[0.06]'}`} />
-                      )}
-                      <div className="flex flex-col items-center gap-2 shrink-0">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all ${
-                          done
-                            ? 'bg-gradient-to-br from-cyan-400 to-indigo-500 border-transparent shadow-[0_0_12px_rgba(56,189,248,0.5)]'
-                            : 'bg-[#0A0A0A] border-white/10'
-                        } ${isActive ? 'ring-4 ring-cyan-500/20' : ''}`}>
-                          {done ? (
-                            <CheckCircle2 className="w-4 h-4 text-white" />
-                          ) : (
-                            <span className="w-2 h-2 rounded-full bg-white/10" />
-                          )}
-                        </div>
-                        <span className={`text-[9px] font-bold tracking-wider uppercase whitespace-nowrap ${
-                          done ? 'text-white' : 'text-neutral-600'
-                        }`}>
-                          {step.label}
-                        </span>
-                      </div>
-                    </React.Fragment>
-                  );
-                })}
-              </div>
+              <OrderProgressStepper order={activeOrder} tracking={activeTracking} />
 
-              {activeOrder.shipping_address?.city && (
+              {trackingLoading ? (
+                <p className="mt-6 text-xs text-neutral-500 flex items-center gap-2">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" /> Updating live location…
+                </p>
+              ) : locationLine ? (
+                <div className="mt-6 flex items-center gap-2 text-xs text-neutral-400 font-medium">
+                  <MapPin className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                  <span>
+                    {activeTracking?.statusLocation ? 'Latest update' : 'Delivering to'} · {locationLine}
+                  </span>
+                </div>
+              ) : activeOrder.shipping_address?.city ? (
                 <div className="mt-6 flex items-center gap-2 text-xs text-neutral-500 font-medium">
                   <MapPin className="w-3.5 h-3.5 text-neutral-600" />
                   Delivering to {activeOrder.shipping_address.city}
+                  {activeOrder.shipping_address.postal_code
+                    ? ` – ${activeOrder.shipping_address.postal_code}`
+                    : ''}
                 </div>
-              )}
+              ) : null}
+
+              <Link
+                to={`/dashboard/orders/${activeOrder.id}`}
+                className="inline-flex mt-5 text-xs font-bold text-cyan-400 hover:underline"
+              >
+                View order & tracking →
+              </Link>
             </div>
           ) : (
             <EmptyState
@@ -188,7 +204,6 @@ export default function OverviewPage() {
           )}
         </Card>
 
-        {/* Promo card */}
         <motion.div
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
@@ -214,12 +229,14 @@ export default function OverviewPage() {
         </motion.div>
       </div>
 
-      {/* Recent orders */}
       <Card
         className="relative z-10"
         title="Recent Orders"
         action={
-          <Link to="/dashboard/orders" className="text-xs font-bold text-cyan-400 hover:text-cyan-300 transition-colors flex items-center gap-0.5">
+          <Link
+            to="/dashboard/orders"
+            className="text-xs font-bold text-cyan-400 hover:text-cyan-300 transition-colors flex items-center gap-0.5"
+          >
             View All <ChevronRight className="w-3.5 h-3.5" />
           </Link>
         }
@@ -244,12 +261,21 @@ export default function OverviewPage() {
               <tbody className="divide-y divide-white/[0.04]">
                 {recentOrders.map((o) => (
                   <tr key={o.id} className="hover:bg-white/[0.02] transition-colors group">
-                    <td className="px-6 py-4 font-black text-cyan-400 group-hover:text-cyan-300 transition-colors">
-                      #{o.order_number ?? o.id.slice(0, 8).toUpperCase()}
+                    <td className="px-6 py-4">
+                      <Link
+                        to={`/dashboard/orders/${o.id}`}
+                        className="font-black text-cyan-400 group-hover:text-cyan-300 transition-colors"
+                      >
+                        #{o.order_number}
+                      </Link>
                     </td>
                     <td className="px-6 py-4 text-neutral-400 font-medium">{formatDate(o.created_at)}</td>
-                    <td className="px-6 py-4"><OrderBadge status={o.status} /></td>
-                    <td className="px-6 py-4 text-right font-black text-white">{inrFromPaise(o.total_paise)}</td>
+                    <td className="px-6 py-4">
+                      <ShipmentStatusChip order={o} />
+                    </td>
+                    <td className="px-6 py-4 text-right font-black text-white">
+                      {inrFromPaise(o.total_paise)}
+                    </td>
                   </tr>
                 ))}
               </tbody>

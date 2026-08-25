@@ -1,12 +1,16 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import { Search, Download, CalendarX, Eye } from 'lucide-react';
-import { PageHeader, Card, PaymentBadge, EmptyState, inrFromPaise, TableSkeleton } from '../../../components/dashboard/shared';
 import {
-  listAdminOrders,
-  updateAdminOrderStatus,
-  type AdminOrder,
-} from '../../../lib/api';
+  PageHeader,
+  Card,
+  PaymentBadge,
+  EmptyState,
+  inrFromPaise,
+  TableSkeleton,
+  OrderBadge,
+} from '../../../components/dashboard/shared';
+import { listAdminOrders, type AdminOrder } from '../../../lib/api';
 import { downloadCsv, inDateRange } from '../../../lib/csv';
 
 const FILTERS: { label: string; value: string }[] = [
@@ -44,7 +48,6 @@ export default function OrdersPage() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -67,20 +70,10 @@ export default function OrdersPage() {
         if (!cancelled) setLoading(false);
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
-
-  const handleStatusChange = async (orderId: string, newStatus: string) => {
-    setUpdatingId(orderId);
-    try {
-      const updated = await updateAdminOrderStatus(orderId, newStatus);
-      setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status: updated.status } : o)));
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to update status');
-    } finally {
-      setUpdatingId(null);
-    }
-  };
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -113,10 +106,13 @@ export default function OrdersPage() {
       'Status',
       'Payment Status',
       'Amount (INR)',
+      'Waybill',
       'Order ID',
     ];
     const rows = filtered.map((o) => {
-      const customer = [o.shipping_address?.first_name, o.shipping_address?.last_name].filter(Boolean).join(' ') || 'Customer';
+      const customer =
+        [o.shipping_address?.first_name, o.shipping_address?.last_name].filter(Boolean).join(' ') ||
+        'Customer';
       const email = o.shipping_address?.email || '';
       const item = o.order_items?.[0];
       const payment = o.payments?.[0];
@@ -130,6 +126,7 @@ export default function OrdersPage() {
         o.status,
         payment?.status || '',
         (o.total_paise / 100).toFixed(2),
+        o.delhivery_waybill || '',
         o.id,
       ];
     });
@@ -143,7 +140,7 @@ export default function OrdersPage() {
       <PageHeader
         title="All"
         accent="Orders."
-        subtitle="Track, filter and manage every order on the platform."
+        subtitle="Track every order. Status updates automatically from payment and Delhivery."
         action={
           <button
             type="button"
@@ -157,7 +154,6 @@ export default function OrdersPage() {
       />
 
       <Card className="relative z-10">
-        {/* Toolbar */}
         <div className="px-6 py-5 border-b border-white/[0.04] flex flex-col gap-4 bg-[#0d0d0d]">
           <div className="flex flex-col lg:flex-row lg:items-center gap-4">
             <div className="flex items-center gap-3 flex-1 max-w-md px-4 py-2.5 rounded-xl bg-[#050505] border border-white/[0.06] shadow-inner focus-within:border-white/[0.2] transition-colors">
@@ -218,7 +214,6 @@ export default function OrdersPage() {
           </div>
         </div>
 
-        {/* Table */}
         {loading ? (
           <TableSkeleton cols={8} rows={7} />
         ) : error ? (
@@ -242,7 +237,10 @@ export default function OrdersPage() {
               </thead>
               <tbody className="divide-y divide-white/[0.04]">
                 {filtered.map((o) => {
-                  const customer = [o.shipping_address?.first_name, o.shipping_address?.last_name].filter(Boolean).join(' ') || 'Customer';
+                  const customer =
+                    [o.shipping_address?.first_name, o.shipping_address?.last_name]
+                      .filter(Boolean)
+                      .join(' ') || 'Customer';
                   const email = o.shipping_address?.email || '—';
                   const item = o.order_items?.[0];
                   const payment = o.payments?.[0];
@@ -261,28 +259,22 @@ export default function OrdersPage() {
                         <div className="font-bold text-white">{customer}</div>
                         <div className="text-xs text-neutral-500 mt-0.5">{email}</div>
                       </td>
-                      <td className="px-6 py-4 text-neutral-300 truncate max-w-[150px] font-medium" title={item?.snapshot_name}>
+                      <td
+                        className="px-6 py-4 text-neutral-300 truncate max-w-[150px] font-medium"
+                        title={item?.snapshot_name}
+                      >
                         {item?.snapshot_name || '—'}
                       </td>
                       <td className="px-6 py-4 font-black text-white">{item?.quantity || '—'}</td>
                       <td className="px-6 py-4">
-                        <div className="relative">
-                          <select
-                            value={o.status}
-                            onChange={(e) => void handleStatusChange(o.id, e.target.value)}
-                            disabled={updatingId === o.id}
-                            className="appearance-none bg-[#050505] border border-white/[0.1] text-white text-xs rounded-xl focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500 block w-full px-3 py-2 outline-none font-bold uppercase tracking-widest disabled:opacity-50 hover:border-white/[0.2] transition-colors cursor-pointer"
-                          >
-                            {FILTERS.filter((f) => f.value !== 'all').map((f) => (
-                              <option key={f.value} value={f.value} className="bg-[#0A0A0A] text-white font-bold">{f.label}</option>
-                            ))}
-                          </select>
-                        </div>
+                        <OrderBadge status={o.status} />
                       </td>
                       <td className="px-6 py-4">
                         <PaymentBadge status={badgeStatus(payment?.status || 'pending')} />
                       </td>
-                      <td className="px-6 py-4 text-right font-black text-white drop-shadow-sm">{inrFromPaise(o.total_paise)}</td>
+                      <td className="px-6 py-4 text-right font-black text-white drop-shadow-sm">
+                        {inrFromPaise(o.total_paise)}
+                      </td>
                       <td className="px-4 py-4 text-center">
                         <Link
                           to={`/dashboard/admin/orders/${o.id}`}
@@ -301,7 +293,6 @@ export default function OrdersPage() {
           </div>
         )}
 
-        {/* Footer */}
         <div className="px-6 py-5 border-t border-white/[0.04] bg-[#0d0d0d] flex items-center justify-between text-xs text-neutral-500 font-bold tracking-wide">
           <span>
             {loading

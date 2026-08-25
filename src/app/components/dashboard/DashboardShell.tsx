@@ -73,24 +73,24 @@ export default function DashboardShell({ portal, groups, switchTo }: DashboardSh
     const collapsed = !isMobile && desktopCollapsed;
     return (
       <>
-        <div className={`px-4 pt-7 pb-6 flex items-center ${collapsed ? 'justify-center' : 'justify-between'} gap-3 h-[85px]`} style={{ borderBottom: `1px solid ${T.border}` }}>
+        <div className={`px-4 pt-5 pb-4 flex items-center ${collapsed ? 'justify-center' : 'justify-between'} gap-3 h-[72px] shrink-0`} style={{ borderBottom: `1px solid ${T.border}` }}>
           {!collapsed && (
             <Link to="/" className="block w-fit" onClick={() => setSidebarOpen(false)}>
               <span className="text-2xl font-black tracking-tighter bg-gradient-to-br from-white to-neutral-400 bg-clip-text text-transparent">ODI.</span>
             </Link>
           )}
           {!isMobile && (
-            <button onClick={() => setDesktopCollapsed(!desktopCollapsed)} className="p-1.5 rounded-lg hover:bg-white/5 text-neutral-400 transition-colors shrink-0">
+            <button onClick={() => setDesktopCollapsed(!desktopCollapsed)} className="p-1.5 rounded-lg hover:bg-white/5 text-neutral-400 transition-colors shrink-0" aria-label="Collapse sidebar">
               <Menu className="w-5 h-5" />
             </button>
           )}
         </div>
 
-        <nav className={`flex-1 overflow-y-auto py-6 space-y-8 custom-scrollbar ${collapsed ? 'px-2' : 'px-4'}`}>
+        <nav className={`flex-1 min-h-0 overflow-y-auto py-4 space-y-5 custom-scrollbar ${collapsed ? 'px-2' : 'px-3'}`}>
           {groups.map((group) => (
             <div key={group.label}>
               {!collapsed && (
-                <div className="px-3 mb-3 text-[10px] font-bold tracking-[0.2em] uppercase" style={{ color: T.sub }}>
+                <div className="px-3 mb-2 text-[10px] font-bold tracking-[0.2em] uppercase" style={{ color: T.sub }}>
                   {group.label}
                 </div>
               )}
@@ -104,7 +104,7 @@ export default function DashboardShell({ portal, groups, switchTo }: DashboardSh
                       to={item.path}
                       title={collapsed ? item.name : undefined}
                       onClick={() => setSidebarOpen(false)}
-                      className={`group relative flex items-center ${collapsed ? 'justify-center p-3' : 'gap-3 px-3 py-2.5'} rounded-xl text-sm font-semibold transition-all duration-300 ${
+                      className={`group relative flex items-center ${collapsed ? 'justify-center p-2.5' : 'gap-3 px-3 py-2'} rounded-xl text-sm font-semibold transition-all duration-300 ${
                         active
                           ? 'bg-white/10 text-white shadow-[0_0_20px_rgba(255,255,255,0.03)] border border-white/5'
                           : 'text-neutral-400 hover:bg-white/5 hover:text-neutral-200 border border-transparent'
@@ -126,8 +126,8 @@ export default function DashboardShell({ portal, groups, switchTo }: DashboardSh
           ))}
         </nav>
 
-        <div className={`p-4 space-y-2 ${collapsed ? 'flex flex-col items-center' : ''}`} style={{ borderTop: `1px solid ${T.border}` }}>
-          <div className={`flex items-center ${collapsed ? 'justify-center p-2' : 'gap-3 px-3 py-3'} rounded-xl border border-white/5 shadow-inner w-full`} style={{ background: 'linear-gradient(145deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%)' }}>
+        <div className={`p-3 space-y-2 shrink-0 ${collapsed ? 'flex flex-col items-center' : ''}`} style={{ borderTop: `1px solid ${T.border}` }}>
+          <div className={`flex items-center ${collapsed ? 'justify-center p-2' : 'gap-3 px-3 py-2.5'} rounded-xl border border-white/5 shadow-inner w-full`} style={{ background: 'linear-gradient(145deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%)' }}>
             <Avatar />
             {!collapsed && (
               <div className="min-w-0 flex-1">
@@ -143,7 +143,7 @@ export default function DashboardShell({ portal, groups, switchTo }: DashboardSh
               to={switchTo.path}
               title={collapsed ? switchTo.label : undefined}
               onClick={() => setSidebarOpen(false)}
-              className={`flex items-center ${collapsed ? 'justify-center p-3' : 'gap-3 px-3 py-2.5'} w-full text-sm font-semibold text-neutral-400 hover:bg-white/5 hover:text-neutral-200 rounded-xl transition-all border border-transparent hover:border-white/5`}
+              className={`flex items-center ${collapsed ? 'justify-center p-2.5' : 'gap-3 px-3 py-2'} w-full text-sm font-semibold text-neutral-400 hover:bg-white/5 hover:text-neutral-200 rounded-xl transition-all border border-transparent hover:border-white/5`}
             >
               <switchTo.icon className="w-[18px] h-[18px] text-neutral-500 shrink-0" />
               {!collapsed && <span className="truncate">{switchTo.label}</span>}
@@ -152,7 +152,7 @@ export default function DashboardShell({ portal, groups, switchTo }: DashboardSh
           <button
             onClick={handleSignOut}
             title={collapsed ? "Sign Out" : undefined}
-            className={`flex items-center ${collapsed ? 'justify-center p-3' : 'gap-3 px-3 py-2.5'} w-full text-sm font-semibold text-red-400 hover:bg-red-500/10 hover:text-red-300 rounded-xl transition-all border border-transparent hover:border-red-500/10`}
+            className={`flex items-center ${collapsed ? 'justify-center p-2.5' : 'gap-3 px-3 py-2'} w-full text-sm font-semibold text-red-400 hover:bg-red-500/10 hover:text-red-300 rounded-xl transition-all border border-transparent hover:border-red-500/10`}
           >
             <LogOut className="w-[18px] h-[18px] shrink-0" />
             {!collapsed && <span>Sign Out</span>}
@@ -166,7 +166,7 @@ export default function DashboardShell({ portal, groups, switchTo }: DashboardSh
     <div className="min-h-screen flex selection:bg-cyan-500/30 selection:text-cyan-100 [&_input:-webkit-autofill]:![box-shadow:0_0_0_100px_#111113_inset] [&_input:-webkit-autofill]:![-webkit-text-fill-color:#d4d4d8]" style={{ background: T.bg, color: T.text, fontFamily: 'Inter, system-ui, sans-serif' }}>
       {/* Desktop Sidebar */}
       <aside
-        className={`hidden md:flex sticky top-0 h-screen flex-col shrink-0 transition-all duration-300 ease-in-out ${desktopCollapsed ? 'w-[88px]' : 'w-64'}`}
+        className={`hidden md:flex sticky top-0 h-screen flex-col shrink-0 transition-all duration-300 ease-in-out ${desktopCollapsed ? 'w-[80px]' : 'w-60'}`}
         style={{ background: T.bgAlt, borderRight: `1px solid ${T.border}` }}
       >
         {renderSidebarContent(false)}

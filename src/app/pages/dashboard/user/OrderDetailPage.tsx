@@ -17,8 +17,18 @@ import {
   inrFromPaise,
   OrderBadge,
 } from '../../../components/dashboard/shared';
-import { getMyOrder, type UserOrderItem, type UserOrderPayment } from '../../../lib/api';
+import {
+  getMyOrder,
+  getMyOrderTracking,
+  type UserOrderItem,
+  type UserOrderPayment,
+  type ShipmentTracking,
+} from '../../../lib/api';
 import { downloadOrderInvoice } from '../../../lib/invoice';
+import {
+  ShipmentTrackingSummary,
+  ShipmentTrackingDrawer,
+} from '../../../components/dashboard/ShipmentTrackingDrawer';
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-IN', {
@@ -88,6 +98,22 @@ export default function UserOrderDetailPage() {
   const [payments, setPayments] = useState<UserOrderPayment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [tracking, setTracking] = useState<ShipmentTracking | null>(null);
+  const [trackingLoading, setTrackingLoading] = useState(false);
+  const [trackingError, setTrackingError] = useState<string | null>(null);
+  const [trackingDrawerOpen, setTrackingDrawerOpen] = useState(false);
+
+  const loadTracking = (id: string) => {
+    setTrackingLoading(true);
+    setTrackingError(null);
+    getMyOrderTracking(id)
+      .then((t) => setTracking(t))
+      .catch((e) => {
+        setTracking(null);
+        setTrackingError(e instanceof Error ? e.message : 'Could not load tracking');
+      })
+      .finally(() => setTrackingLoading(false));
+  };
 
   useEffect(() => {
     if (!orderId) return;
@@ -101,6 +127,7 @@ export default function UserOrderDetailPage() {
           setItems(d.items);
           setPayments(d.payments);
           setLoading(false);
+          if (d.order.delhivery_waybill) loadTracking(d.order.id);
         }
       })
       .catch((e) => {
@@ -346,8 +373,30 @@ export default function UserOrderDetailPage() {
               <FileDown className="w-4 h-4" /> Download invoice
             </button>
           </div>
+
+          {(order.delhivery_waybill || order.status === 'shipped' || order.status === 'processing') && (
+            <ShipmentTrackingSummary
+              tracking={tracking}
+              loading={trackingLoading}
+              error={trackingError}
+              onRefresh={() => loadTracking(order.id)}
+              onViewDetails={() => setTrackingDrawerOpen(true)}
+              userFacing
+            />
+          )}
         </div>
       </div>
+
+      <ShipmentTrackingDrawer
+        open={trackingDrawerOpen}
+        onClose={() => setTrackingDrawerOpen(false)}
+        tracking={tracking}
+        loading={trackingLoading}
+        error={trackingError}
+        onRefresh={() => loadTracking(order.id)}
+        orderNumber={order.order_number}
+        userFacing
+      />
     </div>
   );
 }
