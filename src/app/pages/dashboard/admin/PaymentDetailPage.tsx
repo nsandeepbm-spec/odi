@@ -6,7 +6,6 @@ import {
   Package,
   User,
   MapPin,
-  Loader2,
   AlertCircle,
   ExternalLink,
 } from 'lucide-react';
@@ -18,6 +17,7 @@ import {
   inrFromPaise,
   OrderBadge,
 } from '../../../components/dashboard/shared';
+import { ODILoader } from '../../../components/ODILoader';
 import { getAdminPaymentDetail, type AdminPaymentDetail } from '../../../lib/api';
 import { getInitials } from '../../../lib/auth';
 
@@ -100,12 +100,7 @@ export default function PaymentDetailPage() {
   }, [paymentId]);
 
   if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center py-24 gap-3">
-        <Loader2 className="w-8 h-8 animate-spin text-cyan-400" />
-        <p className="text-sm text-neutral-500 font-medium">Loading payment…</p>
-      </div>
-    );
+    return <ODILoader size="md" label="Loading payment…" />;
   }
 
   if (error || !detail) {

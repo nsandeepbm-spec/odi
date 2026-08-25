@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { type LucideIcon } from 'lucide-react';
 import type { BookingStatus, PaymentStatus } from '../../data/mock';
+import { ODILoader } from '../ODILoader';
 
 // ─── PAGE HEADER ──────────────────────────────────────────────────────────────
 export function PageHeader({
@@ -166,7 +167,7 @@ export function Card({
     <div className={`bg-[#0A0A0A] rounded-2xl border border-white/[0.06] shadow-xl shadow-black/40 overflow-hidden relative ${className}`}>
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/[0.15] to-transparent opacity-50" />
       {(title || action) && (
-        <div className="px-6 py-5 border-b border-white/[0.04] flex items-center justify-between gap-4 bg-[#0d0d0d]">
+        <div className="px-8 py-5 border-b border-white/[0.04] flex items-center justify-between gap-4 bg-[#0d0d0d]">
           {title && <h2 className="text-sm font-bold tracking-wide text-white">{title}</h2>}
           {action}
         </div>
@@ -194,7 +195,7 @@ export function ListPager({
 }) {
   if (totalPages <= 1) return null;
   return (
-    <div className="px-5 py-3 border-t border-white/[0.04] flex items-center justify-between gap-3">
+    <div className="px-8 py-4 border-t border-white/[0.04] flex items-center justify-between gap-3">
       <p className="text-[10px] text-neutral-500">
         Page {page} of {totalPages}
         {total > 0 ? ` · ${total} total` : ''}
@@ -241,34 +242,14 @@ export function EmptyState({ icon: Icon, title, subtitle }: { icon: LucideIcon; 
  * @param rows  number of skeleton rows (default 6)
  */
 export function TableSkeleton({ cols = 5, rows = 6 }: { cols?: number; rows?: number }) {
-  const widths = ['w-24', 'w-32', 'w-20', 'w-16', 'w-28', 'w-12', 'w-36', 'w-10'];
-  return (
-    <div className="overflow-hidden">
-      {/* fake thead */}
-      <div className="border-b border-white/[0.04] px-6 py-3 flex gap-6">
-        {Array.from({ length: cols }).map((_, c) => (
-          <div key={c} className={`h-2.5 rounded-full bg-white/[0.04] ${widths[c % widths.length]} animate-pulse`} />
-        ))}
-      </div>
-      {/* fake rows */}
-      {Array.from({ length: rows }).map((_, r) => (
-        <div key={r} className="border-b border-white/[0.04] px-6 py-4 flex items-center gap-6">
-          {Array.from({ length: cols }).map((_, c) => (
-            <div
-              key={c}
-              className={`h-4 rounded-xl bg-white/[0.03] ${c === 0 ? 'w-36' : widths[(c + 2) % widths.length]} animate-pulse`}
-              style={{ animationDelay: `${(r * cols + c) * 40}ms` }}
-            />
-          ))}
-        </div>
-      ))}
-    </div>
-  );
+  void cols;
+  void rows;
+  return <ODILoader size="sm" label="Loading…" className="py-16" />;
 }
 
 // ─── DASHBOARD PAGE SKELETON ─────────────────────────────────────────────────
 /**
- * Full-page skeleton: fakes a PageHeader + Card with table rows.
+ * Full-page loading: branded colour ODI logo.
  * Drop-in replacement for the early-return loading spinner.
  */
 export function DashboardSkeleton({
@@ -278,29 +259,9 @@ export function DashboardSkeleton({
   cols?: number;
   rows?: number;
 }) {
-  return (
-    <div className="animate-pulse">
-      {/* Fake page header */}
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-10">
-        <div className="space-y-3">
-          <div className="h-2.5 w-24 rounded-full bg-white/[0.04]" />
-          <div className="h-8 w-56 rounded-2xl bg-white/[0.06]" />
-          <div className="h-3 w-72 rounded-full bg-white/[0.03]" />
-        </div>
-        <div className="h-10 w-32 rounded-xl bg-white/[0.04]" />
-      </div>
-      {/* Fake card */}
-      <div className="bg-[#0A0A0A] rounded-2xl border border-white/[0.06] shadow-xl shadow-black/40 overflow-hidden">
-        {/* Fake toolbar */}
-        <div className="px-6 py-5 border-b border-white/[0.04] bg-[#0d0d0d] flex gap-4">
-          <div className="h-9 w-64 rounded-xl bg-white/[0.04]" />
-          <div className="h-9 w-20 rounded-xl bg-white/[0.04]" />
-          <div className="h-9 w-20 rounded-xl bg-white/[0.03]" />
-        </div>
-        <TableSkeleton cols={cols} rows={rows} />
-      </div>
-    </div>
-  );
+  void cols;
+  void rows;
+  return <ODILoader size="md" label="Loading…" className="py-28" />;
 }
 
 // ─── INR FORMAT ───────────────────────────────────────────────────────────────

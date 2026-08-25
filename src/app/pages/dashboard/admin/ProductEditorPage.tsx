@@ -11,6 +11,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { PageHeader, inrFromPaise } from '../../../components/dashboard/shared';
+import { ODILoader } from '../../../components/ODILoader';
 import {
   createAdminProduct,
   updateAdminProduct,
@@ -440,12 +441,7 @@ export default function ProductEditorPage() {
   ];
 
   if (loadingProduct) {
-    return (
-      <div className="flex flex-col items-center justify-center py-24 gap-3">
-        <Loader2 className="w-7 h-7 animate-spin text-neutral-400" />
-        <p className="text-xs font-bold tracking-[0.2em] uppercase text-neutral-400">Loading product…</p>
-      </div>
-    );
+    return <ODILoader size="md" label="Loading product…" />;
   }
 
   return (

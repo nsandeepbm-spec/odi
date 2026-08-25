@@ -48,6 +48,10 @@ export const API = {
     payments: '/admin/payments',
     coupons: '/admin/coupons',
     supportTickets: '/admin/support-tickets',
+    contactInquiries: '/admin/contact-inquiries',
+    careerApplications: '/admin/career-applications',
+    cancels: '/admin/cancels',
+    refunds: '/admin/refunds',
   },
   orders: {
     list: '/orders',
@@ -55,6 +59,8 @@ export const API = {
   },
   public: {
     products: '/products',
+    contact: '/contact',
+    careers: '/careers',
   },
   shipping: {
     pincode: (pincode: string) => `/shipping/pincode/${pincode}`,
@@ -99,9 +105,24 @@ interface ApiFailure {
 async function parseResponse<T>(res: Response): Promise<T> {
   const body = (await res.json().catch(() => null)) as ApiSuccess<T> | ApiFailure | null;
   if (!res.ok) {
-    throw new Error(body && 'error' in body ? body.error.message : `Request failed (${res.status})`);
+    throw new Error(formatApiFailure(body, res.status));
   }
   return body as T;
+}
+
+function formatApiFailure(body: ApiSuccess<unknown> | ApiFailure | null, status: number): string {
+  if (!body || !('error' in body)) return `Request failed (${status})`;
+  const { message, details } = body.error;
+  if (details && typeof details === 'object' && details !== null && !Array.isArray(details)) {
+    const fields = Object.entries(details as Record<string, unknown>)
+      .map(([key, value]) => {
+        const text = Array.isArray(value) ? value.filter(Boolean).join(', ') : value != null ? String(value) : '';
+        return text ? `${key.replace(/_/g, ' ')}: ${text}` : '';
+      })
+      .filter(Boolean);
+    if (fields.length) return `${message} (${fields.join('; ')})`;
+  }
+  return message;
 }
 
 /** Fetch wrapper that attaches the current Firebase ID token. */
@@ -688,6 +709,106 @@ export async function updateAdminSupportTicket(
   return body.data.ticket;
 }
 
+export type InquiryStatus = 'new' | 'in_review' | 'closed';
+
+export interface ContactInquiry {
+  id: string;
+  name: string;
+  email: string;
+  company: string | null;
+  service: string;
+  message: string;
+  status: InquiryStatus;
+  admin_note: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CareerApplication {
+  id: string;
+  full_name: string;
+  email: string;
+  phone: string | null;
+  role: string;
+  portfolio_url: string;
+  cover_note: string;
+  status: InquiryStatus;
+  admin_note: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+type PageMeta = { total: number; page: number; perPage: number; totalPages: number };
+
+export async function submitContactInquiry(input: {
+  name: string;
+  email: string;
+  company?: string | null;
+  service: string;
+  message: string;
+}): Promise<ContactInquiry> {
+  const body = await publicFetch<ApiSuccess<{ inquiry: ContactInquiry }>>(API.public.contact, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+  return body.data.inquiry;
+}
+
+export async function submitCareerApplication(input: {
+  full_name: string;
+  email: string;
+  phone?: string | null;
+  role: string;
+  portfolio_url: string;
+  cover_note: string;
+}): Promise<CareerApplication> {
+  const body = await publicFetch<ApiSuccess<{ application: CareerApplication }>>(API.public.careers, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+  return body.data.application;
+}
+
+export async function listAdminContactInquiries(page = 1, perPage = 20, status?: string) {
+  const qs = new URLSearchParams({ page: String(page), perPage: String(perPage) });
+  if (status) qs.set('status', status);
+  const body = await authFetch<ApiSuccess<{ inquiries: ContactInquiry[]; meta: PageMeta }>>(
+    `${API.admin.contactInquiries}?${qs}`
+  );
+  return body.data;
+}
+
+export async function updateAdminContactInquiry(
+  id: string,
+  patch: { status?: InquiryStatus; admin_note?: string | null }
+): Promise<ContactInquiry> {
+  const body = await authFetch<ApiSuccess<{ inquiry: ContactInquiry }>>(
+    `${API.admin.contactInquiries}/${id}`,
+    { method: 'PATCH', body: JSON.stringify(patch) }
+  );
+  return body.data.inquiry;
+}
+
+export async function listAdminCareerApplications(page = 1, perPage = 20, status?: string) {
+  const qs = new URLSearchParams({ page: String(page), perPage: String(perPage) });
+  if (status) qs.set('status', status);
+  const body = await authFetch<ApiSuccess<{ applications: CareerApplication[]; meta: PageMeta }>>(
+    `${API.admin.careerApplications}?${qs}`
+  );
+  return body.data;
+}
+
+export async function updateAdminCareerApplication(
+  id: string,
+  patch: { status?: InquiryStatus; admin_note?: string | null }
+): Promise<CareerApplication> {
+  const body = await authFetch<ApiSuccess<{ application: CareerApplication }>>(
+    `${API.admin.careerApplications}/${id}`,
+    { method: 'PATCH', body: JSON.stringify(patch) }
+  );
+  return body.data.application;
+}
+
 // ─── Admin commerce ───────────────────────────────────────────────────────────
 
 export type AdminProductStatus = 'draft' | 'live' | 'coming_soon' | 'archived';
@@ -1213,6 +1334,117 @@ export async function getMyOrderTracking(id: string): Promise<ShipmentTracking> 
     `${API.orders.detail(id)}/tracking`
   );
   return body.data.tracking;
+}
+
+export type CancelStatus = 'pending' | 'approved' | 'rejected';
+export type RefundStatus = 'pending' | 'approved' | 'rejected' | 'completed';
+
+export type CancelRow = {
+  id: string;
+  orderId: string;
+  userId: string;
+  orderNumber: string;
+  waybill: string | null;
+  amountPaise: number;
+  reason: string;
+  status: CancelStatus;
+  adminNote: string | null;
+  reviewedBy: string | null;
+  reviewedAt: string | null;
+  delhiveryError: string | null;
+  delhiveryAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  userEmail: string | null;
+  userName: string | null;
+};
+
+export type RefundRow = {
+  id: string;
+  orderId: string;
+  userId: string;
+  cancelId: string | null;
+  paymentId: string | null;
+  orderNumber: string;
+  amountPaise: number;
+  currency: string;
+  reason: string;
+  status: RefundStatus;
+  adminNote: string | null;
+  reviewedBy: string | null;
+  reviewedAt: string | null;
+  provider: string;
+  providerPaymentId: string | null;
+  providerRefundId: string | null;
+  providerError: string | null;
+  refundedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  userEmail: string | null;
+  userName: string | null;
+};
+
+/** POST /orders/:id/cancel */
+export async function createMyOrderCancel(orderId: string, reason?: string): Promise<CancelRow> {
+  const body = await authFetch<ApiSuccess<{ cancel: CancelRow }>>(
+    `${API.orders.detail(orderId)}/cancel`,
+    { method: 'POST', body: JSON.stringify({ reason: reason ?? '' }) }
+  );
+  return body.data.cancel;
+}
+
+/** GET /orders/:id/cancel */
+export async function getMyOrderCancel(orderId: string): Promise<CancelRow | null> {
+  const body = await authFetch<ApiSuccess<{ cancel: CancelRow | null }>>(
+    `${API.orders.detail(orderId)}/cancel`
+  );
+  return body.data.cancel;
+}
+
+/** GET /admin/cancels */
+export async function listAdminCancels(status?: string) {
+  const qs = new URLSearchParams({ page: '1', perPage: '100' });
+  if (status && status !== 'all') qs.set('status', status);
+  const body = await authFetch<
+    ApiSuccess<{ cancels: CancelRow[]; meta: { total: number } }>
+  >(`${API.admin.cancels}?${qs}`);
+  return body.data;
+}
+
+/** PATCH /admin/cancels/:id */
+export async function reviewAdminCancel(
+  id: string,
+  decision: 'approved' | 'rejected',
+  adminNote?: string
+): Promise<CancelRow> {
+  const body = await authFetch<ApiSuccess<{ cancel: CancelRow }>>(`${API.admin.cancels}/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ decision, adminNote: adminNote || null }),
+  });
+  return body.data.cancel;
+}
+
+/** GET /admin/refunds */
+export async function listAdminRefunds(status?: string) {
+  const qs = new URLSearchParams({ page: '1', perPage: '100' });
+  if (status && status !== 'all') qs.set('status', status);
+  const body = await authFetch<
+    ApiSuccess<{ refunds: RefundRow[]; meta: { total: number } }>
+  >(`${API.admin.refunds}?${qs}`);
+  return body.data;
+}
+
+/** PATCH /admin/refunds/:id */
+export async function reviewAdminRefund(
+  id: string,
+  decision: 'approved' | 'rejected' | 'completed',
+  adminNote?: string
+): Promise<RefundRow> {
+  const body = await authFetch<ApiSuccess<{ refund: RefundRow }>>(`${API.admin.refunds}/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ decision, adminNote: adminNote || null }),
+  });
+  return body.data.refund;
 }
 
 export async function adminUpdateUser(

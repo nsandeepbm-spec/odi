@@ -1,7 +1,8 @@
 import { useRef, useState, type FormEvent } from 'react';
 import { motion, useInView } from 'motion/react';
-import { Send, CheckCircle2 } from 'lucide-react';
+import { Send, CheckCircle2, Loader2 } from 'lucide-react';
 import { Link } from 'react-router';
+import { submitContactInquiry } from '../lib/api';
 
 // ─── DESIGN TOKENS (matches LearnMorePage) ────────────────────────────────────
 const T = { bg: '#FFFFFF', bgAlt: '#F7F7F5', text: '#111111', sub: '#666666', border: '#E8E8E8' };
@@ -27,8 +28,6 @@ function Shard({ size = 40, className = '' }: { size?: number; className?: strin
     </svg>
   );
 }
-
-const CONTACT_INBOX = 'odistudio24@gmail.com';
 
 const serviceOptions = [
   'Stereo Conversion',
@@ -65,18 +64,32 @@ export default function ContactPage() {
   const [service, setService] = useState('');
   const [message, setMessage] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const onSubmit = (e: FormEvent) => {
+  const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    const subject = encodeURIComponent(`[Service Inquiry] ${service || 'General'} — ${name}`);
-    const body = encodeURIComponent(
-      ['SERVICE / PROJECT INQUIRY', '────────────────────────',
-        `Name: ${name}`, `Email: ${email}`, `Company / Brand: ${company || '—'}`,
-        `Service interest: ${service}`, '', 'Project details:', message,
-      ].join('\n'),
-    );
-    window.location.href = `mailto:${CONTACT_INBOX}?subject=${subject}&body=${body}`;
-    setSubmitted(true);
+    setSubmitting(true);
+    setSubmitError(null);
+    try {
+      await submitContactInquiry({
+        name,
+        email,
+        company: company.trim() || null,
+        service,
+        message,
+      });
+      setSubmitted(true);
+      setName('');
+      setEmail('');
+      setCompany('');
+      setService('');
+      setMessage('');
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : 'Could not send inquiry.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -179,9 +192,9 @@ export default function ContactPage() {
                 <div className="flex flex-col items-center justify-center text-center py-20 px-8"
                   style={{ border: `1px solid ${T.border}` }}>
                   <CheckCircle2 className="w-10 h-10 mb-4" style={{ color: '#6366f1' }} />
-                  <h3 className="font-black text-xl mb-2 tracking-tight">Inquiry draft ready</h3>
+                  <h3 className="font-black text-xl mb-2 tracking-tight">Inquiry received</h3>
                   <p className="text-sm leading-relaxed mb-6 max-w-sm" style={{ color: T.sub }}>
-                    Your email app should open with the details filled in. Send it so we can review your project.
+                    Thanks — we saved your project details. Our team will review and get back to you.
                   </p>
                   <button onClick={() => setSubmitted(false)}
                     className="text-sm font-bold underline underline-offset-2" style={{ color: T.text }}>
@@ -189,7 +202,12 @@ export default function ContactPage() {
                   </button>
                 </div>
               ) : (
-                <form onSubmit={onSubmit} style={{ border: `1px solid ${T.border}` }}>
+                <form
+                  onSubmit={onSubmit}
+                  action="#"
+                  method="post"
+                  style={{ border: `1px solid ${T.border}` }}
+                >
                   {/* Name + Email */}
                   <div className="grid md:grid-cols-2" style={{ borderBottom: `1px solid ${T.border}` }}>
                     <div className="p-6 md:p-8" style={{ borderRight: `1px solid ${T.border}` }}>
@@ -232,11 +250,17 @@ export default function ContactPage() {
 
                   {/* Submit */}
                   <div className="p-6 md:p-8">
-                    <button type="submit"
-                      className="w-full sm:w-auto px-10 py-4 text-sm font-bold tracking-widest uppercase inline-flex items-center justify-center gap-3 transition-transform hover:-translate-y-0.5"
-                      style={{ background: T.text, color: T.bg }}>
-                      <Send className="w-4 h-4" />
-                      Send service inquiry
+                    {submitError && (
+                      <p className="text-sm text-red-600 mb-4">{submitError}</p>
+                    )}
+                    <button
+                      type="submit"
+                      disabled={submitting}
+                      className="w-full sm:w-auto px-10 py-4 text-sm font-bold tracking-widest uppercase inline-flex items-center justify-center gap-3 transition-transform hover:-translate-y-0.5 disabled:opacity-60 disabled:hover:translate-y-0"
+                      style={{ background: T.text, color: T.bg }}
+                    >
+                      {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                      {submitting ? 'Sending…' : 'Send service inquiry'}
                     </button>
                   </div>
                 </form>

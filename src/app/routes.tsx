@@ -62,6 +62,10 @@ import AdminPaymentDetailPage from "./pages/dashboard/admin/PaymentDetailPage";
 import AdminCouponsPage from "./pages/dashboard/admin/CouponsPage";
 import AdminSettingsPage from "./pages/dashboard/admin/SettingsPage";
 import AdminInboxPage from "./pages/dashboard/admin/InboxPage";
+import AdminContactInquiriesPage from "./pages/dashboard/admin/ContactInquiriesPage";
+import AdminCareerApplicationsPage from "./pages/dashboard/admin/CareerApplicationsPage";
+import AdminCancelManagementPage from "./pages/dashboard/admin/CancelManagementPage";
+import AdminRefundManagementPage from "./pages/dashboard/admin/RefundManagementPage";
 
 export const router = createBrowserRouter([
   // Standalone Auth Routes
@@ -92,10 +96,14 @@ export const router = createBrowserRouter([
         children: [
           { index: true, Component: AdminOverviewPage },
           { path: "inbox", Component: AdminInboxPage },
+          { path: "contact-inquiries", Component: AdminContactInquiriesPage },
+          { path: "career-applications", Component: AdminCareerApplicationsPage },
           { path: "orders", Component: AdminOrdersPage },
           { path: "orders/:orderId", Component: AdminOrderDetailPage },
           { path: "shipments", Component: AdminShipmentsPage },
           { path: "pickups", Component: AdminPickupsPage },
+          { path: "cancels", Component: AdminCancelManagementPage },
+          { path: "refunds", Component: AdminRefundManagementPage },
           { path: "products", Component: AdminProductsPage },
           { path: "products/new", Component: ProductEditorPage },
           { path: "products/:id", Component: ProductEditorPage },

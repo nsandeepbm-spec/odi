@@ -24,6 +24,7 @@ import { getPublicProductReviews, type PublicReview } from '../lib/api';
 import { motion, AnimatePresence } from 'motion/react';
 import { useCartStore } from '../store/cartStore';
 import { CheckoutOrderSummary } from '../components/checkout/CheckoutOrderSummary';
+import { ODILoader } from '../components/ODILoader';
 
 type DetailTab = 'description' | 'publisher' | 'author';
 
@@ -106,12 +107,7 @@ export default function CheckoutPage() {
   }, [product?.slug]);
 
   if (isLoadingProduct) {
-    return (
-      <div className="w-full py-20 flex flex-col items-center justify-center">
-        <div className="w-8 h-8 border-4 border-neutral-200 border-t-neutral-900 rounded-full animate-spin mb-4" />
-        <p className="text-neutral-500 font-medium">Loading kit details...</p>
-      </div>
-    );
+    return <ODILoader size="md" label="Loading kit details…" />;
   }
 
   if (!product) {

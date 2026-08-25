@@ -1,7 +1,8 @@
 import { useRef, useState, type FormEvent } from 'react';
 import { motion, useInView } from 'motion/react';
-import { ArrowRight, Send, CheckCircle2, Link as LinkIcon } from 'lucide-react';
+import { ArrowRight, Send, CheckCircle2, Link as LinkIcon, Loader2 } from 'lucide-react';
 import { Link } from 'react-router';
+import { submitCareerApplication } from '../lib/api';
 
 // ─── DESIGN TOKENS (matches LearnMorePage) ────────────────────────────────────
 const T = { bg: '#FFFFFF', bgAlt: '#F7F7F5', text: '#111111', sub: '#666666', border: '#E8E8E8' };
@@ -28,7 +29,6 @@ function Shard({ size = 40, className = '' }: { size?: number; className?: strin
   );
 }
 
-const CAREERS_INBOX = 'odistudio24@gmail.com';
 const roleOptions = ['Designers', '3D Artists', 'Editors', 'Creative thinkers', 'Other'];
 
 const benefits = [
@@ -64,23 +64,39 @@ export default function CareersPage() {
   const [portfolio, setPortfolio] = useState('');
   const [note, setNote] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const prefillRole = (title: string) => {
     setRoleVal(title);
     document.getElementById('apply')?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const onSubmit = (e: FormEvent) => {
+  const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    const subject = encodeURIComponent(`[Careers Application] ${roleVal || 'Open role'} — ${fullName}`);
-    const body = encodeURIComponent(
-      ['CAREERS APPLICATION', '──────────────────',
-        `Role: ${roleVal}`, `Name: ${fullName}`, `Email: ${email}`,
-        `Phone: ${phone || '—'}`, `Portfolio: ${portfolio || '—'}`, '', 'Cover note:', note,
-      ].join('\n'),
-    );
-    window.location.href = `mailto:${CAREERS_INBOX}?subject=${subject}&body=${body}`;
-    setSubmitted(true);
+    setSubmitting(true);
+    setSubmitError(null);
+    try {
+      await submitCareerApplication({
+        full_name: fullName,
+        email,
+        phone: phone.trim() || null,
+        role: roleVal,
+        portfolio_url: portfolio,
+        cover_note: note,
+      });
+      setSubmitted(true);
+      setRoleVal('');
+      setFullName('');
+      setEmail('');
+      setPhone('');
+      setPortfolio('');
+      setNote('');
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : 'Could not submit application.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -254,9 +270,9 @@ export default function CareersPage() {
                 <div className="flex flex-col items-center justify-center text-center py-16 px-8"
                   style={{ background: T.bg, border: `1px solid ${T.border}` }}>
                   <CheckCircle2 className="w-10 h-10 mb-4" style={{ color: '#6366f1' }} />
-                  <h3 className="font-black text-xl mb-2 tracking-tight">Application draft ready</h3>
+                  <h3 className="font-black text-xl mb-2 tracking-tight">Application received</h3>
                   <p className="text-sm leading-relaxed mb-6 max-w-sm" style={{ color: T.sub }}>
-                    Your email client should open with the form pre-filled. Send it to complete your submission.
+                    Thanks — we saved your application. Our team will review your work and get in touch.
                   </p>
                   <button onClick={() => setSubmitted(false)}
                     className="text-sm font-bold underline underline-offset-2" style={{ color: T.text }}>
@@ -264,7 +280,12 @@ export default function CareersPage() {
                   </button>
                 </div>
               ) : (
-                <form onSubmit={onSubmit} style={{ background: T.bg, border: `1px solid ${T.border}` }}>
+                <form
+                  onSubmit={onSubmit}
+                  action="#"
+                  method="post"
+                  style={{ background: T.bg, border: `1px solid ${T.border}` }}
+                >
                   {/* field helper */}
                   {([
                     null, // role select — handled separately
@@ -308,8 +329,16 @@ export default function CareersPage() {
                       <label className="flex items-center gap-2 text-[10px] font-bold tracking-[0.2em] uppercase mb-3" style={{ color: T.sub }}>
                         Portfolio / LinkedIn <LinkIcon className="w-3 h-3" />
                       </label>
-                      <input required type="url" value={portfolio} onChange={(e) => setPortfolio(e.target.value)}
-                        placeholder="https://" style={inputStyle} />
+                      <input
+                        required
+                        type="text"
+                        inputMode="url"
+                        autoComplete="url"
+                        value={portfolio}
+                        onChange={(e) => setPortfolio(e.target.value)}
+                        placeholder="https://linkedin.com/in/you"
+                        style={inputStyle}
+                      />
                     </div>
                   </div>
 
@@ -323,11 +352,17 @@ export default function CareersPage() {
 
                   {/* Submit */}
                   <div className="p-6 md:p-8">
-                    <button type="submit"
-                      className="w-full sm:w-auto px-10 py-4 text-sm font-bold tracking-widest uppercase inline-flex items-center justify-center gap-3 transition-transform hover:-translate-y-0.5"
-                      style={{ background: T.text, color: T.bg }}>
-                      <Send className="w-4 h-4" />
-                      Submit application
+                    {submitError && (
+                      <p className="text-sm text-red-600 mb-4">{submitError}</p>
+                    )}
+                    <button
+                      type="submit"
+                      disabled={submitting}
+                      className="w-full sm:w-auto px-10 py-4 text-sm font-bold tracking-widest uppercase inline-flex items-center justify-center gap-3 transition-transform hover:-translate-y-0.5 disabled:opacity-60 disabled:hover:translate-y-0"
+                      style={{ background: T.text, color: T.bg }}
+                    >
+                      {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                      {submitting ? 'Submitting…' : 'Submit application'}
                     </button>
                   </div>
                 </form>

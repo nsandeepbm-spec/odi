@@ -73,6 +73,8 @@ export default defineConfig({
         '/payments': api,
         '/shipping': api,
         '/admin': api,
+        '/contact': api,
+        '/careers': api,
       };
     })(),
   },

@@ -19,6 +19,7 @@ import {
   inrFromPaise,
   OrderBadge,
 } from '../../../components/dashboard/shared';
+import { ODILoader } from '../../../components/ODILoader';
 import {
   getAdminOrderDetail,
   createAdminOrderShipment,
@@ -149,12 +150,7 @@ export default function OrderDetailPage() {
   };
 
   if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center py-24 gap-3">
-        <Loader2 className="w-8 h-8 animate-spin text-cyan-400" />
-        <p className="text-sm text-neutral-500 font-medium">Loading order…</p>
-      </div>
-    );
+    return <ODILoader size="md" label="Loading order…" />;
   }
 
   if (error || !detail) {

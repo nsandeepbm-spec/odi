@@ -9,6 +9,7 @@ import {
   AlertCircle,
   Clock,
   FileDown,
+  Ban,
 } from 'lucide-react';
 import {
   PageHeader,
@@ -17,13 +18,18 @@ import {
   inrFromPaise,
   OrderBadge,
 } from '../../../components/dashboard/shared';
+import { ODILoader } from '../../../components/ODILoader';
 import {
   getMyOrder,
   getMyOrderTracking,
+  createMyOrderCancel,
+  getMyOrderCancel,
   type UserOrderItem,
   type UserOrderPayment,
   type ShipmentTracking,
+  type CancelRow,
 } from '../../../lib/api';
+import { useAuth } from '../../../lib/auth';
 import { downloadOrderInvoice } from '../../../lib/invoice';
 import {
   ShipmentTrackingSummary,
@@ -93,6 +99,7 @@ function lineTotal(item: UserOrderItem) {
 export default function UserOrderDetailPage() {
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [order, setOrder] = useState<Awaited<ReturnType<typeof getMyOrder>>['order'] | null>(null);
   const [items, setItems] = useState<UserOrderItem[]>([]);
   const [payments, setPayments] = useState<UserOrderPayment[]>([]);
@@ -102,6 +109,10 @@ export default function UserOrderDetailPage() {
   const [trackingLoading, setTrackingLoading] = useState(false);
   const [trackingError, setTrackingError] = useState<string | null>(null);
   const [trackingDrawerOpen, setTrackingDrawerOpen] = useState(false);
+  const [cancelReq, setCancelReq] = useState<CancelRow | null>(null);
+  const [cancelReason, setCancelReason] = useState('');
+  const [cancelBusy, setCancelBusy] = useState(false);
+  const [showCancelForm, setShowCancelForm] = useState(false);
 
   const loadTracking = (id: string) => {
     setTrackingLoading(true);
@@ -126,7 +137,15 @@ export default function UserOrderDetailPage() {
           setOrder(d.order);
           setItems(d.items);
           setPayments(d.payments);
+          setCancelReq(null);
           setLoading(false);
+          void getMyOrderCancel(d.order.id)
+            .then((c) => {
+              if (!cancelled) setCancelReq(c);
+            })
+            .catch(() => {
+              if (!cancelled) setCancelReq(null);
+            });
           if (d.order.delhivery_waybill) loadTracking(d.order.id);
         }
       })
@@ -142,12 +161,7 @@ export default function UserOrderDetailPage() {
   }, [orderId]);
 
   if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center py-24 gap-3">
-        <Loader2 className="w-8 h-8 animate-spin text-cyan-400" />
-        <p className="text-sm text-neutral-500 font-medium">Loading order…</p>
-      </div>
-    );
+    return <ODILoader size="md" label="Loading order…" />;
   }
 
   if (error || !order) {
@@ -183,6 +197,26 @@ export default function UserOrderDetailPage() {
     .join(', ');
   const shipName = [addr?.first_name, addr?.last_name].filter(Boolean).join(' ') || '—';
   const awaitingPayment = order.status === 'pending' && !!order.razorpay_order_id;
+  const canRequestCancel =
+    !['cancelled', 'refunded', 'delivered'].includes(order.status) &&
+    !awaitingPayment &&
+    (!cancelReq || cancelReq.status === 'rejected');
+
+  const submitCancelRequest = () => {
+    if (!user || !order) return;
+    setCancelBusy(true);
+    void createMyOrderCancel(order.id, cancelReason.trim() || undefined)
+      .then((row) => {
+        setCancelReq(row);
+        setShowCancelForm(false);
+        setCancelReason('');
+        alert('Cancel request sent. Our team will review it shortly.');
+      })
+      .catch((err) => {
+        alert(err instanceof Error ? err.message : 'Could not submit cancel request');
+      })
+      .finally(() => setCancelBusy(false));
+  };
 
   return (
     <div>
@@ -372,6 +406,72 @@ export default function UserOrderDetailPage() {
             >
               <FileDown className="w-4 h-4" /> Download invoice
             </button>
+
+            {cancelReq && (
+              <div
+                className={`mt-4 rounded-xl border px-3 py-3 text-xs ${
+                  cancelReq.status === 'pending'
+                    ? 'border-amber-500/20 bg-amber-500/10 text-amber-300'
+                    : cancelReq.status === 'approved'
+                      ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300'
+                      : 'border-red-500/20 bg-red-500/10 text-red-300'
+                }`}
+              >
+                <p className="font-black uppercase tracking-widest mb-1">
+                  Cancel {cancelReq.status}
+                </p>
+                <p className="opacity-90 leading-relaxed">{cancelReq.reason}</p>
+                {cancelReq.adminNote && (
+                  <p className="mt-1.5 opacity-80">Admin: {cancelReq.adminNote}</p>
+                )}
+              </div>
+            )}
+
+            {canRequestCancel && !showCancelForm && (
+              <button
+                type="button"
+                onClick={() => setShowCancelForm(true)}
+                className="mt-3 w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-bold tracking-wide rounded-xl border border-red-500/25 bg-red-500/10 text-red-300 hover:bg-red-500/15 transition-all"
+              >
+                <Ban className="w-4 h-4" /> Cancel request
+              </button>
+            )}
+
+            {canRequestCancel && showCancelForm && (
+              <div className="mt-3 space-y-2 rounded-xl border border-white/[0.08] bg-white/[0.02] p-3">
+                <label className="block text-[10px] font-bold tracking-widest uppercase text-neutral-500">
+                  Why do you want to cancel?
+                </label>
+                <textarea
+                  value={cancelReason}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                  rows={3}
+                  placeholder="Optional reason for our team…"
+                  className="w-full px-3 py-2 rounded-xl border border-white/[0.07] bg-[#111113] text-sm text-neutral-200 outline-none focus:border-white/20 resize-none"
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    disabled={cancelBusy}
+                    onClick={submitCancelRequest}
+                    className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 text-xs font-bold rounded-xl bg-red-500/15 text-red-300 border border-red-500/25 hover:bg-red-500/20 disabled:opacity-50"
+                  >
+                    {cancelBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Ban className="w-3.5 h-3.5" />}
+                    Submit request
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowCancelForm(false);
+                      setCancelReason('');
+                    }}
+                    className="px-3 py-2 text-xs font-bold rounded-xl border border-white/10 text-neutral-400 hover:text-white"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {(order.delhivery_waybill || order.status === 'shipped' || order.status === 'processing') && (

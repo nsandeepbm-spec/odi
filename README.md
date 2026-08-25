@@ -47,6 +47,10 @@ Auth and profile use the Express API in `odi-backend/`:
 | `GET /admin/overview` | Admin KPIs + recent orders (`getAdminOverview`) |
 | `GET/POST/PATCH /admin/products` | Admin catalog list + create/edit (`listAdminProducts`, `createAdminProduct`, `updateAdminProduct`) |
 | `POST /checkout/sessions` | Create order + Razorpay order (`createCheckoutSession`) |
+| `POST /contact` | Save contact inquiry (`submitContactInquiry`) — no email |
+| `POST /careers` | Save career application (`submitCareerApplication`) — no email |
+| `GET /admin/contact-inquiries` | Admin contact form list |
+| `GET /admin/career-applications` | Admin careers form list |
 | `GET /shipping/pincode/:pincode` | Delhivery serviceability before checkout (`checkPincodeServiceability`) |
 | `GET /shipping/tat/:destinationPin` | Delhivery expected delivery time after PIN is serviceable (`getExpectedTat`) |
 | `GET /shipping/charges/:destinationPin` | Delhivery shipping cost for Order Summary (`getShippingQuote`) |

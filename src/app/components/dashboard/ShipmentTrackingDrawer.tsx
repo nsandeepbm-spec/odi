@@ -7,6 +7,7 @@ import {
   ShipmentMilestoneTimeline,
   type MilestoneOrder,
 } from './ShipmentMilestoneTimeline';
+import { ODILoader } from '../ODILoader';
 
 type DrawerProps = {
   open: boolean;
@@ -158,10 +159,7 @@ export function ShipmentTrackingDrawer({
 
         <div className="flex-1 overflow-y-auto overscroll-contain px-5 py-6">
           {loading && !tracking && !order ? (
-            <p className="text-sm text-neutral-400 flex items-center gap-2 py-8 justify-center">
-              <Loader2 className="w-5 h-5 animate-spin text-cyan-400" />
-              Loading route…
-            </p>
+            <ODILoader size="sm" label="Loading route…" className="py-10" />
           ) : error && !tracking && !order ? (
             <p className="text-sm text-amber-400 py-4">{error}</p>
           ) : order ? (
@@ -241,9 +239,7 @@ export function ShipmentTrackingSummary({
       </div>
 
       {loading && !tracking ? (
-        <p className="text-xs text-neutral-500 flex items-center gap-2">
-          <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading…
-        </p>
+        <ODILoader size="sm" label="Loading…" className="py-3" />
       ) : error ? (
         <p className="text-xs text-amber-400 mb-3">{error}</p>
       ) : tracking ? (

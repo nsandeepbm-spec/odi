@@ -18,6 +18,7 @@ import {
   delhiveryOneReadyForPickupUrl,
   delhiveryTrackUrl,
 } from '../../lib/delhiveryLinks';
+import { ODILoader } from '../ODILoader';
 import { formatPickupScheduleBlock } from '../../lib/pickupSchedule';
 
 type Props = {
@@ -143,9 +144,7 @@ export function ScheduledPickupPanel({ row, onClose }: Props) {
               <MapPin className="w-3 h-3" /> Deliver to
             </p>
             {loadingDetail ? (
-              <p className="text-xs text-neutral-500 flex items-center gap-2">
-                <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading address…
-              </p>
+              <ODILoader size="sm" label="Loading address…" className="py-4" />
             ) : (
               <>
                 <Detail label="Name" value={row.customerName} />

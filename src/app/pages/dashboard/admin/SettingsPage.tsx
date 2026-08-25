@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import {
   Check,
-  Loader2,
   Package,
   Save,
   Store,
@@ -13,6 +12,7 @@ import {
   ArrowUpRight,
 } from 'lucide-react';
 import { PageHeader, Card, StatCard } from '../../../components/dashboard/shared';
+import { ODIColorLogo } from '../../../components/ODIColorLogo';
 import {
   getAdminStoreSettings,
   saveAdminStoreSettings,
@@ -217,7 +217,9 @@ export default function SettingsPage() {
                   </div>
                   <p className="text-2xl font-black text-white tracking-tight">
                     {loadingStock ? (
-                      <Loader2 className="w-5 h-5 animate-spin text-neutral-500 inline" />
+                      <span className="inline-flex align-middle">
+                        <ODIColorLogo className="w-10 h-auto odi-loader-breathe" />
+                      </span>
                     ) : (
                       <>
                         {lowStockCount ?? '—'}{' '}

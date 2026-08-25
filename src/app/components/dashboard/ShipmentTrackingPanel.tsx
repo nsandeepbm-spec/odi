@@ -1,6 +1,7 @@
 import React from 'react';
 import { Loader2, MapPin, PackageSearch, RefreshCw } from 'lucide-react';
 import type { ShipmentTracking } from '../../lib/api';
+import { ODILoader } from '../ODILoader';
 
 function formatScanTime(iso: string | null) {
   if (!iso) return '—';
@@ -42,9 +43,7 @@ export function ShipmentTrackingPanel({
             Current status
           </p>
           {loading && !tracking ? (
-            <p className="text-sm text-neutral-400 flex items-center gap-2">
-              <Loader2 className="w-4 h-4 animate-spin" /> Loading tracking…
-            </p>
+            <ODILoader size="sm" label="Loading tracking…" className="py-2 items-start" />
           ) : tracking?.status ? (
             <p className="text-lg sm:text-xl font-black text-white tracking-tight">{tracking.status}</p>
           ) : (

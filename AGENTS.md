@@ -95,6 +95,10 @@ syncUserWithBackend()   // POST /auth/sync
 getCurrentUser()        // GET /user/me
 updateCurrentUser()     // PATCH /user/me
 listUsers()             // GET /users (admin)
+submitContactInquiry()  // POST /contact (public)
+submitCareerApplication() // POST /careers (public)
+listAdminContactInquiries() // GET /admin/contact-inquiries
+listAdminCareerApplications() // GET /admin/career-applications
 ```
 
 All authenticated calls use `Authorization: Bearer <firebase-id-token>` via `authFetch()`.
