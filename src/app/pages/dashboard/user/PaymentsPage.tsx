@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'motion/react';
+import { useNavigate } from 'react-router';
 import { CreditCard, IndianRupee, Clock, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
 import {
   PageHeader,
@@ -8,6 +9,7 @@ import {
   EmptyState,
   inrFromPaise,
   DashboardSkeleton,
+  userOrderStatusDisplay,
 } from '../../../components/dashboard/shared';
 import { listMyOrders, type UserOrder } from '../../../lib/api';
 
@@ -19,7 +21,7 @@ function formatDate(iso: string) {
   });
 }
 
-function PaymentStatusBadge({ status }: { status: string }) {
+function PaymentStatusBadge({ status, label }: { status: string; label?: string }) {
   const styles: Record<string, string> = {
     paid:        'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
     processing:  'bg-sky-500/10 text-sky-400 border-sky-500/20',
@@ -30,15 +32,16 @@ function PaymentStatusBadge({ status }: { status: string }) {
     shipped:     'bg-indigo-500/10 text-indigo-400 border-indigo-500/20',
   };
   const cls = styles[status] ?? 'bg-neutral-500/10 text-neutral-400 border-neutral-500/20';
-  const label = status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, ' ');
+  const text = label ?? status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, ' ');
   return (
     <span className={`px-2.5 py-1 text-[9px] font-black uppercase tracking-widest rounded border ${cls}`}>
-      {label}
+      {text}
     </span>
   );
 }
 
 export default function PaymentsPage() {
+  const navigate = useNavigate();
   const [orders, setOrders] = useState<UserOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -127,14 +130,21 @@ export default function PaymentsPage() {
               <tbody className="divide-y divide-white/[0.04]">
                 {orders.map((o) => {
                   const isPaid = !['pending', 'cancelled', 'refunded'].includes(o.status);
+                  const statusDisplay = userOrderStatusDisplay(o);
+                  const underReview =
+                    o.refund_status === 'pending' || o.refund_status === 'approved';
                   return (
-                    <tr key={o.id} className="hover:bg-white/[0.02] transition-colors group">
+                    <tr
+                      key={o.id}
+                      onClick={() => navigate(`/dashboard/orders/${o.id}`)}
+                      className="hover:bg-white/[0.02] transition-colors group cursor-pointer"
+                    >
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <div className="w-9 h-9 rounded-xl bg-white/[0.03] border border-white/[0.05] flex items-center justify-center shrink-0">
                             {isPaid
                               ? <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                              : o.status === 'cancelled'
+                              : o.status === 'cancelled' && !underReview
                                 ? <XCircle className="w-4 h-4 text-red-500" />
                                 : <Clock className="w-4 h-4 text-amber-400" />
                             }
@@ -147,7 +157,9 @@ export default function PaymentsPage() {
                         </div>
                       </td>
                       <td className="px-6 py-4 text-neutral-400 font-medium">{formatDate(o.created_at)}</td>
-                      <td className="px-6 py-4"><PaymentStatusBadge status={o.status} /></td>
+                      <td className="px-6 py-4">
+                        <PaymentStatusBadge status={statusDisplay.badgeStatus} label={statusDisplay.label} />
+                      </td>
                       <td className="px-6 py-4 text-right font-black text-white">{inrFromPaise(o.total_paise)}</td>
                     </tr>
                   );

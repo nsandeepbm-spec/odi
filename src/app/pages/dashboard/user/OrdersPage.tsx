@@ -9,6 +9,7 @@ import {
   EmptyState,
   inrFromPaise,
   DashboardSkeleton,
+  userOrderStatusDisplay,
 } from '../../../components/dashboard/shared';
 import { listMyOrders, type UserOrder, type UserOrderStatus } from '../../../lib/api';
 
@@ -201,6 +202,7 @@ export default function OrdersPage() {
               <tbody className="divide-y divide-white/[0.04]">
                 {filtered.map((o) => {
                   const awaiting = isAwaitingPayment(o);
+                  const statusDisplay = userOrderStatusDisplay(o);
                   return (
                     <tr
                       key={o.id}
@@ -235,7 +237,7 @@ export default function OrdersPage() {
                             <Clock className="w-3 h-3" /> Awaiting Payment
                           </span>
                         ) : (
-                          <OrderBadge status={o.status} />
+                          <OrderBadge status={statusDisplay.badgeStatus} label={statusDisplay.label} />
                         )}
                       </td>
                       <td className="px-6 py-4 text-right font-black text-white">{inrFromPaise(o.total_paise)}</td>

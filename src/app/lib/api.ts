@@ -3,16 +3,14 @@ import { auth } from './firebase';
 
 /**
  * Backend base URL — set in odinew/.env:
- *   VITE_API_URL=http://localhost:5000
- * For ngrok sharing, use the API tunnel HTTPS URL.
+ *   Local:      VITE_API_URL=http://localhost:5000
+ *   Production: VITE_API_URL=https://odi.studio  (or empty for same-origin)
  */
 export const API_URL =
   (import.meta.env.VITE_API_URL as string | undefined) ?? 'http://localhost:5000';
 
-/** Free ngrok injects an interstitial unless this header is present. Harmless on localhost. */
 const DEFAULT_API_HEADERS: HeadersInit = {
   'Content-Type': 'application/json',
-  'ngrok-skip-browser-warning': 'true',
 };
 
 /** Clean route paths (no /api/v1 prefix). */
@@ -104,7 +102,7 @@ interface ApiFailure {
 
 async function parseResponse<T>(res: Response): Promise<T> {
   const body = (await res.json().catch(() => null)) as ApiSuccess<T> | ApiFailure | null;
-  if (!res.ok) {
+  if (!res.ok || !body || !('success' in body) || body.success !== true) {
     throw new Error(formatApiFailure(body, res.status));
   }
   return body as T;
@@ -222,7 +220,6 @@ export async function syncUserWithBackend(user: User): Promise<AppUser | null> {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
-        'ngrok-skip-browser-warning': 'true',
       },
     });
     const body = await parseResponse<ApiSuccess<{ user: AppUser }>>(res);
@@ -1097,7 +1094,6 @@ export async function uploadAdminProductImage(file: File): Promise<{ url: string
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,
-      'ngrok-skip-browser-warning': 'true',
     },
     body: formData,
   });
@@ -1401,6 +1397,14 @@ export async function getMyOrderCancel(orderId: string): Promise<CancelRow | nul
   return body.data.cancel;
 }
 
+/** GET /orders/:id/refund */
+export async function getMyOrderRefund(orderId: string): Promise<RefundRow | null> {
+  const body = await authFetch<ApiSuccess<{ refund: RefundRow | null }>>(
+    `${API.orders.detail(orderId)}/refund`
+  );
+  return body.data.refund;
+}
+
 /** GET /admin/cancels */
 export async function listAdminCancels(status?: string) {
   const qs = new URLSearchParams({ page: '1', perPage: '100' });
@@ -1422,6 +1426,12 @@ export async function reviewAdminCancel(
     body: JSON.stringify({ decision, adminNote: adminNote || null }),
   });
   return body.data.cancel;
+}
+
+/** GET /admin/refunds/:id */
+export async function getAdminRefund(id: string): Promise<RefundRow> {
+  const body = await authFetch<ApiSuccess<{ refund: RefundRow }>>(`${API.admin.refunds}/${id}`);
+  return body.data.refund;
 }
 
 /** GET /admin/refunds */
@@ -1529,6 +1539,7 @@ export async function listAdminPayments(page = 1, perPage = 50) {
     ApiSuccess<{
       payments: AdminPayment[];
       kpis: { collectedPaise: number; pendingPaise: number; refundedPaise: number };
+      razorpay?: { mode: 'test' | 'live' | 'unset'; webhookConfigured: boolean; webhookUrl: string };
       meta: { total: number; page: number; perPage: number };
     }>
   >(`${API.admin.payments}?${qs}`);
@@ -1648,6 +1659,9 @@ export interface UserOrder {
   delhivery_waybill?: string | null;
   delhivery_status?: string | null;
   delhivery_pickup_token?: string | null;
+  /** Latest refund row for this order (`pending` = under review). */
+  refund_status?: RefundStatus | null;
+  razorpay_refund_id?: string | null;
   /** Included in list and detail responses. */
   order_items?: UserOrderItem[];
 }

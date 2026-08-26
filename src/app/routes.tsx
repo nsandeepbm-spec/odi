@@ -66,6 +66,7 @@ import AdminContactInquiriesPage from "./pages/dashboard/admin/ContactInquiriesP
 import AdminCareerApplicationsPage from "./pages/dashboard/admin/CareerApplicationsPage";
 import AdminCancelManagementPage from "./pages/dashboard/admin/CancelManagementPage";
 import AdminRefundManagementPage from "./pages/dashboard/admin/RefundManagementPage";
+import AdminRefundDetailPage from "./pages/dashboard/admin/RefundDetailPage";
 
 export const router = createBrowserRouter([
   // Standalone Auth Routes
@@ -104,6 +105,7 @@ export const router = createBrowserRouter([
           { path: "pickups", Component: AdminPickupsPage },
           { path: "cancels", Component: AdminCancelManagementPage },
           { path: "refunds", Component: AdminRefundManagementPage },
+          { path: "refunds/:refundId", Component: AdminRefundDetailPage },
           { path: "products", Component: AdminProductsPage },
           { path: "products/new", Component: ProductEditorPage },
           { path: "products/:id", Component: ProductEditorPage },

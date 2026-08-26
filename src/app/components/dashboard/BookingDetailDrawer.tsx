@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Loader2, RefreshCw, MapPin } from 'lucide-react';
 import type { ShipmentTracking, UserOrder } from '../../lib/api';
 import { getMyOrderTracking } from '../../lib/api';
@@ -111,22 +112,22 @@ export function BookingDetailDrawer({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- fetch once per order open
   }, [order.id, order.delhivery_waybill]);
 
-  return (
+  return createPortal(
     <>
       <button
         type="button"
         aria-label="Close"
-        className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
+        className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm"
         onClick={onClose}
       />
       <aside
         id="booking-detail-drawer"
-        className="fixed top-0 right-0 z-50 h-full w-full max-w-md bg-[#0a0a0a] border-l border-white/10 shadow-2xl flex flex-col overscroll-contain"
+        className="fixed inset-y-0 right-0 z-[70] h-dvh w-full max-w-md bg-[#0a0a0a] border-l border-white/10 shadow-2xl flex flex-col overscroll-contain"
         role="dialog"
         aria-modal="true"
         aria-labelledby="booking-route-title"
       >
-        <div className="flex items-start justify-between gap-3 px-5 py-4 border-b border-white/[0.06] bg-[#0d0d0d]">
+        <div className="flex items-start justify-between gap-3 px-5 py-5 border-b border-white/[0.06] bg-[#0d0d0d] shrink-0">
           <div className="min-w-0">
             <p className="text-[10px] font-black uppercase tracking-widest text-cyan-400 mb-1">
               Track order
@@ -173,7 +174,7 @@ export function BookingDetailDrawer({
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto overscroll-contain px-5 py-6">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-5 py-6">
           {trackingError && (
             <p className="text-xs text-amber-400 mb-4">{trackingError}</p>
           )}
@@ -184,7 +185,7 @@ export function BookingDetailDrawer({
           />
         </div>
 
-        <div className="p-5 border-t border-white/[0.06] bg-[#0d0d0d]">
+        <div className="p-5 border-t border-white/[0.06] bg-[#0d0d0d] shrink-0">
           <button
             type="button"
             onClick={onClose}
@@ -194,6 +195,7 @@ export function BookingDetailDrawer({
           </button>
         </div>
       </aside>
-    </>
+    </>,
+    document.body,
   );
 }

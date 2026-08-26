@@ -1,8 +1,9 @@
 import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Loader2, RefreshCw, X, MapPin } from 'lucide-react';
 import type { ShipmentTracking } from '../../lib/api';
-import { friendlyCourierStatus, trackingIsDelivered } from '../../lib/shipmentStatus';
-import { buildRouteSteps, ShipmentRouteTimeline } from './ShipmentRouteTimeline';
+import { friendlyCourierStatus, headlineShipmentStatus, trackingIsDelivered } from '../../lib/shipmentStatus';
+import { buildCancelledRouteSteps, buildRouteSteps, ShipmentRouteTimeline } from './ShipmentRouteTimeline';
 import {
   ShipmentMilestoneTimeline,
   type MilestoneOrder,
@@ -86,28 +87,30 @@ export function ShipmentTrackingDrawer({
 
   if (!open) return null;
 
-  const headline = tracking?.status
-    ? adminView
-      ? tracking.status
-      : friendlyCourierStatus(tracking.status)
-    : null;
+  const headline = order
+    ? headlineShipmentStatus(order, tracking)
+    : tracking?.status
+      ? adminView
+        ? tracking.status
+        : friendlyCourierStatus(tracking.status)
+      : null;
 
-  return (
+  return createPortal(
     <>
       <button
         type="button"
         aria-label="Close tracking"
-        className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
+        className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm"
         onClick={onClose}
       />
       <aside
         id="admin-shipment-tracking-drawer"
-        className="fixed top-0 right-0 z-50 h-full w-full max-w-md bg-[#0a0a0a] border-l border-white/10 shadow-2xl flex flex-col overscroll-contain"
+        className="fixed inset-y-0 right-0 z-[70] h-dvh w-full max-w-md bg-[#0a0a0a] border-l border-white/10 shadow-2xl flex flex-col overscroll-contain"
         role="dialog"
         aria-modal="true"
         aria-labelledby="shipment-tracking-title"
       >
-        <div className="flex items-start justify-between gap-3 px-5 py-4 border-b border-white/[0.06] bg-[#0d0d0d]">
+        <div className="flex items-start justify-between gap-3 px-5 py-5 border-b border-white/[0.06] bg-[#0d0d0d] shrink-0">
           <div className="min-w-0">
             <p className="text-[10px] font-black uppercase tracking-widest text-cyan-400 mb-1">
               Track order
@@ -131,7 +134,7 @@ export function ShipmentTrackingDrawer({
               </p>
             )}
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 shrink-0">
             {onRefresh && (
               <button
                 type="button"
@@ -157,7 +160,7 @@ export function ShipmentTrackingDrawer({
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto overscroll-contain px-5 py-6">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-5 py-6">
           {loading && !tracking && !order ? (
             <ODILoader size="sm" label="Loading route…" className="py-10" />
           ) : error && !tracking && !order ? (
@@ -179,7 +182,7 @@ export function ShipmentTrackingDrawer({
           )}
         </div>
 
-        <div className="p-5 border-t border-white/[0.06] bg-[#0d0d0d]">
+        <div className="p-5 border-t border-white/[0.06] bg-[#0d0d0d] shrink-0">
           <button
             type="button"
             onClick={onClose}
@@ -189,7 +192,8 @@ export function ShipmentTrackingDrawer({
           </button>
         </div>
       </aside>
-    </>
+    </>,
+    document.body,
   );
 }
 
@@ -200,6 +204,7 @@ type SummaryProps = {
   onViewDetails: () => void;
   onRefresh?: () => void;
   userFacing?: boolean;
+  order?: MilestoneOrder | null;
 };
 
 /** Compact sidebar block — below order total on admin order detail. */
@@ -210,10 +215,19 @@ export function ShipmentTrackingSummary({
   onViewDetails,
   onRefresh,
   userFacing,
+  order,
 }: SummaryProps) {
   const delivered = trackingIsDelivered(tracking);
-  const steps = buildRouteSteps(tracking, userFacing);
+  const cancelled = order?.status === 'cancelled' || order?.status === 'refunded';
+  const steps = cancelled && order
+    ? buildCancelledRouteSteps(order)
+    : buildRouteSteps(tracking, userFacing);
   const completedCount = steps.filter((s) => s.completed).length;
+  const headline = order
+    ? headlineShipmentStatus(order, tracking)
+    : userFacing
+      ? friendlyCourierStatus(tracking?.status)
+      : (tracking?.status ?? 'In progress');
 
   return (
     <div className="rounded-2xl border border-white/[0.06] bg-[#0A0A0A] p-5">
@@ -240,18 +254,18 @@ export function ShipmentTrackingSummary({
 
       {loading && !tracking ? (
         <ODILoader size="sm" label="Loading…" className="py-3" />
-      ) : error ? (
+      ) : error && !cancelled ? (
         <p className="text-xs text-amber-400 mb-3">{error}</p>
-      ) : tracking ? (
+      ) : tracking || cancelled ? (
         <>
           <p
-            className={`text-sm font-black mb-1 ${delivered ? 'text-emerald-400' : 'text-white'}`}
+            className={`text-sm font-black mb-1 ${
+              cancelled ? 'text-red-400' : delivered ? 'text-emerald-400' : 'text-white'
+            }`}
           >
-            {userFacing
-              ? friendlyCourierStatus(tracking.status)
-              : (tracking.status ?? 'In progress')}
+            {headline}
           </p>
-          {tracking.origin && tracking.destination && (
+          {!cancelled && tracking?.origin && tracking.destination && (
             <p className="text-[11px] text-neutral-500 leading-snug mb-2">
               <span className="text-emerald-500/90">{tracking.origin.split(' ')[0]}</span>
               <span className="text-neutral-600 mx-1">→</span>
@@ -260,12 +274,12 @@ export function ShipmentTrackingSummary({
               </span>
             </p>
           )}
-          {tracking.waybill && (
+          {tracking?.waybill && (
             <p className="text-[10px] font-mono text-cyan-400/80 mb-3">{tracking.waybill}</p>
           )}
           {steps.length > 0 && (
             <p className="text-[10px] text-neutral-500 mb-3">
-              {completedCount} of {steps.length} steps completed
+              {cancelled ? 'Order cancelled' : `${completedCount} of ${steps.length} steps completed`}
             </p>
           )}
         </>

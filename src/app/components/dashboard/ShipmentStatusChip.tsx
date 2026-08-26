@@ -26,7 +26,9 @@ export function ShipmentStatusChip({ order, tracking }: Props) {
         ? 'bg-cyan-500/10 text-cyan-300 border-cyan-500/20'
         : phase === 'preparing'
           ? 'bg-orange-500/10 text-orange-300 border-orange-500/20'
-          : 'bg-sky-500/10 text-sky-300 border-sky-500/20';
+        : phase === 'cancelled'
+        ? 'bg-red-500/10 text-red-400 border-red-500/20'
+        : 'bg-sky-500/10 text-sky-300 border-sky-500/20';
 
   return (
     <span

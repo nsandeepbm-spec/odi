@@ -12,6 +12,8 @@ Create `odinew/.env`:
 
 ```env
 VITE_API_URL=http://localhost:5000
+# Production build:
+# VITE_API_URL=https://odi.studio
 ```
 
 ```bash

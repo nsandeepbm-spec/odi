@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router';
 import { Ban, CheckCircle2, Search, XCircle, Clock, Eye } from 'lucide-react';
 import {
   PageHeader,
@@ -9,6 +8,8 @@ import {
   inrFromPaise,
 } from '../../../components/dashboard/shared';
 import { ODILoader } from '../../../components/ODILoader';
+import { CancelRequestDrawer } from '../../../components/dashboard/CancelRequestDrawer';
+import { FeedbackDialog } from '../../../components/dashboard/FeedbackDialog';
 import {
   listAdminCancels,
   reviewAdminCancel,
@@ -53,8 +54,16 @@ export default function CancelManagementPage() {
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<CancelStatus | 'all'>('pending');
-  const [busyId, setBusyId] = useState<string | null>(null);
-  const [note, setNote] = useState('');
+  const [busyAction, setBusyAction] = useState<{
+    id: string;
+    decision: 'approved' | 'rejected';
+  } | null>(null);
+  const [viewRow, setViewRow] = useState<CancelRow | null>(null);
+  const [feedback, setFeedback] = useState<{
+    tone: 'success' | 'error';
+    title: string;
+    message: string;
+  } | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -92,19 +101,36 @@ export default function CancelManagementPage() {
   const approvedCount = rows.filter((r) => r.status === 'approved').length;
   const rejectedCount = rows.filter((r) => r.status === 'rejected').length;
 
-  const handleReview = async (row: CancelRow, decision: 'approved' | 'rejected') => {
-    setBusyId(row.id);
+  const handleReview = async (row: CancelRow, decision: 'approved' | 'rejected', adminNote: string) => {
+    setBusyAction({ id: row.id, decision });
     try {
-      await reviewAdminCancel(row.id, decision, note);
-      setNote('');
+      const updated = await reviewAdminCancel(row.id, decision, adminNote);
       await load();
+      setViewRow(null);
       if (decision === 'approved') {
-        alert('Cancel approved. Delhivery cancel attempted if waybill exists. Refund queued under Refund Management.');
+        setFeedback({
+          tone: 'success',
+          title: 'Cancellation approved',
+          message: updated.waybill
+            ? 'The courier shipment was cancelled. A refund is queued under Refund Management.'
+            : 'A refund is queued under Refund Management.',
+        });
+      } else {
+        setFeedback({
+          tone: 'success',
+          title: 'Cancellation declined',
+          message: 'The customer’s cancel request was declined. The order stays active.',
+        });
       }
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Could not update request');
+      setFeedback({
+        tone: 'error',
+        title: 'Could not update request',
+        message: err instanceof Error ? err.message : 'Please try again.',
+      });
+      await load();
     } finally {
-      setBusyId(null);
+      setBusyAction(null);
     }
   };
 
@@ -113,7 +139,7 @@ export default function CancelManagementPage() {
       <PageHeader
         title="Cancel"
         accent="Management."
-        subtitle="Review customer cancel requests. Approve runs Delhivery cancel (if AWB) and queues a refund."
+        subtitle="Open View to read the customer message and order details, then approve or reject."
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
@@ -151,18 +177,6 @@ export default function CancelManagementPage() {
           </div>
         </div>
 
-        <div className="p-4 sm:p-5 border-b border-white/[0.04]">
-          <label className="block text-[10px] font-bold tracking-widest uppercase text-neutral-500 mb-2">
-            Admin note (optional)
-          </label>
-          <input
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder="Applied on next approve/reject"
-            className="w-full px-3 py-2.5 rounded-xl border border-white/[0.07] bg-[#111113] text-sm text-neutral-200 outline-none focus:border-white/20"
-          />
-        </div>
-
         {loading ? (
           <ODILoader size="sm" label="Loading…" className="py-16" />
         ) : error ? (
@@ -180,23 +194,17 @@ export default function CancelManagementPage() {
                 <tr className="text-[10px] font-bold tracking-widest uppercase text-neutral-500 border-b border-white/[0.04]">
                   <th className="px-5 py-3">Order</th>
                   <th className="px-5 py-3">Customer</th>
-                  <th className="px-5 py-3">Reason</th>
                   <th className="px-5 py-3">Amount</th>
                   <th className="px-5 py-3">Status</th>
                   <th className="px-5 py-3">Requested</th>
-                  <th className="px-5 py-3 text-right">Actions</th>
+                  <th className="px-5 py-3 text-right">Details</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((row) => (
                   <tr key={row.id} className="border-b border-white/[0.03] hover:bg-white/[0.02]">
                     <td className="px-5 py-4">
-                      <Link
-                        to={`/dashboard/admin/orders/${row.orderId}`}
-                        className="font-black text-cyan-400 hover:underline"
-                      >
-                        {row.orderNumber}
-                      </Link>
+                      <p className="font-black text-cyan-400">{row.orderNumber}</p>
                       {row.waybill && (
                         <p className="text-[11px] text-neutral-500 mt-0.5">AWB {row.waybill}</p>
                       )}
@@ -208,46 +216,20 @@ export default function CancelManagementPage() {
                       <p className="font-semibold text-white">{row.userName || '—'}</p>
                       <p className="text-xs text-neutral-500">{row.userEmail}</p>
                     </td>
-                    <td className="px-5 py-4 max-w-[220px]">
-                      <p className="text-neutral-300 line-clamp-2">{row.reason}</p>
-                      {row.adminNote && (
-                        <p className="text-[11px] text-neutral-500 mt-1">Note: {row.adminNote}</p>
-                      )}
-                    </td>
                     <td className="px-5 py-4 font-bold text-white">{inrFromPaise(row.amountPaise)}</td>
                     <td className="px-5 py-4">
                       <StatusChip status={row.status} />
                     </td>
                     <td className="px-5 py-4 text-neutral-400 text-xs">{formatDate(row.createdAt)}</td>
-                    <td className="px-5 py-4">
-                      <div className="flex items-center justify-end gap-2">
-                        <Link
-                          to={`/dashboard/admin/orders/${row.orderId}`}
-                          className="p-2 rounded-lg border border-white/10 text-neutral-400 hover:text-white hover:bg-white/5"
-                        >
-                          <Eye className="w-3.5 h-3.5" />
-                        </Link>
-                        {row.status === 'pending' && (
-                          <>
-                            <button
-                              type="button"
-                              disabled={busyId === row.id}
-                              onClick={() => void handleReview(row, 'approved')}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 disabled:opacity-50"
-                            >
-                              Approve
-                            </button>
-                            <button
-                              type="button"
-                              disabled={busyId === row.id}
-                              onClick={() => void handleReview(row, 'rejected')}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 disabled:opacity-50"
-                            >
-                              Reject
-                            </button>
-                          </>
-                        )}
-                      </div>
+                    <td className="px-5 py-4 text-right">
+                      <button
+                        type="button"
+                        onClick={() => setViewRow(row)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg border border-cyan-500/25 bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/20"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                        View
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -256,6 +238,22 @@ export default function CancelManagementPage() {
           </div>
         )}
       </Card>
+
+      <CancelRequestDrawer
+        open={!!viewRow}
+        row={viewRow}
+        busyAction={viewRow && busyAction?.id === viewRow.id ? busyAction.decision : null}
+        onClose={() => setViewRow(null)}
+        onReview={handleReview}
+      />
+
+      <FeedbackDialog
+        open={!!feedback}
+        tone={feedback?.tone ?? 'success'}
+        title={feedback?.title ?? ''}
+        message={feedback?.message ?? ''}
+        onClose={() => setFeedback(null)}
+      />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import type { ShipmentTracking, UserOrderStatus } from '../../lib/api';
 import {
+  collapseConsecutiveTrackingScans,
   friendlyCourierStatus,
   resolveShipmentPhase,
   type ShipmentPhase,
@@ -75,6 +76,8 @@ function milestoneIndex(phase: ShipmentPhase): number {
       return 2;
     case 'delivered':
       return 3;
+    case 'cancelled':
+      return -1;
   }
 }
 
@@ -101,9 +104,49 @@ export function buildShipmentMilestones(
   adminView = false,
 ): Milestone[] {
   const phase = resolveShipmentPhase(asPhaseOrder(order), tracking);
+  const updatedAt = order.updated_at ?? order.paid_at ?? order.created_at;
+
+  if (phase === 'cancelled') {
+    const cancelTitle = order.status === 'refunded' ? 'Refunded' : 'Cancelled';
+    return [
+      {
+        id: 'confirmed',
+        title: 'Order Confirmed',
+        date: formatMilestoneDate(order.created_at),
+        completed: true,
+        current: false,
+        events: [
+          {
+            id: 'placed',
+            text: adminView ? 'Order has been placed' : 'Your order has been placed',
+            time: order.created_at,
+          },
+        ],
+      },
+      {
+        id: 'cancelled',
+        title: cancelTitle,
+        date: formatMilestoneDate(updatedAt),
+        completed: true,
+        current: true,
+        events: [
+          {
+            id: 'cancel-approved',
+            text:
+              order.status === 'refunded'
+                ? 'Refund processed'
+                : adminView
+                  ? 'Shipment cancelled with courier'
+                  : 'Cancellation approved — this order will not be delivered',
+            time: updatedAt,
+          },
+        ],
+      },
+    ];
+  }
+
   const activeIdx = milestoneIndex(phase);
   const waybill = order.delhivery_waybill?.trim() || tracking?.waybill || null;
-  const updatedAt = order.updated_at ?? order.paid_at ?? order.created_at;
 
   const confirmedEvents: SubEvent[] = [
     {
@@ -139,7 +182,10 @@ export function buildShipmentMilestones(
     });
   }
 
-  const scansChrono = [...(tracking?.scans ?? [])].reverse();
+  const scansChrono = collapseConsecutiveTrackingScans(
+    [...(tracking?.scans ?? [])].reverse(),
+    !adminView,
+  );
   for (let i = 0; i < scansChrono.length; i++) {
     const scan = scansChrono[i];
     if (scanBucket(scan.scan) !== 'shipped') continue;

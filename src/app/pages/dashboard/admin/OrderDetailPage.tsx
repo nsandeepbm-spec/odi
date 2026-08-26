@@ -556,6 +556,7 @@ export default function OrderDetailPage() {
               error={trackingError}
               onRefresh={() => loadTracking(order.id)}
               onViewDetails={() => setTrackingDrawerOpen(true)}
+              order={order}
             />
           )}
         </div>

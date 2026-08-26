@@ -127,13 +127,31 @@ const orderStyles: Record<OrderStatus, string> = {
   refunded: 'bg-neutral-500/10 text-neutral-400 border-neutral-500/20',
 };
 
-export function OrderBadge({ status }: { status: string }) {
+export function OrderBadge({ status, label }: { status: string; label?: string }) {
   const style = orderStyles[status as OrderStatus] ?? 'bg-neutral-500/10 text-neutral-400 border-neutral-500/20';
   return (
     <span className={`px-2.5 py-1 text-[9px] font-black uppercase tracking-widest rounded border ${style}`}>
-      {status.replace(/_/g, ' ')}
+      {(label ?? status).replace(/_/g, ' ')}
     </span>
   );
+}
+
+/** Customer-facing copy after a cancel queues a refund. */
+export function userOrderStatusDisplay(order: {
+  status: string;
+  refund_status?: string | null;
+}): { badgeStatus: OrderStatus | string; label: string } {
+  const rs = order.refund_status ?? null;
+  if (rs === 'pending' || rs === 'approved') {
+    return { badgeStatus: 'pending', label: 'Refund in progress' };
+  }
+  if (rs === 'rejected') {
+    return { badgeStatus: 'cancelled', label: 'Refund not possible' };
+  }
+  if (rs === 'completed' || order.status === 'refunded') {
+    return { badgeStatus: 'refunded', label: 'Refunded' };
+  }
+  return { badgeStatus: order.status, label: order.status.replace(/_/g, ' ') };
 }
 
 const paymentStyles: Record<PaymentStatus, string> = {

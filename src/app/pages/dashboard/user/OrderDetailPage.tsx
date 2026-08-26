@@ -10,6 +10,7 @@ import {
   Clock,
   FileDown,
   Ban,
+  Banknote,
 } from 'lucide-react';
 import {
   PageHeader,
@@ -17,6 +18,7 @@ import {
   EmptyState,
   inrFromPaise,
   OrderBadge,
+  userOrderStatusDisplay,
 } from '../../../components/dashboard/shared';
 import { ODILoader } from '../../../components/ODILoader';
 import {
@@ -24,10 +26,12 @@ import {
   getMyOrderTracking,
   createMyOrderCancel,
   getMyOrderCancel,
+  getMyOrderRefund,
   type UserOrderItem,
   type UserOrderPayment,
   type ShipmentTracking,
   type CancelRow,
+  type RefundRow,
 } from '../../../lib/api';
 import { useAuth } from '../../../lib/auth';
 import { downloadOrderInvoice } from '../../../lib/invoice';
@@ -35,6 +39,7 @@ import {
   ShipmentTrackingSummary,
   ShipmentTrackingDrawer,
 } from '../../../components/dashboard/ShipmentTrackingDrawer';
+import { FeedbackDialog } from '../../../components/dashboard/FeedbackDialog';
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-IN', {
@@ -110,9 +115,15 @@ export default function UserOrderDetailPage() {
   const [trackingError, setTrackingError] = useState<string | null>(null);
   const [trackingDrawerOpen, setTrackingDrawerOpen] = useState(false);
   const [cancelReq, setCancelReq] = useState<CancelRow | null>(null);
+  const [refundReq, setRefundReq] = useState<RefundRow | null>(null);
   const [cancelReason, setCancelReason] = useState('');
   const [cancelBusy, setCancelBusy] = useState(false);
   const [showCancelForm, setShowCancelForm] = useState(false);
+  const [feedback, setFeedback] = useState<{
+    tone: 'success' | 'error';
+    title: string;
+    message: string;
+  } | null>(null);
 
   const loadTracking = (id: string) => {
     setTrackingLoading(true);
@@ -138,13 +149,20 @@ export default function UserOrderDetailPage() {
           setItems(d.items);
           setPayments(d.payments);
           setCancelReq(null);
+          setRefundReq(null);
           setLoading(false);
-          void getMyOrderCancel(d.order.id)
-            .then((c) => {
-              if (!cancelled) setCancelReq(c);
+          void Promise.all([getMyOrderCancel(d.order.id), getMyOrderRefund(d.order.id)])
+            .then(([c, r]) => {
+              if (!cancelled) {
+                setCancelReq(c);
+                setRefundReq(r);
+              }
             })
             .catch(() => {
-              if (!cancelled) setCancelReq(null);
+              if (!cancelled) {
+                setCancelReq(null);
+                setRefundReq(null);
+              }
             });
           if (d.order.delhivery_waybill) loadTracking(d.order.id);
         }
@@ -197,10 +215,15 @@ export default function UserOrderDetailPage() {
     .join(', ');
   const shipName = [addr?.first_name, addr?.last_name].filter(Boolean).join(' ') || '—';
   const awaitingPayment = order.status === 'pending' && !!order.razorpay_order_id;
+  const statusDisplay = userOrderStatusDisplay({
+    status: order.status,
+    refund_status: refundReq?.status ?? order.refund_status,
+  });
   const canRequestCancel =
-    !['cancelled', 'refunded', 'delivered'].includes(order.status) &&
+    !['cancelled', 'refunded', 'delivered', 'pending'].includes(order.status) &&
     !awaitingPayment &&
-    (!cancelReq || cancelReq.status === 'rejected');
+    (!cancelReq || cancelReq.status === 'rejected') &&
+    !refundReq;
 
   const submitCancelRequest = () => {
     if (!user || !order) return;
@@ -210,10 +233,19 @@ export default function UserOrderDetailPage() {
         setCancelReq(row);
         setShowCancelForm(false);
         setCancelReason('');
-        alert('Cancel request sent. Our team will review it shortly.');
+        setFeedback({
+          tone: 'success',
+          title: 'Request received',
+          message:
+            'We’ve received your cancellation request. We’ll review it shortly. You can follow the status on this order.',
+        });
       })
       .catch((err) => {
-        alert(err instanceof Error ? err.message : 'Could not submit cancel request');
+        setFeedback({
+          tone: 'error',
+          title: 'Could not submit request',
+          message: err instanceof Error ? err.message : 'Please try again in a moment.',
+        });
       })
       .finally(() => setCancelBusy(false));
   };
@@ -246,7 +278,7 @@ export default function UserOrderDetailPage() {
                     <Clock className="w-3 h-3" /> Awaiting Payment
                   </span>
                 ) : (
-                  <OrderBadge status={order.status} />
+                  <OrderBadge status={statusDisplay.badgeStatus} label={statusDisplay.label} />
                 )}
                 <span className="text-xs text-neutral-500 font-medium">
                   {order.paid_at ? `Paid ${formatDateTime(order.paid_at)}` : 'Not paid yet'}
@@ -418,11 +450,50 @@ export default function UserOrderDetailPage() {
                 }`}
               >
                 <p className="font-black uppercase tracking-widest mb-1">
-                  Cancel {cancelReq.status}
+                  {cancelReq.status === 'pending'
+                    ? 'Cancellation requested'
+                    : cancelReq.status === 'approved'
+                      ? 'Cancellation approved'
+                      : 'Cancellation declined'}
                 </p>
-                <p className="opacity-90 leading-relaxed">{cancelReq.reason}</p>
-                {cancelReq.adminNote && (
-                  <p className="mt-1.5 opacity-80">Admin: {cancelReq.adminNote}</p>
+                {cancelReq.reason && (
+                  <p className="opacity-90 leading-relaxed">{cancelReq.reason}</p>
+                )}
+              </div>
+            )}
+
+            {refundReq && (
+              <div
+                className={`mt-3 rounded-xl border px-3 py-3 text-xs ${
+                  refundReq.status === 'pending' || refundReq.status === 'approved'
+                    ? 'border-amber-500/20 bg-amber-500/10 text-amber-300'
+                    : refundReq.status === 'completed'
+                      ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300'
+                      : 'border-red-500/20 bg-red-500/10 text-red-300'
+                }`}
+              >
+                <p className="font-black uppercase tracking-widest mb-1 inline-flex items-center gap-1.5">
+                  <Banknote className="w-3.5 h-3.5" />
+                  {refundReq.status === 'pending' || refundReq.status === 'approved'
+                    ? 'Refund in progress'
+                    : refundReq.status === 'completed'
+                      ? 'Refund sent'
+                      : 'Refund not possible'}
+                </p>
+                {refundReq.status === 'pending' || refundReq.status === 'approved' ? (
+                  <p className="opacity-90 leading-relaxed">
+                    Your order is cancelled. The amount will be returned to your original payment
+                    method.
+                  </p>
+                ) : refundReq.status === 'completed' ? (
+                  <p className="opacity-90 leading-relaxed">
+                    The amount has been returned to your original payment method. It can take a few
+                    business days to show up.
+                  </p>
+                ) : (
+                  <p className="opacity-90 leading-relaxed">
+                    We weren't able to refund this order. If you have questions, contact support.
+                  </p>
                 )}
               </div>
             )}
@@ -446,7 +517,7 @@ export default function UserOrderDetailPage() {
                   value={cancelReason}
                   onChange={(e) => setCancelReason(e.target.value)}
                   rows={3}
-                  placeholder="Optional reason for our team…"
+                  placeholder="Optional reason…"
                   className="w-full px-3 py-2 rounded-xl border border-white/[0.07] bg-[#111113] text-sm text-neutral-200 outline-none focus:border-white/20 resize-none"
                 />
                 <div className="flex gap-2">
@@ -474,7 +545,11 @@ export default function UserOrderDetailPage() {
             )}
           </div>
 
-          {(order.delhivery_waybill || order.status === 'shipped' || order.status === 'processing') && (
+          {(order.delhivery_waybill ||
+            order.status === 'shipped' ||
+            order.status === 'processing' ||
+            order.status === 'cancelled' ||
+            order.status === 'refunded') && (
             <ShipmentTrackingSummary
               tracking={tracking}
               loading={trackingLoading}
@@ -482,6 +557,7 @@ export default function UserOrderDetailPage() {
               onRefresh={() => loadTracking(order.id)}
               onViewDetails={() => setTrackingDrawerOpen(true)}
               userFacing
+              order={order}
             />
           )}
         </div>
@@ -495,7 +571,23 @@ export default function UserOrderDetailPage() {
         error={trackingError}
         onRefresh={() => loadTracking(order.id)}
         orderNumber={order.order_number}
+        order={order}
+        deliveryAddress={
+          fullAddr
+            ? [shipName !== '—' ? shipName : null, fullAddr].filter(Boolean).join(' · ')
+            : shipName !== '—'
+              ? shipName
+              : null
+        }
         userFacing
+      />
+
+      <FeedbackDialog
+        open={!!feedback}
+        tone={feedback?.tone ?? 'success'}
+        title={feedback?.title ?? ''}
+        message={feedback?.message ?? ''}
+        onClose={() => setFeedback(null)}
       />
     </div>
   );

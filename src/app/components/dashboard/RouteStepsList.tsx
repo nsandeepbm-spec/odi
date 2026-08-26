@@ -26,7 +26,7 @@ function formatStepTime(iso: string | null) {
 /** Shared vertical step list — green done, cyan in progress, white pending. */
 export function RouteStepsList({ steps }: { steps: RouteStep[] }) {
   return (
-    <ol className="relative ml-3">
+    <ol className="relative ml-3 pt-1">
       {steps.map((step, idx) => {
         const isLast = idx === steps.length - 1;
         const lineCompleted = step.completed && !isLast;

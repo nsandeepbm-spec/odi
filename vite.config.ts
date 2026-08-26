@@ -34,13 +34,10 @@ export default defineConfig({
   // File types to support raw imports. Never add .css, .tsx, or .ts files to this.
   assetsInclude: ['**/*.svg', '**/*.csv'],
 
-  // Same-origin API proxy — enables one ngrok URL for UI + backend in dev
+  // Local API proxy — same paths as production (https://odi.studio/payments, /auth, …).
   // IMPORTANT: `/products` must NOT steal public assets like `/products-banner.png`.
   // Bypass any request that looks like a static file.
   server: {
-    host: true,
-    // Allow ngrok / tunnel hostnames (Vite blocks unknown Host headers by default)
-    allowedHosts: true,
     proxy: (() => {
       const target = 'http://127.0.0.1:5000';
       const bypass = (req: { url?: string; method?: string; headers?: Record<string, string | string[] | undefined> }) => {

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
-import { IndianRupee, Clock, RotateCcw, Download, AlertCircle, Eye } from 'lucide-react';
+import { IndianRupee, Clock, RotateCcw, Download, AlertCircle, Eye, Wallet } from 'lucide-react';
 import { PageHeader, StatCard, Card, PaymentBadge, EmptyState, inrFromPaise, DashboardSkeleton } from '../../../components/dashboard/shared';
 import { listAdminPayments, type AdminPayment } from '../../../lib/api';
 import { downloadCsv, inDateRange } from '../../../lib/csv';
@@ -23,6 +23,11 @@ function badgeStatus(status: string): 'paid' | 'pending' | 'refunded' | 'failed'
 export default function PaymentsPage() {
   const [payments, setPayments] = useState<AdminPayment[]>([]);
   const [kpis, setKpis] = useState({ collectedPaise: 0, pendingPaise: 0, refundedPaise: 0 });
+  const [razorpay, setRazorpay] = useState<{
+    mode: 'test' | 'live' | 'unset';
+    webhookConfigured: boolean;
+    webhookUrl?: string;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dateFrom, setDateFrom] = useState('');
@@ -36,6 +41,7 @@ export default function PaymentsPage() {
         if (!cancelled) {
           setPayments(result.payments);
           setKpis(result.kpis);
+          setRazorpay(result.razorpay ?? null);
         }
       } catch (err) {
         if (!cancelled) {
@@ -106,23 +112,65 @@ export default function PaymentsPage() {
       <PageHeader
         title="Payments &"
         accent="Transactions."
-        subtitle="Monitor collections, pending payments and refunds."
+        subtitle="Collected is ODI’s captured checkout total — not Razorpay’s refundable wallet. Approve customer refunds in Refund Management after a cancel is approved."
         action={
-          <button
-            type="button"
-            onClick={exportCsv}
-            disabled={filtered.length === 0}
-            className="inline-flex items-center gap-2 px-6 py-3 text-sm font-bold tracking-wide border border-white/[0.1] text-white bg-black/40 hover:bg-white/[0.04] hover:border-white/[0.2] transition-all rounded-xl shadow-lg relative z-10 disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            <Download className="w-4 h-4" /> Export CSV
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              to="/dashboard/admin/refunds"
+              className="inline-flex items-center gap-2 px-5 py-3 text-sm font-bold tracking-wide border border-cyan-500/25 text-cyan-300 bg-cyan-500/10 hover:bg-cyan-500/20 transition-all rounded-xl relative z-10"
+            >
+              Refund Management
+            </Link>
+            <button
+              type="button"
+              onClick={exportCsv}
+              disabled={filtered.length === 0}
+              className="inline-flex items-center gap-2 px-6 py-3 text-sm font-bold tracking-wide border border-white/[0.1] text-white bg-black/40 hover:bg-white/[0.04] hover:border-white/[0.2] transition-all rounded-xl shadow-lg relative z-10 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <Download className="w-4 h-4" /> Export CSV
+            </button>
+          </div>
         }
       />
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8 relative z-10">
-        <StatCard label="Collected" value={inrFromPaise(kpis.collectedPaise)} icon={IndianRupee} delay={0} />
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6 relative z-10">
+        <StatCard label="Collected (ODI records)" value={inrFromPaise(kpis.collectedPaise)} icon={IndianRupee} delay={0} />
         <StatCard label="Pending" value={inrFromPaise(kpis.pendingPaise)} icon={Clock} delay={0.06} />
-        <StatCard label="Refunded" value={inrFromPaise(kpis.refundedPaise)} icon={RotateCcw} delay={0.12} />
+        <StatCard label="Refunded in ODI" value={inrFromPaise(kpis.refundedPaise)} icon={RotateCcw} delay={0.12} />
+      </div>
+
+      <div className="mb-8 relative z-10 rounded-2xl border border-amber-500/20 bg-amber-500/[0.06] p-4 sm:p-5 flex gap-3">
+        <Wallet className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+        <div className="min-w-0 text-sm leading-relaxed">
+          <p className="font-bold text-amber-200">
+            Collected is not the Razorpay wallet
+            {razorpay?.mode && razorpay.mode !== 'unset' ? ` · keys are ${razorpay.mode} mode` : ''}
+            {razorpay && !razorpay.webhookConfigured ? ' · webhook secret missing' : ''}
+          </p>
+          {razorpay?.webhookUrl ? (
+            <p className="text-neutral-400 mt-1 font-mono text-xs break-all">
+              Webhook URL (paste in Razorpay Dashboard): {razorpay.webhookUrl}
+            </p>
+          ) : null}
+          <p className="text-neutral-400 mt-1">
+            This page sums captured payments in our database. Razorpay refunds are paid from{' '}
+            <span className="text-neutral-200 font-semibold">Available balance / refund credits</span> in the
+            Razorpay Dashboard (same Test/Live toggle as your keys). If that wallet is ₹0, Approve refund fails even
+            when Collected is positive.{' '}
+            <a
+              href="https://dashboard.razorpay.com/"
+              target="_blank"
+              rel="noreferrer"
+              className="text-cyan-400 hover:text-cyan-300 underline-offset-2 hover:underline"
+            >
+              Open Razorpay Dashboard
+            </a>
+            {' · '}
+            <Link to="/dashboard/admin/refunds" className="text-cyan-400 hover:text-cyan-300 underline-offset-2 hover:underline">
+              Refund Management
+            </Link>
+          </p>
+        </div>
       </div>
 
       <Card title="Transaction History" className="relative z-10">

@@ -2,6 +2,7 @@ import React from 'react';
 import { MapPin } from 'lucide-react';
 import type { ShipmentTracking, UserOrder } from '../../lib/api';
 import {
+  collapseConsecutiveTrackingScans,
   friendlyCourierStatus,
   friendlyRouteStepTitle,
   headlineShipmentStatus,
@@ -35,6 +36,14 @@ function applyPhaseToRouteSteps(steps: RouteStep[], phase: ShipmentPhase): Route
 
   if (phase === 'delivered') {
     return steps.map((s) => ({ ...s, completed: true, current: false }));
+  }
+
+  if (phase === 'cancelled') {
+    return steps.map((s, i) => ({
+      ...s,
+      completed: i === 0,
+      current: i === steps.length - 1,
+    }));
   }
 
   const next = routeSteps.map((s) => ({ ...s, completed: false, current: false }));
@@ -73,7 +82,10 @@ export function buildRouteSteps(
   if (!tracking) return [];
 
   const delivered = trackingIsDelivered(tracking);
-  const scansChrono = [...(tracking.scans ?? [])].reverse();
+  const scansChrono = collapseConsecutiveTrackingScans(
+    [...(tracking.scans ?? [])].reverse(),
+    Boolean(userFacing),
+  );
   const hasCourierUpdate = scansChrono.length > 0 || Boolean(tracking.status?.trim());
   const steps: RouteStep[] = [];
 
@@ -264,6 +276,32 @@ export function buildPreTrackingRouteSteps(
   return applyPhaseToRouteSteps(steps, resolvedPhase);
 }
 
+export function buildCancelledRouteSteps(
+  order: Pick<UserOrder, 'created_at' | 'updated_at' | 'status'>,
+): RouteStep[] {
+  return [
+    {
+      id: 'confirmed',
+      title: 'Order confirmed',
+      subtitle: 'Payment received — thank you for your order',
+      time: order.created_at,
+      completed: true,
+      current: false,
+    },
+    {
+      id: 'cancelled',
+      title: order.status === 'refunded' ? 'Refunded' : 'Order cancelled',
+      subtitle:
+        order.status === 'refunded'
+          ? 'Refund has been processed'
+          : 'Cancellation approved — this order will not be delivered',
+      time: order.updated_at ?? order.created_at,
+      completed: true,
+      current: true,
+    },
+  ];
+}
+
 export function buildBookingRouteSteps(
   order: UserOrder,
   tracking: ShipmentTracking | null | undefined,
@@ -271,6 +309,10 @@ export function buildBookingRouteSteps(
   userFacing = true,
 ): RouteStep[] {
   const phase = resolveShipmentPhase(order, tracking);
+
+  if (phase === 'cancelled') {
+    return buildCancelledRouteSteps(order);
+  }
 
   if (tracking && (tracking.origin || tracking.status || (tracking.scans?.length ?? 0) > 0)) {
     return buildRouteSteps(tracking, userFacing, deliveryAddress, phase);
@@ -342,7 +384,10 @@ export function ShipmentRouteTimeline({
   order,
 }: TimelineProps) {
   const phase = order ? resolveShipmentPhase(order, tracking) : undefined;
-  const steps = buildRouteSteps(tracking, userFacing, deliveryAddress, phase);
+  const steps =
+    phase === 'cancelled' && order
+      ? buildCancelledRouteSteps(order)
+      : buildRouteSteps(tracking, userFacing, deliveryAddress, phase);
 
   if (!tracking) return null;
 

@@ -7,13 +7,15 @@ export type ShipmentPhase =
   | 'ready_to_ship'
   | 'in_transit'
   | 'out_for_delivery'
-  | 'delivered';
+  | 'delivered'
+  | 'cancelled';
 
 /** Customer-facing copy — never show raw Delhivery terms like "Manifested". */
 export function friendlyCourierStatus(raw: string | null | undefined): string {
   if (!raw?.trim()) return 'Updating delivery status';
   const s = raw.toLowerCase();
 
+  if (s.includes('cancel')) return 'Cancelled';
   if (s.includes('deliver') && !s.includes('out for')) return 'Delivered';
   if (s.includes('out for delivery')) return 'Out for delivery';
   if (s.includes('in transit') || s === 'in-transit') return 'In transit';
@@ -27,6 +29,37 @@ export function friendlyCourierStatus(raw: string | null | undefined): string {
   return raw
     .replace(/_/g, ' ')
     .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+type CollapsibleScan = {
+  scan: string;
+  scannedLocation?: string | null;
+};
+
+function scanCollapseKey(scan: CollapsibleScan, userFacing: boolean): string {
+  const title = userFacing ? friendlyCourierStatus(scan.scan) : scan.scan.trim().toLowerCase();
+  const loc = (scan.scannedLocation ?? '').trim().toLowerCase();
+  return `${title}|${loc}`;
+}
+
+/**
+ * Delhivery often emits many hub pings (Manifested, same city, 1 min apart).
+ * Keep one row per consecutive same status + location; use the latest timestamp.
+ */
+export function collapseConsecutiveTrackingScans<T extends CollapsibleScan>(
+  scansChrono: T[],
+  userFacing = true,
+): T[] {
+  const collapsed: T[] = [];
+  for (const scan of scansChrono) {
+    const prev = collapsed[collapsed.length - 1];
+    if (prev && scanCollapseKey(prev, userFacing) === scanCollapseKey(scan, userFacing)) {
+      collapsed[collapsed.length - 1] = scan;
+      continue;
+    }
+    collapsed.push(scan);
+  }
+  return collapsed;
 }
 
 export function friendlyOrderStatus(status: UserOrderStatus): string {
@@ -122,6 +155,9 @@ export function resolveShipmentPhase(
   order: OrderForPhase,
   tracking?: ShipmentTracking | null,
 ): ShipmentPhase {
+  if (order.status === 'cancelled' || order.status === 'refunded') return 'cancelled';
+  if (order.delhivery_status && /cancel/i.test(order.delhivery_status)) return 'cancelled';
+
   if (order.status === 'delivered' || trackingIsDelivered(tracking)) return 'delivered';
 
   const fromLive = phaseFromTracking(tracking);
@@ -162,6 +198,8 @@ export function headlineShipmentStatus(
       return 'Preparing your order';
     case 'confirmed':
       return 'Order confirmed';
+    case 'cancelled':
+      return order.status === 'refunded' ? 'Refunded' : 'Cancelled';
   }
 }
 
@@ -182,6 +220,8 @@ export function shipmentProgressStep(
     case 'preparing':
       return 1;
     case 'confirmed':
+      return 0;
+    case 'cancelled':
       return 0;
   }
 }

@@ -29,7 +29,7 @@ const adminGroups: NavGroup[] = [
       { name: 'Shipments', path: '/dashboard/admin/shipments', icon: Truck },
       { name: 'Pickup schedule', path: '/dashboard/admin/pickups', icon: CalendarClock },
       { name: 'Cancel requests', path: '/dashboard/admin/cancels', icon: Ban },
-      { name: 'Refund requests', path: '/dashboard/admin/refunds', icon: Banknote },
+      { name: 'Refund Management', path: '/dashboard/admin/refunds', icon: Banknote },
     ],
   },
   {
