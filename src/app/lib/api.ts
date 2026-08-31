@@ -50,6 +50,11 @@ export const API = {
     careerApplications: '/admin/career-applications',
     cancels: '/admin/cancels',
     refunds: '/admin/refunds',
+    mailWelcome: '/admin/mail/welcome',
+    mailRefund: '/admin/mail/refund',
+    mailOrder: '/admin/mail/order',
+    mailProductLive: '/admin/mail/product-live',
+    mailCancel: '/admin/mail/cancel',
   },
   orders: {
     list: '/orders',
@@ -944,6 +949,72 @@ export async function getAdminOverview(): Promise<AdminOverview> {
   return body.data;
 }
 
+/** POST /admin/mail/welcome — send the registration welcome template (SMTP check). */
+export async function sendAdminWelcomeEmail(to?: string): Promise<{
+  to: string;
+  sent: boolean;
+  mode: 'smtp' | 'console';
+}> {
+  const body = await authFetch<ApiSuccess<{ to: string; sent: boolean; mode: 'smtp' | 'console' }>>(
+    API.admin.mailWelcome,
+    {
+      method: 'POST',
+      body: JSON.stringify(to ? { to } : {}),
+    }
+  );
+  return body.data;
+}
+
+/** POST /admin/mail/refund — send the refund-processed template (SMTP check). */
+export async function sendAdminRefundEmail(opts?: {
+  to?: string;
+  orderNumber?: string;
+  amountPaise?: number;
+}): Promise<{
+  to: string;
+  sent: boolean;
+  mode: 'smtp' | 'console';
+}> {
+  const body = await authFetch<ApiSuccess<{ to: string; sent: boolean; mode: 'smtp' | 'console' }>>(
+    API.admin.mailRefund,
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        ...(opts?.to ? { to: opts.to } : {}),
+        ...(opts?.orderNumber ? { orderNumber: opts.orderNumber } : {}),
+        ...(opts?.amountPaise ? { amountPaise: opts.amountPaise } : {}),
+      }),
+    }
+  );
+  return body.data;
+}
+
+async function sendAdminMailTemplate(
+  path: string,
+  to?: string
+): Promise<{ to: string; sent: boolean; mode: 'smtp' | 'console' }> {
+  const body = await authFetch<ApiSuccess<{ to: string; sent: boolean; mode: 'smtp' | 'console' }>>(path, {
+    method: 'POST',
+    body: JSON.stringify(to ? { to } : {}),
+  });
+  return body.data;
+}
+
+/** POST /admin/mail/order — send the order-placed template (SMTP check). */
+export function sendAdminOrderEmail(to?: string) {
+  return sendAdminMailTemplate(API.admin.mailOrder, to);
+}
+
+/** POST /admin/mail/product-live — send the product-live template (SMTP check). */
+export function sendAdminProductLiveEmail(to?: string) {
+  return sendAdminMailTemplate(API.admin.mailProductLive, to);
+}
+
+/** POST /admin/mail/cancel — send the order-cancelled template (SMTP check). */
+export function sendAdminCancelEmail(to?: string) {
+  return sendAdminMailTemplate(API.admin.mailCancel, to);
+}
+
 export async function listAdminProducts(page = 1, perPage = 50, status?: string, q?: string) {
   const qs = new URLSearchParams({ page: String(page), perPage: String(perPage) });
   if (status) qs.set('status', status);
@@ -1466,6 +1537,22 @@ export async function adminUpdateUser(
     body: JSON.stringify(patch),
   });
   return body.data.user;
+}
+
+export interface AdminDeleteUserResult {
+  deleted: boolean;
+  banned: boolean;
+  firebaseDeleted: boolean;
+  user: AppUser | null;
+  message: string;
+}
+
+/** DELETE /users/:id — admin: remove Firebase login + profile (or ban if they have orders). */
+export async function adminDeleteUser(id: string): Promise<AdminDeleteUserResult> {
+  const body = await authFetch<ApiSuccess<AdminDeleteUserResult>>(`${API.users.list}/${id}`, {
+    method: 'DELETE',
+  });
+  return body.data;
 }
 
 export interface AdminPayment {

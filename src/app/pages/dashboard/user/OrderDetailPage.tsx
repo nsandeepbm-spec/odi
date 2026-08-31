@@ -218,9 +218,10 @@ export default function UserOrderDetailPage() {
   const statusDisplay = userOrderStatusDisplay({
     status: order.status,
     refund_status: refundReq?.status ?? order.refund_status,
+    razorpay_order_id: order.razorpay_order_id,
   });
   const canRequestCancel =
-    !['cancelled', 'refunded', 'delivered', 'pending'].includes(order.status) &&
+    !['cancelled', 'refunded', 'delivered'].includes(order.status) &&
     !awaitingPayment &&
     (!cancelReq || cancelReq.status === 'rejected') &&
     !refundReq;

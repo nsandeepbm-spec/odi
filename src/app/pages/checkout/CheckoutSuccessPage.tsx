@@ -175,6 +175,7 @@ export default function CheckoutSuccessPage() {
 
   // Priority: real order number from URL → stored in context after completeOrder()
   const orderNumber = searchParams.get('order') ?? lastOrderId ?? '—';
+  const isCod = searchParams.get('pay') === 'cod';
   const customerName = [shipping.firstName, shipping.lastName].filter(Boolean).join(' ') || 'Valued Customer';
   const imageUrl = product?.media?.card?.url ?? product?.images?.[0]?.url ?? '';
 
@@ -216,7 +217,9 @@ export default function CheckoutSuccessPage() {
           transition={{ delay: 0.2 }}
           className="text-lg text-neutral-500 mb-10 max-w-lg leading-relaxed"
         >
-          Thank you for your purchase. We're getting your order ready to ship. You'll be notified once it's on the way.
+          {isCod
+            ? 'Your Cash on Delivery order is confirmed. Keep cash ready for the courier — no online payment was taken.'
+            : "Thank you for your purchase. We're getting your order ready to ship. You'll be notified once it's on the way."}
         </motion.p>
 
         <motion.div
@@ -259,7 +262,7 @@ export default function CheckoutSuccessPage() {
             </div>
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#00a680]/10">
               <CheckCircle2 className="w-3.5 h-3.5 text-[#00a680]" />
-              <span className="text-xs font-bold text-[#00a680]">Confirmed</span>
+              <span className="text-xs font-bold text-[#00a680]">{isCod ? 'COD' : 'Confirmed'}</span>
             </div>
           </div>
 
@@ -284,7 +287,7 @@ export default function CheckoutSuccessPage() {
           )}
 
           <div className="flex justify-between items-center py-4 border-t border-b border-neutral-100 mb-6">
-            <span className="font-bold text-neutral-600">Total Paid</span>
+            <span className="font-bold text-neutral-600">{isCod ? 'Pay on delivery' : 'Total Paid'}</span>
             <span className="font-black text-xl text-neutral-900">{formatInr(totalPaise)}</span>
           </div>
 

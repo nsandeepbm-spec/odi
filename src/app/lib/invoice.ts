@@ -27,8 +27,9 @@ function humanPaymentMethod(provider: string): string {
   return provider || 'Online Payment';
 }
 
-function humanPaymentStatus(status: string): string {
+function humanPaymentStatus(status: string, isCod?: boolean): string {
   const s = (status ?? '').toLowerCase();
+  if (isCod && (s === 'created' || s === 'pending' || !s)) return 'Pay on delivery';
   if (s === 'captured' || s === 'paid' || s === 'authorized') return 'Payment confirmed';
   if (s === 'created' || s === 'pending') return 'Awaiting payment';
   if (s === 'refunded') return 'Refunded';
@@ -36,7 +37,8 @@ function humanPaymentStatus(status: string): string {
   return status;
 }
 
-function humanOrderStatus(status: string): string {
+function humanOrderStatus(status: string, isCod?: boolean): string {
+  if (status === 'pending' && isCod) return 'Order placed — cash on delivery';
   const map: Record<string, string> = {
     pending: 'Order placed — awaiting payment',
     paid: 'Paid',
@@ -106,6 +108,7 @@ export function downloadOrderInvoice(detail: InvoiceDetail | AdminOrderDetail) {
     .filter(Boolean).join(', ');
 
   const payment = payments[0];
+  const isCod = (payment?.provider || '').toLowerCase() === 'cod';
   const isPaid  = ['captured', 'paid', 'authorized'].includes((payment?.status || '').toLowerCase())
     || ['paid', 'delivered', 'shipped', 'processing'].includes(order.status);
 
@@ -156,7 +159,7 @@ export function downloadOrderInvoice(detail: InvoiceDetail | AdminOrderDetail) {
   doc.text(formatDate(order.created_at), pageW - mX, 68, { align: 'right' });
 
   // ─── STATUS BADGE ───────────────────────────────────────────────────────
-  const badgeText = humanOrderStatus(order.status).toUpperCase();
+  const badgeText = humanOrderStatus(order.status, isCod).toUpperCase();
   const badgeW    = doc.getStringUnitWidth(badgeText) * 9 + 24;
   const badgeX    = pageW - mX - badgeW;
 
@@ -217,12 +220,12 @@ export function downloadOrderInvoice(detail: InvoiceDetail | AdminOrderDetail) {
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
-  const statusLabel = humanPaymentStatus(payment?.status || '');
+  const statusLabel = humanPaymentStatus(payment?.status || '', isCod);
   doc.setTextColor(isPaid ? 16 : 100, isPaid ? 185 : 100, isPaid ? 129 : 100);
   doc.text(statusLabel, rx + 14, y + 54);
 
   doc.setTextColor(100, 116, 139);
-  doc.text(`Mode: ${isPaid ? 'Prepaid' : 'Pending'}`, rx + 14, y + 70);
+  doc.text(`Mode: ${isCod ? 'Cash on Delivery' : isPaid ? 'Prepaid' : 'Pending'}`, rx + 14, y + 70);
 
   y += 130;
 

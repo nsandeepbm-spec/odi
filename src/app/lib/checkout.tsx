@@ -12,6 +12,7 @@ import {
 import type { UserAddress } from './api';
 import type { StoreProduct } from '../data/products';
 import { auth } from './firebase';
+import { useCartStore } from '../store/cartStore';
 
 export interface ShippingDetails {
   email: string;
@@ -39,8 +40,8 @@ const EMPTY_SHIPPING: ShippingDetails = {
 };
 
 const STORAGE_KEY = 'odi-checkout';
-const ADDRESSES_KEY = 'odi-saved-addresses';
 const IKEY_STORAGE_KEY = 'odi-checkout-ikey';
+const LEGACY_ADDRESSES_KEY = 'odi-saved-addresses';
 
 function loadIdempotencyKey(): string | null {
   try { return sessionStorage.getItem(IKEY_STORAGE_KEY); } catch { return null; }
@@ -58,17 +59,10 @@ function clearIdempotencyKey() {
   try { sessionStorage.removeItem(IKEY_STORAGE_KEY); } catch { /* noop */ }
 }
 
-function loadSavedAddresses(): SavedAddress[] {
-  try {
-    const raw = localStorage.getItem(ADDRESSES_KEY);
-    return raw ? (JSON.parse(raw) as SavedAddress[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-function persistSavedAddresses(addresses: SavedAddress[]) {
-  localStorage.setItem(ADDRESSES_KEY, JSON.stringify(addresses));
+try {
+  localStorage.removeItem(LEGACY_ADDRESSES_KEY);
+} catch {
+  /* ignore */
 }
 
 /** Convert a DB UserAddress row to the local SavedAddress shape. */
@@ -212,7 +206,7 @@ export function CheckoutProvider({ children }: { children: React.ReactNode }) {
     ...EMPTY_SHIPPING,
     ...persisted.shipping,
   });
-  const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>(loadSavedAddresses);
+  const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(
     persisted.selectedAddressId ?? null
   );
@@ -435,7 +429,6 @@ export function CheckoutProvider({ children }: { children: React.ReactNode }) {
           ? savedAddresses.map((a) => (a.id === saved.id ? saved : a))
           : [...savedAddresses.filter((a) => a.id !== existingId), saved];
         setSavedAddresses(next);
-        persistSavedAddresses(next);
         setShippingState({
           email: saved.email,
           phone: saved.phone,
@@ -475,13 +468,14 @@ export function CheckoutProvider({ children }: { children: React.ReactNode }) {
       if (JSON.stringify(prev) === JSON.stringify(mapped)) return prev;
       return mapped;
     });
-    persistSavedAddresses(mapped);
   }, []);
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
       if (!user) return;
-      refreshSavedAddresses().catch(() => {/* keep localStorage addresses */});
+      refreshSavedAddresses().catch(() => {
+        /* keep in-memory list; next visit refetches from API */
+      });
     });
     return unsubscribe;
   }, [refreshSavedAddresses]);
@@ -542,6 +536,7 @@ export function CheckoutProvider({ children }: { children: React.ReactNode }) {
 
   const completeOrder = useCallback((realOrderNumber: string) => {
     setLastOrderId(realOrderNumber);
+    useCartStore.getState().clearCart();
     sessionStorage.removeItem(STORAGE_KEY);
     clearIdempotencyKey();
     couponEpochRef.current += 1;

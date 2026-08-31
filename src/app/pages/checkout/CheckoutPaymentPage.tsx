@@ -14,10 +14,10 @@ import {
 } from 'lucide-react';
 import { useCheckout, isShippingComplete, isDbAddressId } from '../../lib/checkout';
 import { CheckoutOrderSummary } from '../../components/checkout/CheckoutOrderSummary';
-import { checkoutInput, checkoutLabel } from '../../components/checkout/CheckoutShell';
 import { discountPercent, formatInr } from '../../data/products';
 import { createCheckoutSession, verifyPayment } from '../../lib/api';
 import { auth } from '../../lib/firebase';
+import { FeedbackDialog, type FeedbackDialogTone } from '../../components/dashboard/FeedbackDialog';
 
 const PAYMENT_METHODS = [
   { id: 'upi', label: 'UPI', icon: Smartphone, hint: 'GPay · PhonePe · BHIM' },
@@ -25,8 +25,6 @@ const PAYMENT_METHODS = [
   { id: 'cod', label: 'Cash on Delivery', icon: Banknote, hint: 'Pay at doorstep' },
   { id: 'netbanking', label: 'Net Banking', icon: Building2, hint: 'All major banks' },
 ] as const;
-
-const BANKS = ['State Bank of India', 'HDFC Bank', 'ICICI Bank', 'Axis Bank', 'Kotak Mahindra'];
 
 /** Small styled brand badge used in payment panels */
 function PayBadge({ label, color }: { label: string; color: string }) {
@@ -96,7 +94,14 @@ export default function CheckoutPaymentPage() {
   useRazorpayScript();
   const [loading, setLoading] = useState(false);
   const [activeMethod, setActiveMethod] = useState<PaymentMethod>('upi');
-  const [selectedBank, setSelectedBank] = useState(BANKS[0]);
+  const [feedback, setFeedback] = useState<{
+    tone: FeedbackDialogTone;
+    title: string;
+    message: string;
+  } | null>(null);
+
+  const successPath = (orderNumber: string, pay: 'cod' | 'online') =>
+    `/checkout/success?order=${encodeURIComponent(orderNumber)}&pay=${pay}&product=${encodeURIComponent(product?.slug ?? '')}`;
 
   useEffect(() => {
     if (shippingQuoteStatus === 'ready' || shippingQuoteStatus === 'loading') return;
@@ -160,7 +165,7 @@ export default function CheckoutPaymentPage() {
       if (activeMethod === 'cod') {
         const session = await createCheckoutSession(buildCheckoutPayload('cod'), idempotencyKey);
         completeOrder(session.orderNumber);
-        navigate(`/checkout/success?order=${encodeURIComponent(session.orderNumber)}`);
+        navigate(successPath(session.orderNumber, 'cod'));
         return;
       }
 
@@ -197,13 +202,16 @@ export default function CheckoutPaymentPage() {
               razorpay_signature: response.razorpay_signature,
             });
             completeOrder(session.orderNumber);
-            navigate(`/checkout/success?order=${encodeURIComponent(session.orderNumber)}`);
+            navigate(successPath(session.orderNumber, 'online'));
           } catch (verifyErr) {
-            alert(
-              verifyErr instanceof Error
-                ? verifyErr.message
-                : 'Payment received but verification failed. Contact support with your order number.'
-            );
+            setFeedback({
+              tone: 'error',
+              title: 'Payment not confirmed',
+              message:
+                verifyErr instanceof Error
+                  ? verifyErr.message
+                  : 'Payment received but verification failed. Contact support with your order number.',
+            });
           }
         },
         prefill: {
@@ -215,10 +223,20 @@ export default function CheckoutPaymentPage() {
         theme: { color: '#111111' },
       });
 
-      rzp.on('payment.failed', (response) => alert(response.error.description));
+      rzp.on('payment.failed', (response) => {
+        setFeedback({
+          tone: 'error',
+          title: 'Payment failed',
+          message: response.error.description || 'The payment was not completed.',
+        });
+      });
       rzp.open();
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Error processing payment');
+      setFeedback({
+        tone: 'error',
+        title: 'Could not start payment',
+        message: err instanceof Error ? err.message : 'Error processing payment',
+      });
     } finally {
       setLoading(false);
     }
@@ -339,10 +357,6 @@ export default function CheckoutPaymentPage() {
 
               {activeMethod === 'upi' && (
                 <div className="space-y-4">
-                  <div className="flex flex-col gap-2">
-                    <label className={checkoutLabel}>UPI ID (optional)</label>
-                    <input type="text" placeholder="name@upi" className={checkoutInput} />
-                  </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-[10px] text-neutral-500 font-medium">Accepted:</span>
                     <PayBadge label="Google Pay" color="#4285F4" />
@@ -351,9 +365,12 @@ export default function CheckoutPaymentPage() {
                     <PayBadge label="BHIM" color="#00794f" />
                     <span className="text-[10px] text-neutral-400">& all UPI apps</span>
                   </div>
-                  <p className="text-xs text-neutral-500">
-                    Click <strong>Pay Now</strong> — Razorpay will handle the UPI payment securely.
-                  </p>
+                  <div className="flex items-start gap-2.5 rounded-lg bg-white border border-neutral-200 p-3">
+                    <ShieldCheck className="w-4 h-4 text-[#00a680] shrink-0 mt-0.5" />
+                    <p className="text-xs text-neutral-600 leading-relaxed">
+                      Click <strong>Pay Now</strong> to open Razorpay. Choose your UPI app there — we never collect a UPI ID on this page.
+                    </p>
+                  </div>
                 </div>
               )}
 
@@ -379,27 +396,13 @@ export default function CheckoutPaymentPage() {
               )}
 
               {activeMethod === 'netbanking' && (
-                <div className="space-y-3">
-                  <p className={checkoutLabel}>Select your bank</p>
-                  <div className="space-y-2 max-h-44 overflow-y-auto pr-1">
-                    {BANKS.map((bank) => (
-                      <button
-                        key={bank}
-                        type="button"
-                        onClick={() => setSelectedBank(bank)}
-                        className={`w-full text-left px-3 py-2.5 rounded-lg border text-sm font-medium transition-all ${
-                          selectedBank === bank
-                            ? 'border-neutral-900 bg-neutral-50 font-bold'
-                            : 'border-neutral-200 hover:border-neutral-300'
-                        }`}
-                      >
-                        {bank}
-                      </button>
-                    ))}
+                <div className="space-y-4">
+                  <div className="flex items-start gap-2.5 rounded-lg bg-white border border-neutral-200 p-3">
+                    <Building2 className="w-4 h-4 text-neutral-700 shrink-0 mt-0.5" />
+                    <p className="text-xs text-neutral-600 leading-relaxed">
+                      Click <strong>Pay Now</strong> to open Razorpay and pick your bank. The bank list is shown there — not on this page.
+                    </p>
                   </div>
-                  <p className="text-xs text-neutral-500">
-                    You&apos;ll be redirected to <strong>{selectedBank}</strong> via Razorpay to complete payment.
-                  </p>
                 </div>
               )}
 
@@ -470,6 +473,15 @@ export default function CheckoutPaymentPage() {
       <div className="lg:col-span-4 lg:sticky lg:top-28">
         <CheckoutOrderSummary />
       </div>
+
+      <FeedbackDialog
+        open={Boolean(feedback)}
+        appearance="light"
+        tone={feedback?.tone ?? 'error'}
+        title={feedback?.title ?? ''}
+        message={feedback?.message ?? ''}
+        onClose={() => setFeedback(null)}
+      />
     </div>
   );
 }

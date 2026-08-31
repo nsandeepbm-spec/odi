@@ -30,6 +30,19 @@ const TABS: { label: string; value: Tab }[] = [
 
 const ACTIVE_STATUSES: UserOrderStatus[] = ['paid', 'processing', 'shipped'];
 
+/** pending + no razorpay_order_id = placed COD order (not an unpaid checkout). */
+function isCodPending(o: UserOrder) {
+  return o.status === 'pending' && !o.razorpay_order_id;
+}
+
+function isActiveBooking(o: UserOrder) {
+  return ACTIVE_STATUSES.includes(o.status) || isCodPending(o);
+}
+
+function isUnpaidOnline(o: UserOrder) {
+  return o.status === 'pending' && !!o.razorpay_order_id;
+}
+
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-IN', {
     day: 'numeric',
@@ -88,7 +101,7 @@ function BookingRow({
         <ShipmentStatusChip order={order} tracking={tracking} />
       </div>
 
-      {ACTIVE_STATUSES.includes(order.status) && (
+      {isActiveBooking(order) && (
         <div className="mb-4 mt-2 pointer-events-none">
           <OrderProgressStepper order={order} tracking={tracking} compact />
         </div>
@@ -159,13 +172,15 @@ export default function BookingsPage() {
     let list: UserOrder[];
     switch (tab) {
       case 'active':
-        list = orders.filter((o) => ACTIVE_STATUSES.includes(o.status));
+        list = orders.filter(isActiveBooking);
         break;
       case 'delivered':
         list = orders.filter((o) => o.status === 'delivered');
         break;
       default:
-        list = orders.filter((o) => !['cancelled', 'refunded', 'pending'].includes(o.status));
+        list = orders.filter(
+          (o) => !['cancelled', 'refunded'].includes(o.status) && !isUnpaidOnline(o)
+        );
     }
     if (!query.trim()) return list;
     return list.filter((o) => matchesSearch(o, query));
@@ -191,7 +206,7 @@ export default function BookingsPage() {
     );
   }
 
-  const activeCount = orders.filter((o) => ACTIVE_STATUSES.includes(o.status)).length;
+  const activeCount = orders.filter(isActiveBooking).length;
   const selectedTracking = selectedOrder ? trackingMap[selectedOrder.id] : null;
   const inTransitCount = orders.filter((o) => isInTransitPhase(phaseByOrderId[o.id])).length;
   const processingCount = orders.filter((o) => {

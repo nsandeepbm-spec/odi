@@ -140,6 +140,7 @@ export function OrderBadge({ status, label }: { status: string; label?: string }
 export function userOrderStatusDisplay(order: {
   status: string;
   refund_status?: string | null;
+  razorpay_order_id?: string | null;
 }): { badgeStatus: OrderStatus | string; label: string } {
   const rs = order.refund_status ?? null;
   if (rs === 'pending' || rs === 'approved') {
@@ -150,6 +151,12 @@ export function userOrderStatusDisplay(order: {
   }
   if (rs === 'completed' || order.status === 'refunded') {
     return { badgeStatus: 'refunded', label: 'Refunded' };
+  }
+  if (order.status === 'pending' && !order.razorpay_order_id) {
+    return { badgeStatus: 'pending', label: 'Cash on delivery' };
+  }
+  if (order.status === 'pending' && order.razorpay_order_id) {
+    return { badgeStatus: 'pending', label: 'Awaiting payment' };
   }
   return { badgeStatus: order.status, label: order.status.replace(/_/g, ' ') };
 }

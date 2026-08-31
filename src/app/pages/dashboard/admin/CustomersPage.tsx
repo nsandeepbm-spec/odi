@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Search, UserX, Shield, ShieldOff, UserMinus, Ban, CheckCircle, Loader2, Pencil } from 'lucide-react';
+import { Search, UserX, Shield, ShieldOff, UserMinus, Ban, CheckCircle, Loader2, Pencil, Trash2 } from 'lucide-react';
 import { PageHeader, Card, EmptyState, TableSkeleton } from '../../../components/dashboard/shared';
-import { listUsers, adminUpdateUser, type AppUser } from '../../../lib/api';
+import { listUsers, adminUpdateUser, adminDeleteUser, type AppUser } from '../../../lib/api';
 import { displayName, getInitials } from '../../../lib/auth';
 import { useAuth } from '../../../lib/auth';
 import {
@@ -43,18 +43,22 @@ function EditUserDialog({
   isSuperAdmin,
   currentUserId,
   onUpdate,
+  onRemoved,
 }: {
   user: AppUser;
   isSuperAdmin: boolean;
   currentUserId: string;
   onUpdate: (updated: AppUser) => void;
+  onRemoved: (id: string) => void;
 }) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [draftRole, setDraftRole] = useState<AppUser['role']>(user.role);
   const [draftStatus, setDraftStatus] = useState<AppUser['status']>(user.status);
 
   const isSelf = user.id === currentUserId;
+  const canDelete = !isSelf && !user.is_super_admin && (user.role !== 'admin' || isSuperAdmin);
 
   useEffect(() => {
     setDraftRole(user.role);
@@ -82,6 +86,25 @@ function EditUserDialog({
     }
   };
 
+  const remove = async () => {
+    setBusy(true);
+    try {
+      const result = await adminDeleteUser(user.id);
+      if (result.deleted) {
+        onRemoved(user.id);
+      } else if (result.user) {
+        onUpdate(result.user);
+      }
+      setConfirmDelete(false);
+      setDialogOpen(false);
+      alert(result.message);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Delete failed');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <>
       <button
@@ -94,7 +117,13 @@ function EditUserDialog({
         {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Pencil className="w-4 h-4" />}
       </button>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog
+        open={dialogOpen}
+        onOpenChange={(open) => {
+          setDialogOpen(open);
+          if (!open) setConfirmDelete(false);
+        }}
+      >
         <DialogContent className="max-w-xl border-white/10 bg-[#0A0A0A] p-0 text-white shadow-2xl">
           <DialogHeader className="border-b border-white/[0.06] bg-[#0d0d0d] px-6 py-5">
             <DialogTitle className="text-left text-xl font-black tracking-tight text-white">
@@ -231,26 +260,69 @@ function EditUserDialog({
           </div>
 
           <DialogFooter className="border-t border-white/[0.06] bg-[#0d0d0d] px-6 py-4">
-            <button
-              type="button"
-              onClick={() => {
-                setDraftRole(user.role);
-                setDraftStatus(user.status);
-                setDialogOpen(false);
-              }}
-              className="rounded-xl border border-white/[0.08] px-4 py-2.5 text-sm font-bold text-neutral-300 transition-colors hover:bg-white/[0.05] hover:text-white"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={() => void apply()}
-              disabled={busy || isSelf}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-400 to-indigo-500 px-5 py-2.5 text-sm font-bold text-white shadow-[0_0_18px_rgba(56,189,248,0.22)] transition-all hover:shadow-[0_0_24px_rgba(99,102,241,0.35)] disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              Save Changes
-            </button>
+            {confirmDelete ? (
+              <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-xs text-red-300">
+                  Removes Firebase login so they cannot sign in again. If they have orders, the
+                  profile is banned instead of deleted.
+                </p>
+                <div className="flex shrink-0 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setConfirmDelete(false)}
+                    disabled={busy}
+                    className="rounded-xl border border-white/[0.08] px-4 py-2.5 text-sm font-bold text-neutral-300 transition-colors hover:bg-white/[0.05] hover:text-white"
+                  >
+                    Back
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void remove()}
+                    disabled={busy}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                    Confirm delete
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <>
+                {canDelete ? (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmDelete(true)}
+                    disabled={busy}
+                    className="mr-auto inline-flex items-center justify-center gap-2 rounded-xl border border-red-500/30 px-4 py-2.5 text-sm font-bold text-red-300 transition-colors hover:bg-red-500/10"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Delete
+                  </button>
+                ) : (
+                  <span />
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDraftRole(user.role);
+                    setDraftStatus(user.status);
+                    setDialogOpen(false);
+                  }}
+                  className="rounded-xl border border-white/[0.08] px-4 py-2.5 text-sm font-bold text-neutral-300 transition-colors hover:bg-white/[0.05] hover:text-white"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void apply()}
+                  disabled={busy || isSelf}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-400 to-indigo-500 px-5 py-2.5 text-sm font-bold text-white shadow-[0_0_18px_rgba(56,189,248,0.22)] transition-all hover:shadow-[0_0_24px_rgba(99,102,241,0.35)] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                  Save Changes
+                </button>
+              </>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -300,6 +372,11 @@ export default function CustomersPage() {
 
   const handleUserUpdate = (updated: AppUser) => {
     setUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)));
+  };
+
+  const handleUserRemoved = (id: string) => {
+    setUsers((prev) => prev.filter((u) => u.id !== id));
+    setTotal((n) => Math.max(0, n - 1));
   };
 
   const filtered = useMemo(() => {
@@ -417,6 +494,7 @@ export default function CustomersPage() {
                           isSuperAdmin={isSuperAdmin}
                           currentUserId={currentUser?.id ?? ''}
                           onUpdate={handleUserUpdate}
+                          onRemoved={handleUserRemoved}
                         />
                       </td>
                     </tr>

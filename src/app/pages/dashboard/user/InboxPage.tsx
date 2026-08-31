@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { motion } from 'motion/react';
-import { Bell, Headphones, Loader2, Send, AlertCircle } from 'lucide-react';
+import { Bell, Headphones, Loader2, Send, AlertCircle, ChevronDown } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import {
   PageHeader,
@@ -20,8 +20,8 @@ import {
 } from '../../../lib/api';
 import { requestNotificationsRefresh } from '../../../components/dashboard/NotificationBell';
 
-const NOTIF_PER_PAGE = 10;
-const TICKET_PER_PAGE = 10;
+const NOTIF_PER_PAGE = 12;
+const TICKET_PER_PAGE = 8;
 
 type PageMeta = { total: number; page: number; perPage: number; totalPages: number };
 
@@ -37,13 +37,15 @@ function formatDate(iso: string) {
 
 function statusChip(status: SupportTicketStatus) {
   const map: Record<SupportTicketStatus, string> = {
-    open: 'bg-amber-500/15 text-amber-300 border-amber-500/25',
-    in_progress: 'bg-cyan-500/15 text-cyan-300 border-cyan-500/25',
-    resolved: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/25',
-    closed: 'bg-neutral-500/15 text-neutral-400 border-neutral-500/25',
+    open: 'bg-amber-500/10 text-amber-300 border-amber-500/25',
+    in_progress: 'bg-cyan-500/10 text-cyan-300 border-cyan-500/25',
+    resolved: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/25',
+    closed: 'bg-neutral-500/10 text-neutral-400 border-neutral-500/20',
   };
   return (
-    <span className={`px-2 py-0.5 text-[9px] font-black uppercase tracking-widest rounded border ${map[status]}`}>
+    <span
+      className={`shrink-0 px-2.5 py-1 text-[9px] font-black uppercase tracking-widest rounded-lg border ${map[status]}`}
+    >
       {status.replace('_', ' ')}
     </span>
   );
@@ -70,6 +72,8 @@ export default function InboxPage() {
   const [loading, setLoading] = useState(true);
   const [paging, setPaging] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [composeOpen, setComposeOpen] = useState(false);
   const bootstrapped = React.useRef(false);
 
   const [subject, setSubject] = useState('');
@@ -135,7 +139,9 @@ export default function InboxPage() {
       });
       setSubject('');
       setMessage('');
+      setComposeOpen(false);
       setFormMsg({ type: 'ok', text: 'Ticket submitted. We’ll get back to you soon.' });
+      setOpenId(ticket.id);
       if (ticketPage === 1) {
         setTickets((prev) => [ticket, ...prev].slice(0, TICKET_PER_PAGE));
         setTicketMeta((m) => ({
@@ -146,6 +152,7 @@ export default function InboxPage() {
       } else {
         setTicketPage(1);
       }
+      requestNotificationsRefresh();
     } catch (err) {
       setFormMsg({
         type: 'err',
@@ -185,19 +192,19 @@ export default function InboxPage() {
         eyebrow="Updates & help"
         title="Inbox"
         accent="& Support."
-        subtitle="Full notification history and support tickets for your account."
+        subtitle="Order alerts on the left. Open a ticket on the right to read the full thread."
       />
 
-      <div className="grid lg:grid-cols-5 gap-6 relative z-10">
-        {/* Notification history */}
+      <div className="grid lg:grid-cols-12 gap-6 relative z-10 items-start">
         <Card
-          className="lg:col-span-3"
+          className="lg:col-span-5"
           title="Notification history"
-          action={<Bell className="w-4 h-4 text-neutral-600" />}
+          action={
+            <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">
+              {notifMeta.total} total
+            </span>
+          }
         >
-          <div className="px-5 py-3 border-b border-white/[0.04] text-[11px] text-neutral-500">
-            Cleared bell items still appear here. New alerts show in the top bell until you clear them.
-          </div>
           {notifications.length === 0 ? (
             <EmptyState
               icon={Bell}
@@ -206,33 +213,41 @@ export default function InboxPage() {
             />
           ) : (
             <>
-              <ul className={`divide-y divide-white/[0.04] max-h-[560px] overflow-y-auto ${paging ? 'opacity-60' : ''}`}>
+              <ul className={`divide-y divide-white/[0.04] ${paging ? 'opacity-60' : ''}`}>
                 {notifications.map((n) => (
                   <li key={n.id}>
                     <button
                       type="button"
                       onClick={() => void onNotifClick(n)}
-                      className={`w-full text-left px-5 py-4 hover:bg-white/[0.03] transition-colors ${
-                        n.is_read ? 'opacity-75' : ''
-                      }`}
+                      className="w-full text-left px-6 py-4 hover:bg-white/[0.03] transition-colors"
                     >
                       <div className="flex items-start gap-3">
                         <span
-                          className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${
-                            n.is_read ? 'bg-neutral-700' : 'bg-cyan-400'
+                          className={`mt-1.5 h-2 w-2 rounded-full shrink-0 ${
+                            n.is_read
+                              ? 'bg-neutral-700'
+                              : 'bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.7)]'
                           }`}
                         />
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-2">
-                            <p className="text-sm font-bold text-white">{n.title}</p>
+                            <p
+                              className={`text-sm tracking-tight ${
+                                n.is_read ? 'font-semibold text-neutral-300' : 'font-bold text-white'
+                              }`}
+                            >
+                              {n.title}
+                            </p>
                             {n.is_cleared && (
-                              <span className="text-[9px] font-bold uppercase tracking-wider text-neutral-500 border border-white/[0.06] px-1.5 py-0.5 rounded">
-                                Cleared from bell
+                              <span className="text-[9px] font-bold uppercase tracking-wider text-neutral-500 border border-white/[0.06] px-1.5 py-0.5 rounded-md">
+                                Cleared
                               </span>
                             )}
                           </div>
                           {n.body && (
-                            <p className="text-xs text-neutral-400 mt-1 leading-relaxed">{n.body}</p>
+                            <p className="text-xs text-neutral-400 mt-1 leading-relaxed line-clamp-2">
+                              {n.body}
+                            </p>
                           )}
                           <p className="text-[10px] text-neutral-600 mt-2">{formatDate(n.created_at)}</p>
                         </div>
@@ -252,12 +267,29 @@ export default function InboxPage() {
           )}
         </Card>
 
-        {/* Support */}
-        <div className="lg:col-span-2 space-y-6">
-          <Card title="New support ticket" action={<Headphones className="w-4 h-4 text-neutral-600" />}>
-            <form onSubmit={onCreateTicket} className="p-5 space-y-4">
+        <Card
+          className="lg:col-span-7"
+          title="Support tickets"
+          action={
+            <button
+              type="button"
+              onClick={() => {
+                setComposeOpen((open) => !open);
+                setFormMsg(null);
+              }}
+              className="px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider border border-white/15 text-white bg-white/10 hover:bg-white/[0.14] transition-colors"
+            >
+              {composeOpen ? 'Cancel' : 'New ticket'}
+            </button>
+          }
+        >
+          {composeOpen && (
+            <form
+              onSubmit={onCreateTicket}
+              className="mx-6 mt-5 mb-2 rounded-2xl border border-white/[0.06] bg-[#050505] p-4 space-y-4"
+            >
               <div>
-                <label className="text-[10px] font-bold tracking-[0.18em] uppercase text-neutral-500">
+                <label className="text-[10px] font-black tracking-[0.18em] uppercase text-neutral-500">
                   Subject
                 </label>
                 <input
@@ -267,11 +299,11 @@ export default function InboxPage() {
                   minLength={3}
                   maxLength={160}
                   placeholder="e.g. Order delivery question"
-                  className="mt-1.5 w-full px-4 py-3 rounded-xl border border-white/[0.08] bg-white/[0.03] focus:border-cyan-500/50 outline-none text-sm text-white placeholder:text-neutral-600"
+                  className="mt-2 w-full px-4 py-3 rounded-xl border border-white/[0.08] bg-[#0A0A0A] focus:border-cyan-500/40 outline-none text-sm text-white placeholder:text-neutral-600"
                 />
               </div>
               <div>
-                <label className="text-[10px] font-bold tracking-[0.18em] uppercase text-neutral-500">
+                <label className="text-[10px] font-black tracking-[0.18em] uppercase text-neutral-500">
                   Message
                 </label>
                 <textarea
@@ -280,70 +312,118 @@ export default function InboxPage() {
                   required
                   minLength={10}
                   maxLength={4000}
-                  rows={5}
+                  rows={4}
                   placeholder="Describe your question or issue…"
-                  className="mt-1.5 w-full px-4 py-3 rounded-xl border border-white/[0.08] bg-white/[0.03] focus:border-cyan-500/50 outline-none text-sm text-white placeholder:text-neutral-600 resize-y"
+                  className="mt-2 w-full px-4 py-3 rounded-xl border border-white/[0.08] bg-[#0A0A0A] focus:border-cyan-500/40 outline-none text-sm text-white placeholder:text-neutral-600 resize-y"
                 />
               </div>
-              {formMsg && (
-                <p
-                  className={`text-xs font-medium ${
-                    formMsg.type === 'ok' ? 'text-emerald-400' : 'text-red-400'
-                  }`}
-                >
-                  {formMsg.text}
-                </p>
-              )}
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 text-sm font-bold rounded-xl bg-gradient-to-r from-cyan-400 to-indigo-500 text-white disabled:opacity-50"
+                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-bold rounded-xl bg-gradient-to-r from-cyan-400 to-indigo-500 text-white disabled:opacity-50"
               >
-                {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                 Submit ticket
               </button>
             </form>
-          </Card>
+          )}
 
-          <Card title="Your tickets">
-            {tickets.length === 0 ? (
-              <EmptyState
-                icon={Headphones}
-                title="No tickets yet"
-                subtitle="Use the form above if you need help with an order or product."
-              />
-            ) : (
-              <>
-                <ul className={`divide-y divide-white/[0.04] max-h-[320px] overflow-y-auto ${paging ? 'opacity-60' : ''}`}>
-                  {tickets.map((t) => (
-                    <li key={t.id} className="px-5 py-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="text-sm font-bold text-white truncate">{t.subject}</p>
-                          <p className="text-xs text-neutral-400 mt-1 line-clamp-2">{t.message}</p>
-                          {t.admin_note && (
-                            <p className="text-xs text-cyan-300/90 mt-2 border-l-2 border-cyan-500/40 pl-2">
-                              Reply: {t.admin_note}
+          {formMsg && (
+            <p
+              className={`px-6 pt-4 text-xs font-medium ${
+                formMsg.type === 'ok' ? 'text-emerald-400' : 'text-red-400'
+              }`}
+            >
+              {formMsg.text}
+            </p>
+          )}
+
+          {tickets.length === 0 && !composeOpen ? (
+            <EmptyState
+              icon={Headphones}
+              title="No tickets yet"
+              subtitle="Tap New ticket if you need help with an order or product."
+            />
+          ) : tickets.length === 0 ? (
+            <p className="px-6 py-8 text-xs text-neutral-500">No tickets yet — send the form above to start one.</p>
+          ) : (
+            <>
+              <ul className={`divide-y divide-white/[0.04] ${paging ? 'opacity-60' : ''}`}>
+                {tickets.map((t) => {
+                  const open = openId === t.id;
+                  return (
+                    <li key={t.id} className="px-6 py-4">
+                      <button
+                        type="button"
+                        onClick={() => setOpenId(open ? null : t.id)}
+                        className="w-full text-left"
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <p className="text-sm font-bold text-white">{t.subject}</p>
+                              {statusChip(t.status)}
+                            </div>
+                            <p className="text-[11px] text-neutral-500 mt-1">{formatDate(t.created_at)}</p>
+                            <p
+                              className={`text-xs text-neutral-400 mt-2 leading-relaxed ${
+                                open ? '' : 'line-clamp-2'
+                              }`}
+                            >
+                              {t.message}
                             </p>
-                          )}
-                          <p className="text-[10px] text-neutral-600 mt-2">{formatDate(t.created_at)}</p>
+                            {!open && t.admin_note && (
+                              <p className="text-[11px] text-cyan-300/80 mt-2 truncate">
+                                Reply: {t.admin_note}
+                              </p>
+                            )}
+                          </div>
+                          <ChevronDown
+                            className={`h-4 w-4 shrink-0 text-neutral-500 mt-1 transition-transform ${
+                              open ? 'rotate-180' : ''
+                            }`}
+                          />
                         </div>
-                        {statusChip(t.status)}
-                      </div>
+                      </button>
+
+                      {open && (
+                        <div className="mt-4 rounded-2xl border border-white/[0.06] bg-[#050505] p-4 space-y-3">
+                          <div>
+                            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-neutral-500">
+                              Your message
+                            </p>
+                            <p className="mt-2 text-sm text-neutral-300 whitespace-pre-wrap leading-relaxed">
+                              {t.message}
+                            </p>
+                          </div>
+                          {t.admin_note ? (
+                            <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/[0.06] px-4 py-3">
+                              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-400/80">
+                                ODI reply
+                              </p>
+                              <p className="mt-2 text-sm text-cyan-100/90 whitespace-pre-wrap leading-relaxed">
+                                {t.admin_note}
+                              </p>
+                            </div>
+                          ) : (
+                            <p className="text-xs text-neutral-500">No reply yet — we’ll notify you here when there is one.</p>
+                          )}
+                        </div>
+                      )}
                     </li>
-                  ))}
-                </ul>
-                <ListPager
-                  page={ticketMeta.page}
-                  totalPages={ticketMeta.totalPages}
-                  total={ticketMeta.total}
-                  disabled={paging}
-                  onPageChange={setTicketPage}
-                />
-              </>
-            )}
-          </Card>
-        </div>
+                  );
+                })}
+              </ul>
+              <ListPager
+                page={ticketMeta.page}
+                totalPages={ticketMeta.totalPages}
+                total={ticketMeta.total}
+                disabled={paging}
+                onPageChange={setTicketPage}
+              />
+            </>
+          )}
+        </Card>
       </div>
     </motion.div>
   );
