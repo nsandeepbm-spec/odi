@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'motion/react';
 import { useNavigate } from 'react-router';
-import { CreditCard, IndianRupee, Clock, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
+import { CreditCard, IndianRupee, Clock, CheckCircle2, XCircle, AlertCircle, ChevronRight } from 'lucide-react';
 import {
   PageHeader,
   StatCard,
@@ -117,8 +117,52 @@ export default function PaymentsPage() {
             subtitle="Your payment history will appear here after your first order."
           />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left min-w-[520px]">
+          <>
+            {/* Mobile / tablet card list */}
+            <div className="md:hidden divide-y divide-white/[0.04]">
+              {orders.map((o) => {
+                const isPaid = !['pending', 'cancelled', 'refunded'].includes(o.status);
+                const statusDisplay = userOrderStatusDisplay(o);
+                const underReview =
+                  o.refund_status === 'pending' || o.refund_status === 'approved';
+                return (
+                  <button
+                    key={o.id}
+                    type="button"
+                    onClick={() => navigate(`/dashboard/orders/${o.id}`)}
+                    className="w-full text-left px-5 py-4 flex items-center gap-3 transition-colors active:bg-white/[0.02]"
+                  >
+                    <div className="w-10 h-10 rounded-xl bg-white/[0.03] border border-white/[0.05] flex items-center justify-center shrink-0">
+                      {isPaid
+                        ? <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                        : o.status === 'cancelled' && !underReview
+                          ? <XCircle className="w-4 h-4 text-red-500" />
+                          : <Clock className="w-4 h-4 text-amber-400" />
+                      }
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-black text-sm text-cyan-400 truncate">
+                          #{o.order_number ?? o.id.slice(0, 8).toUpperCase()}
+                        </span>
+                        <span className="font-black text-sm text-white shrink-0">{inrFromPaise(o.total_paise)}</span>
+                      </div>
+                      <div className="flex items-center justify-between gap-2 mt-1.5">
+                        <span className="text-xs text-neutral-400 font-medium">{formatDate(o.created_at)}</span>
+                        <span className="shrink-0">
+                          <PaymentStatusBadge status={statusDisplay.badgeStatus} label={statusDisplay.label} />
+                        </span>
+                      </div>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-neutral-500 shrink-0" />
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Desktop table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-sm text-left min-w-[520px]">
               <thead className="bg-white/[0.02] text-neutral-400 text-[10px] uppercase tracking-[0.2em] font-bold border-b border-white/[0.04]">
                 <tr>
                   <th className="px-6 py-4">Reference</th>
@@ -165,8 +209,9 @@ export default function PaymentsPage() {
                   );
                 })}
               </tbody>
-            </table>
-          </div>
+              </table>
+            </div>
+          </>
         )}
       </Card>
     </motion.div>

@@ -77,7 +77,7 @@ function BookingRow({
     <button
       type="button"
       onClick={onOpen}
-      className="w-full text-left px-6 py-5 hover:bg-white/[0.02] transition-colors border-b border-white/[0.04] last:border-0 cursor-pointer"
+      className="w-full text-left px-4 sm:px-6 py-5 hover:bg-white/[0.02] transition-colors border-b border-white/[0.04] last:border-0 cursor-pointer"
     >
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-5">
         <div className="flex items-center gap-3">
@@ -219,6 +219,7 @@ export default function BookingsPage() {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
+      className="min-w-0"
     >
       <PageHeader
         eyebrow="Shipment Tracking"
@@ -240,14 +241,14 @@ export default function BookingsPage() {
         ].map((stat) => (
           <div
             key={stat.label}
-            className="bg-[#0A0A0A] rounded-2xl border border-white/[0.06] p-4 flex items-center gap-3 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.5)]"
+            className="bg-[#0A0A0A] rounded-2xl border border-white/[0.06] p-3 sm:p-4 flex items-center gap-2 sm:gap-3 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.5)] min-w-0"
           >
             <div className="w-9 h-9 rounded-xl bg-white/[0.03] border border-white/[0.05] flex items-center justify-center shrink-0">
               <stat.icon className="w-4 h-4 text-neutral-400" />
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-xl font-black text-white">{stat.value}</p>
-              <p className="text-[10px] font-bold tracking-[0.15em] uppercase text-neutral-500">
+              <p className="text-[10px] font-bold tracking-[0.15em] uppercase text-neutral-500 break-words">
                 {stat.label}
               </p>
             </div>
@@ -256,8 +257,8 @@ export default function BookingsPage() {
       </div>
 
       <Card className="relative z-10">
-        <div className="px-5 pt-4 pb-4 flex flex-col gap-3 border-b border-white/[0.04]">
-          <div className="flex items-center gap-3 max-w-md px-3.5 py-2.5 rounded-xl border border-white/[0.07] bg-[#111113] focus-within:border-white/[0.15] transition-colors">
+        <div className="px-4 sm:px-5 pt-4 pb-4 flex flex-col gap-3 border-b border-white/[0.04]">
+          <div className="flex items-center gap-3 w-full max-w-md px-3.5 py-2.5 rounded-xl border border-white/[0.07] bg-[#111113] focus-within:border-white/[0.15] transition-colors">
             <Search className="w-3.5 h-3.5 shrink-0 text-neutral-600" />
             <input
               type="search"

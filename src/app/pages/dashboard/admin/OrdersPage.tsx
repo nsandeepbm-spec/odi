@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
-import { Search, Download, CalendarX, Eye } from 'lucide-react';
+import { Search, Download, CalendarX, Eye, ChevronRight } from 'lucide-react';
 import {
   PageHeader,
   Card,
@@ -136,7 +136,7 @@ export default function OrdersPage() {
   };
 
   return (
-    <div>
+    <div className="min-w-0">
       <PageHeader
         title="All"
         accent="Orders."
@@ -146,7 +146,7 @@ export default function OrdersPage() {
             type="button"
             onClick={exportCsv}
             disabled={loading || filtered.length === 0}
-            className="inline-flex items-center gap-2 px-6 py-3 text-sm font-bold tracking-wide border border-white/[0.1] text-white bg-black/40 hover:bg-white/[0.04] hover:border-white/[0.2] transition-all rounded-xl shadow-lg relative z-10 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="inline-flex items-center justify-center gap-2 w-full sm:w-auto shrink-0 px-6 py-3 text-sm font-bold tracking-wide border border-white/[0.1] text-white bg-black/40 hover:bg-white/[0.04] hover:border-white/[0.2] transition-all rounded-xl shadow-lg relative z-10 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <Download className="w-4 h-4" /> Export CSV
           </button>
@@ -154,34 +154,38 @@ export default function OrdersPage() {
       />
 
       <Card className="relative z-10">
-        <div className="px-6 py-5 border-b border-white/[0.04] flex flex-col gap-4 bg-[#0d0d0d]">
+        <div className="px-4 sm:px-6 py-4 sm:py-5 border-b border-white/[0.04] flex flex-col gap-4 bg-[#0d0d0d]">
           <div className="flex flex-col lg:flex-row lg:items-center gap-4">
-            <div className="flex items-center gap-3 flex-1 max-w-md px-4 py-2.5 rounded-xl bg-[#050505] border border-white/[0.06] shadow-inner focus-within:border-white/[0.2] transition-colors">
+            <div className="flex items-center gap-3 w-full lg:flex-1 lg:max-w-md px-4 py-2.5 rounded-xl bg-[#050505] border border-white/[0.06] shadow-inner focus-within:border-white/[0.2] transition-colors">
               <Search className="w-4 h-4 text-neutral-500 shrink-0" />
               <input
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search by ID, customer, email…"
-                className="w-full bg-transparent text-sm outline-none placeholder:text-neutral-500 text-white"
+                className="w-full min-w-0 bg-transparent text-sm outline-none placeholder:text-neutral-500 text-white"
               />
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-neutral-500">From</label>
-              <input
-                type="date"
-                value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
-                className="px-3 py-2 rounded-xl bg-[#050505] border border-white/[0.08] text-sm text-white outline-none focus:border-cyan-500 [color-scheme:dark]"
-              />
-              <label className="text-[10px] font-black uppercase tracking-widest text-neutral-500">To</label>
-              <input
-                type="date"
-                value={dateTo}
-                min={dateFrom || undefined}
-                onChange={(e) => setDateTo(e.target.value)}
-                className="px-3 py-2 rounded-xl bg-[#050505] border border-white/[0.08] text-sm text-white outline-none focus:border-cyan-500 [color-scheme:dark]"
-              />
+            <div className="grid grid-cols-2 sm:flex sm:flex-wrap sm:items-end gap-2">
+              <div className="flex flex-col gap-1 min-w-0">
+                <label className="text-[10px] font-black uppercase tracking-widest text-neutral-500">From</label>
+                <input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  className="w-full min-w-0 px-2.5 sm:px-3 py-2 rounded-xl bg-[#050505] border border-white/[0.08] text-sm text-white outline-none focus:border-cyan-500 [color-scheme:dark]"
+                />
+              </div>
+              <div className="flex flex-col gap-1 min-w-0">
+                <label className="text-[10px] font-black uppercase tracking-widest text-neutral-500">To</label>
+                <input
+                  type="date"
+                  value={dateTo}
+                  min={dateFrom || undefined}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  className="w-full min-w-0 px-2.5 sm:px-3 py-2 rounded-xl bg-[#050505] border border-white/[0.08] text-sm text-white outline-none focus:border-cyan-500 [color-scheme:dark]"
+                />
+              </div>
               {(dateFrom || dateTo) && (
                 <button
                   type="button"
@@ -189,7 +193,7 @@ export default function OrdersPage() {
                     setDateFrom('');
                     setDateTo('');
                   }}
-                  className="px-3 py-2 text-xs font-bold rounded-xl text-neutral-400 border border-white/[0.06] hover:text-white hover:bg-white/[0.05] transition-colors"
+                  className="col-span-2 sm:col-auto px-3 py-2 text-xs font-bold rounded-xl text-neutral-400 border border-white/[0.06] hover:text-white hover:bg-white/[0.05] transition-colors"
                 >
                   Clear dates
                 </button>
@@ -202,7 +206,7 @@ export default function OrdersPage() {
                 key={f.value}
                 type="button"
                 onClick={() => setFilter(f.value)}
-                className={`px-4 py-2 text-xs font-bold rounded-xl transition-all ${
+                className={`px-3 sm:px-4 py-1.5 sm:py-2 text-xs font-bold rounded-xl transition-all ${
                   filter === f.value
                     ? 'bg-gradient-to-r from-cyan-400 to-indigo-500 text-white shadow-[0_0_20px_rgba(34,211,238,0.3)]'
                     : 'bg-white/[0.03] text-neutral-400 border border-white/[0.06] hover:bg-white/[0.08] hover:text-white'
@@ -221,79 +225,125 @@ export default function OrdersPage() {
         ) : filtered.length === 0 ? (
           <EmptyState icon={CalendarX} title="No orders found" subtitle="Try a different search, status, or date range." />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left min-w-[860px]">
-              <thead className="bg-white/[0.02] text-neutral-400 text-[10px] uppercase tracking-[0.2em] font-bold border-b border-white/[0.04]">
-                <tr>
-                  <th className="px-6 py-4">Order</th>
-                  <th className="px-6 py-4">Customer</th>
-                  <th className="px-6 py-4">Product</th>
-                  <th className="px-6 py-4">Qty</th>
-                  <th className="px-6 py-4">Status</th>
-                  <th className="px-6 py-4">Payment</th>
-                  <th className="px-6 py-4 text-right">Amount</th>
-                  <th className="px-4 py-4 text-center">Detail</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/[0.04]">
-                {filtered.map((o) => {
-                  const customer =
-                    [o.shipping_address?.first_name, o.shipping_address?.last_name]
-                      .filter(Boolean)
-                      .join(' ') || 'Customer';
-                  const email = o.shipping_address?.email || '—';
-                  const item = o.order_items?.[0];
-                  const payment = o.payments?.[0];
-                  return (
-                    <tr key={o.id} className="hover:bg-white/[0.02] transition-colors group">
-                      <td className="px-6 py-4">
-                        <Link
-                          to={`/dashboard/admin/orders/${o.id}`}
-                          className="font-black text-cyan-400 group-hover:text-cyan-300 transition-colors hover:underline"
-                        >
-                          {o.order_number}
-                        </Link>
-                        <div className="text-xs text-neutral-500 mt-0.5">{formatDate(o.created_at)}</div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="font-bold text-white">{customer}</div>
-                        <div className="text-xs text-neutral-500 mt-0.5">{email}</div>
-                      </td>
-                      <td
-                        className="px-6 py-4 text-neutral-300 truncate max-w-[150px] font-medium"
-                        title={item?.snapshot_name}
-                      >
+          <>
+            {/* Mobile / tablet cards */}
+            <div className="md:hidden divide-y divide-white/[0.04]">
+              {filtered.map((o) => {
+                const customer =
+                  [o.shipping_address?.first_name, o.shipping_address?.last_name]
+                    .filter(Boolean)
+                    .join(' ') || 'Customer';
+                const item = o.order_items?.[0];
+                const payment = o.payments?.[0];
+                return (
+                  <Link
+                    key={o.id}
+                    to={`/dashboard/admin/orders/${o.id}`}
+                    className="flex items-center gap-3 px-4 py-4 active:bg-white/[0.02] transition-colors"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-black text-sm text-cyan-400 truncate">{o.order_number}</span>
+                        <span className="font-black text-sm text-white shrink-0">
+                          {inrFromPaise(o.total_paise)}
+                        </span>
+                      </div>
+                      <p className="text-xs font-bold text-white truncate mt-1">{customer}</p>
+                      <p className="text-xs text-neutral-500 truncate mt-0.5">
                         {item?.snapshot_name || '—'}
-                      </td>
-                      <td className="px-6 py-4 font-black text-white">{item?.quantity || '—'}</td>
-                      <td className="px-6 py-4">
-                        <OrderBadge status={o.status} />
-                      </td>
-                      <td className="px-6 py-4">
-                        <PaymentBadge status={badgeStatus(payment?.status || 'pending')} />
-                      </td>
-                      <td className="px-6 py-4 text-right font-black text-white drop-shadow-sm">
-                        {inrFromPaise(o.total_paise)}
-                      </td>
-                      <td className="px-4 py-4 text-center">
-                        <Link
-                          to={`/dashboard/admin/orders/${o.id}`}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 hover:bg-cyan-500/20 transition-colors"
-                          title="View full details"
+                        {item?.quantity ? ` · ×${item.quantity}` : ''}
+                      </p>
+                      <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5 mt-2">
+                        <span className="text-xs text-neutral-500 font-medium truncate">
+                          {formatDate(o.created_at)}
+                        </span>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <OrderBadge status={o.status} />
+                          <PaymentBadge status={badgeStatus(payment?.status || 'pending')} />
+                        </div>
+                      </div>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-neutral-500 shrink-0" />
+                  </Link>
+                );
+              })}
+            </div>
+
+            {/* Desktop table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-sm text-left min-w-[860px]">
+                <thead className="bg-white/[0.02] text-neutral-400 text-[10px] uppercase tracking-[0.2em] font-bold border-b border-white/[0.04]">
+                  <tr>
+                    <th className="px-4 lg:px-6 py-4">Order</th>
+                    <th className="px-4 lg:px-6 py-4">Customer</th>
+                    <th className="px-4 lg:px-6 py-4">Product</th>
+                    <th className="px-4 lg:px-6 py-4">Qty</th>
+                    <th className="px-4 lg:px-6 py-4">Status</th>
+                    <th className="px-4 lg:px-6 py-4">Payment</th>
+                    <th className="px-4 lg:px-6 py-4 text-right">Amount</th>
+                    <th className="px-4 py-4 text-center">Detail</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/[0.04]">
+                  {filtered.map((o) => {
+                    const customer =
+                      [o.shipping_address?.first_name, o.shipping_address?.last_name]
+                        .filter(Boolean)
+                        .join(' ') || 'Customer';
+                    const email = o.shipping_address?.email || '—';
+                    const item = o.order_items?.[0];
+                    const payment = o.payments?.[0];
+                    return (
+                      <tr key={o.id} className="hover:bg-white/[0.02] transition-colors group">
+                        <td className="px-4 lg:px-6 py-4">
+                          <Link
+                            to={`/dashboard/admin/orders/${o.id}`}
+                            className="font-black text-cyan-400 group-hover:text-cyan-300 transition-colors hover:underline"
+                          >
+                            {o.order_number}
+                          </Link>
+                          <div className="text-xs text-neutral-500 mt-0.5">{formatDate(o.created_at)}</div>
+                        </td>
+                        <td className="px-4 lg:px-6 py-4">
+                          <div className="font-bold text-white">{customer}</div>
+                          <div className="text-xs text-neutral-500 mt-0.5">{email}</div>
+                        </td>
+                        <td
+                          className="px-4 lg:px-6 py-4 text-neutral-300 truncate max-w-[150px] font-medium"
+                          title={item?.snapshot_name}
                         >
-                          <Eye className="w-3.5 h-3.5" />
-                          View
-                        </Link>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                          {item?.snapshot_name || '—'}
+                        </td>
+                        <td className="px-4 lg:px-6 py-4 font-black text-white">{item?.quantity || '—'}</td>
+                        <td className="px-4 lg:px-6 py-4">
+                          <OrderBadge status={o.status} />
+                        </td>
+                        <td className="px-4 lg:px-6 py-4">
+                          <PaymentBadge status={badgeStatus(payment?.status || 'pending')} />
+                        </td>
+                        <td className="px-4 lg:px-6 py-4 text-right font-black text-white drop-shadow-sm">
+                          {inrFromPaise(o.total_paise)}
+                        </td>
+                        <td className="px-4 py-4 text-center">
+                          <Link
+                            to={`/dashboard/admin/orders/${o.id}`}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 hover:bg-cyan-500/20 transition-colors"
+                            title="View full details"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            View
+                          </Link>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
 
-        <div className="px-6 py-5 border-t border-white/[0.04] bg-[#0d0d0d] flex items-center justify-between text-xs text-neutral-500 font-bold tracking-wide">
+        <div className="px-4 sm:px-6 py-4 sm:py-5 border-t border-white/[0.04] bg-[#0d0d0d] text-xs text-neutral-500 font-bold tracking-wide">
           <span>
             {loading
               ? '…'

@@ -168,14 +168,14 @@ export default function AdminInboxPage() {
 
   if (error) {
     return (
-      <div className="bg-[#0A0A0A] rounded-2xl border border-white/[0.06] p-10 flex flex-col items-center text-center gap-3">
+      <div className="min-w-0 bg-[#0A0A0A] rounded-2xl border border-white/[0.06] p-6 sm:p-10 flex flex-col items-center text-center gap-3">
         <AlertCircle className="w-8 h-8 text-red-500" />
         <p className="font-bold text-sm text-white">Could not load inbox</p>
-        <p className="text-xs text-neutral-400">{error}</p>
+        <p className="text-xs text-neutral-400 break-words">{error}</p>
         <button
           type="button"
           onClick={() => void load()}
-          className="mt-2 px-4 py-2 text-sm font-bold rounded-xl bg-gradient-to-r from-cyan-400 to-indigo-500 text-white"
+          className="mt-2 w-full sm:w-auto px-4 py-2.5 text-sm font-bold rounded-xl bg-gradient-to-r from-cyan-400 to-indigo-500 text-white"
         >
           Retry
         </button>
@@ -188,17 +188,18 @@ export default function AdminInboxPage() {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
+      className="min-w-0"
     >
       <PageHeader
         eyebrow="Ops"
         title="Inbox"
         accent="& Support."
-        subtitle="Order alerts on the left. Customer tickets on the right — open one to reply."
+        subtitle="Order alerts and customer tickets — open a ticket to reply."
       />
 
-      <div className="grid lg:grid-cols-12 gap-6 relative z-10 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 relative z-10 items-start">
         <Card
-          className="lg:col-span-5"
+          className="lg:col-span-5 min-w-0"
           title="Notification history"
           action={
             <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">
@@ -216,7 +217,7 @@ export default function AdminInboxPage() {
                     <button
                       type="button"
                       onClick={() => void onNotifClick(n)}
-                      className="w-full text-left px-6 py-4 hover:bg-white/[0.03] transition-colors"
+                      className="w-full text-left px-4 sm:px-6 py-4 hover:bg-white/[0.03] transition-colors"
                     >
                       <div className="flex items-start gap-3">
                         <span
@@ -250,7 +251,7 @@ export default function AdminInboxPage() {
         </Card>
 
         <Card
-          className="lg:col-span-7"
+          className="lg:col-span-7 min-w-0"
           title="Support tickets"
           action={
             <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">
@@ -258,7 +259,7 @@ export default function AdminInboxPage() {
             </span>
           }
         >
-          <div className="px-6 py-4 border-b border-white/[0.04] flex flex-wrap gap-2">
+          <div className="px-4 sm:px-6 py-4 border-b border-white/[0.04] flex gap-2 overflow-x-auto">
             {[{ id: '', label: 'All' }, ...STATUSES.map((s) => ({ id: s, label: s.replace('_', ' ') }))].map((f) => (
               <button
                 key={f.id || 'all'}
@@ -268,7 +269,7 @@ export default function AdminInboxPage() {
                   setTicketPage(1);
                   setOpenId(null);
                 }}
-                className={`px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider border transition-colors ${
+                className={`shrink-0 px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider border transition-colors ${
                   statusFilter === f.id
                     ? 'bg-white/10 text-white border-white/15'
                     : 'text-neutral-500 border-white/[0.06] hover:text-white hover:border-white/10'
@@ -287,22 +288,22 @@ export default function AdminInboxPage() {
                 {tickets.map((t) => {
                   const open = openId === t.id;
                   return (
-                    <li key={t.id} className="px-6 py-4">
+                    <li key={t.id} className="px-4 sm:px-6 py-4">
                       <button
                         type="button"
                         onClick={() => setOpenId(open ? null : t.id)}
-                        className="w-full text-left"
+                        className="w-full text-left min-w-0"
                       >
                         <div className="flex items-start gap-3">
                           <div className="min-w-0 flex-1">
                             <div className="flex flex-wrap items-center gap-2">
-                              <p className="text-sm font-bold text-white">{t.subject}</p>
+                              <p className="text-sm font-bold text-white break-words">{t.subject}</p>
                               {statusChip(t.status)}
                             </div>
-                            <p className="text-[11px] text-neutral-500 mt-1">
+                            <p className="text-[11px] text-neutral-500 mt-1 break-words">
                               {t.user_name || t.user_email || 'Customer'} · {formatDate(t.created_at)}
                             </p>
-                            <p className={`text-xs text-neutral-400 mt-2 leading-relaxed ${open ? '' : 'line-clamp-2'}`}>
+                            <p className={`text-xs text-neutral-400 mt-2 leading-relaxed ${open ? 'break-words' : 'line-clamp-2'}`}>
                               {t.message}
                             </p>
                           </div>
@@ -315,8 +316,8 @@ export default function AdminInboxPage() {
                       </button>
 
                       {open && (
-                        <div className="mt-4 rounded-2xl border border-white/[0.06] bg-[#050505] p-4 space-y-4">
-                          <div className="flex flex-wrap items-center gap-3">
+                        <div className="mt-4 rounded-2xl border border-white/[0.06] bg-[#050505] p-3 sm:p-4 space-y-4">
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
                             <label className="text-[10px] font-black uppercase tracking-[0.18em] text-neutral-500">
                               Status
                             </label>
@@ -324,7 +325,7 @@ export default function AdminInboxPage() {
                               value={t.status}
                               disabled={updatingId === t.id}
                               onChange={(e) => void onStatusChange(t.id, e.target.value as SupportTicketStatus)}
-                              className="px-3 py-2 rounded-xl bg-[#0A0A0A] border border-white/[0.08] text-xs font-bold text-white outline-none focus:border-cyan-500/40"
+                              className="w-full sm:w-auto px-3 py-2.5 rounded-xl bg-[#0A0A0A] border border-white/[0.08] text-xs font-bold text-white outline-none focus:border-cyan-500/40"
                             >
                               {STATUSES.map((s) => (
                                 <option key={s} value={s}>
@@ -357,7 +358,7 @@ export default function AdminInboxPage() {
                             type="button"
                             onClick={() => void onSaveReply(t.id)}
                             disabled={updatingId === t.id}
-                            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-cyan-400 to-indigo-500 disabled:opacity-50"
+                            className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-cyan-400 to-indigo-500 disabled:opacity-50"
                           >
                             {updatingId === t.id ? (
                               <Loader2 className="h-4 w-4 animate-spin" />

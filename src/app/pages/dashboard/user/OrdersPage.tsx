@@ -125,7 +125,7 @@ export default function OrdersPage() {
 
       <Card className="relative z-10">
         <div className="px-5 pt-4 pb-4 flex flex-col gap-3 border-b border-white/[0.04]">
-          <div className="flex items-center gap-3 max-w-md px-3.5 py-2.5 rounded-xl border border-white/[0.07] bg-[#111113] focus-within:border-white/[0.15] transition-colors">
+          <div className="flex items-center gap-3 w-full sm:max-w-md px-3.5 py-2.5 rounded-xl border border-white/[0.07] bg-[#111113] focus-within:border-white/[0.15] transition-colors">
             <Search className="w-3.5 h-3.5 shrink-0 text-neutral-600" />
             <input
               type="search"
@@ -188,8 +188,58 @@ export default function OrdersPage() {
             }
           />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left min-w-[640px]">
+          <>
+            {/* Mobile / tablet card list */}
+            <div className="md:hidden divide-y divide-white/[0.04]">
+              {filtered.map((o) => {
+                const awaiting = isAwaitingPayment(o);
+                const statusDisplay = userOrderStatusDisplay(o);
+                return (
+                  <button
+                    key={o.id}
+                    type="button"
+                    onClick={() => navigate(`/dashboard/orders/${o.id}`)}
+                    className={`w-full text-left px-5 py-4 flex items-center gap-3 transition-colors ${
+                      awaiting ? 'bg-amber-500/[0.03] active:bg-amber-500/[0.06]' : 'active:bg-white/[0.02]'
+                    }`}
+                  >
+                    <div className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 ${
+                      awaiting
+                        ? 'bg-amber-500/10 border-amber-500/20'
+                        : 'bg-white/[0.03] border-white/[0.05]'
+                    }`}>
+                      {awaiting
+                        ? <Clock className="w-4 h-4 text-amber-400" />
+                        : <FileText className="w-4 h-4 text-neutral-500" />
+                      }
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className={`font-black text-sm truncate ${awaiting ? 'text-amber-400' : 'text-cyan-400'}`}>
+                          {orderLabel(o)}
+                        </span>
+                        <span className="font-black text-sm text-white shrink-0">{inrFromPaise(o.total_paise)}</span>
+                      </div>
+                      <div className="flex items-center justify-between gap-2 mt-1.5">
+                        <span className="text-xs text-neutral-400 font-medium">{formatDate(o.created_at)}</span>
+                        {awaiting ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[9px] font-black tracking-widest uppercase shrink-0">
+                            <Clock className="w-2.5 h-2.5" /> Awaiting
+                          </span>
+                        ) : (
+                          <span className="shrink-0"><OrderBadge status={statusDisplay.badgeStatus} label={statusDisplay.label} /></span>
+                        )}
+                      </div>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-neutral-500 shrink-0" />
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Desktop table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-sm text-left min-w-[640px]">
               <thead className="bg-white/[0.02] text-neutral-400 text-[10px] uppercase tracking-[0.2em] font-bold border-b border-white/[0.04]">
                 <tr>
                   <th className="px-6 py-4">Order</th>
@@ -250,8 +300,9 @@ export default function OrdersPage() {
                   );
                 })}
               </tbody>
-            </table>
-          </div>
+              </table>
+            </div>
+          </>
         )}
       </Card>
     </motion.div>

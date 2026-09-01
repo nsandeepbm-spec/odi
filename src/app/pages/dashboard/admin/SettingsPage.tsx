@@ -62,7 +62,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div>
+    <div className="min-w-0">
       <PageHeader
         title="Platform"
         accent="Settings."
@@ -71,7 +71,7 @@ export default function SettingsPage() {
           <button
             type="submit"
             form="admin-settings-form"
-            className="inline-flex items-center gap-2 px-6 py-3 text-sm font-bold tracking-wide bg-gradient-to-r from-cyan-400 to-indigo-500 text-white shadow-[0_0_20px_rgba(34,211,238,0.3)] hover:shadow-[0_0_30px_rgba(99,102,241,0.5)] transform hover:-translate-y-0.5 active:translate-y-0 transition-all rounded-xl relative z-10"
+            className="inline-flex items-center justify-center gap-2 w-full sm:w-auto shrink-0 px-6 py-3 text-sm font-bold tracking-wide bg-gradient-to-r from-cyan-400 to-indigo-500 text-white shadow-[0_0_20px_rgba(34,211,238,0.3)] hover:shadow-[0_0_30px_rgba(99,102,241,0.5)] sm:hover:-translate-y-0.5 active:translate-y-0 transition-all rounded-xl relative z-10"
           >
             {saved ? <Check className="w-4 h-4" /> : <Save className="w-4 h-4" />}
             {saved ? 'Saved' : 'Save settings'}
@@ -79,7 +79,7 @@ export default function SettingsPage() {
         }
       />
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8 relative z-10">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8 relative z-10 min-w-0">
         <StatCard
           label="Low-stock live kits"
           value={loadingStock ? '…' : String(lowStockCount ?? '—')}
@@ -106,9 +106,9 @@ export default function SettingsPage() {
         className="grid grid-cols-1 xl:grid-cols-12 gap-6 relative z-10 items-start"
       >
         {/* Main column */}
-        <div className="xl:col-span-8 flex flex-col gap-6">
+        <div className="xl:col-span-8 flex flex-col gap-6 min-w-0">
           <Card title="Store details">
-            <div className="p-6 md:p-7 space-y-6">
+            <div className="p-4 sm:p-6 md:p-7 space-y-6">
               <p className="text-xs text-neutral-500 leading-relaxed max-w-2xl">
                 Shown on printed invoices. Saved in this browser for the admin panel — not a shared
                 server setting yet.
@@ -163,18 +163,20 @@ export default function SettingsPage() {
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 md:p-5">
+              <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 md:p-5 min-w-0">
                 <p className="text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-3">
                   Invoice preview
                 </p>
-                <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
-                  <div>
-                    <p className="text-lg font-black text-white tracking-tight">{form.storeName || '—'}</p>
-                    <p className="text-sm text-neutral-400 mt-1">
+                <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 min-w-0">
+                  <div className="min-w-0">
+                    <p className="text-lg font-black text-white tracking-tight break-words">
+                      {form.storeName || '—'}
+                    </p>
+                    <p className="text-sm text-neutral-400 mt-1 break-all">
                       {[form.supportEmail, form.supportPhone].filter(Boolean).join(' · ') || '—'}
                     </p>
                   </div>
-                  <p className="text-[11px] font-bold text-neutral-500 uppercase tracking-widest">
+                  <p className="text-[11px] font-bold text-neutral-500 uppercase tracking-widest shrink-0">
                     Currency · INR
                   </p>
                 </div>
@@ -183,9 +185,9 @@ export default function SettingsPage() {
           </Card>
 
           <Card title="Inventory alerts">
-            <div className="p-6 md:p-7">
+            <div className="p-4 sm:p-6 md:p-7">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 items-start">
-                <div className="space-y-4">
+                <div className="space-y-4 min-w-0">
                   <p className="text-xs text-neutral-500 leading-relaxed">
                     Live products at or below this quantity show a low-stock warning on Products and
                     Overview.
@@ -203,19 +205,19 @@ export default function SettingsPage() {
                           lowStockThreshold: Math.max(0, Number(e.target.value) || 0),
                         }))
                       }
-                      className={`${inputCls} max-w-[200px]`}
+                      className={`${inputCls} sm:max-w-[200px]`}
                     />
                   </div>
                 </div>
 
-                <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-5">
+                <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4 sm:p-5 min-w-0">
                   <div className="flex items-center gap-2 mb-2">
-                    <AlertTriangle className="w-4 h-4 text-amber-400" />
+                    <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
                     <p className="text-xs font-black uppercase tracking-widest text-amber-300">
                       Current alert
                     </p>
                   </div>
-                  <p className="text-2xl font-black text-white tracking-tight">
+                  <p className="text-2xl font-black text-white tracking-tight break-words">
                     {loadingStock ? (
                       <span className="inline-flex align-middle">
                         <ODIColorLogo className="w-10 h-auto odi-loader-breathe" />
@@ -223,7 +225,7 @@ export default function SettingsPage() {
                     ) : (
                       <>
                         {lowStockCount ?? '—'}{' '}
-                        <span className="text-sm font-bold text-neutral-400">
+                        <span className="block sm:inline text-sm font-bold text-neutral-400 mt-1 sm:mt-0">
                           kit{(lowStockCount ?? 0) === 1 ? '' : 's'} ≤ {form.lowStockThreshold}
                         </span>
                       </>
@@ -231,7 +233,7 @@ export default function SettingsPage() {
                   </p>
                   <Link
                     to="/dashboard/admin/products"
-                    className="inline-flex items-center gap-1 mt-4 text-xs font-bold text-cyan-400 hover:text-cyan-300 transition-colors"
+                    className="inline-flex items-center justify-center sm:justify-start gap-1 mt-4 w-full sm:w-auto text-xs font-bold text-cyan-400 hover:text-cyan-300 transition-colors"
                   >
                     Review product stock <ArrowUpRight className="w-3.5 h-3.5" />
                   </Link>
@@ -242,7 +244,7 @@ export default function SettingsPage() {
         </div>
 
         {/* Side column */}
-        <div className="xl:col-span-4 flex flex-col gap-6 xl:sticky xl:top-28">
+        <div className="xl:col-span-4 flex flex-col gap-6 xl:sticky xl:top-28 min-w-0">
           <Card title="Quick links">
             <div className="p-2">
               {[
@@ -270,7 +272,7 @@ export default function SettingsPage() {
                   <Link
                     key={item.to}
                     to={item.to}
-                    className="flex items-center gap-3 px-4 py-3.5 rounded-xl hover:bg-white/[0.03] transition-colors group"
+                    className="flex items-center gap-3 px-3 sm:px-4 py-3.5 rounded-xl hover:bg-white/[0.03] transition-colors group min-w-0"
                   >
                     <div className="w-10 h-10 rounded-xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center shrink-0 group-hover:border-cyan-500/30 transition-colors">
                       <Icon className="w-4 h-4 text-neutral-400 group-hover:text-cyan-400 transition-colors" />
@@ -287,7 +289,7 @@ export default function SettingsPage() {
           </Card>
 
           <Card title="Coming later">
-            <div className="p-5 md:p-6 space-y-3 text-sm text-neutral-400 leading-relaxed">
+            <div className="p-4 sm:p-5 md:p-6 space-y-3 text-sm text-neutral-400 leading-relaxed">
               <p>
                 Shipping / tracking and refunds will use third-party tools. Team invites stay under
                 Customers (promote to admin).

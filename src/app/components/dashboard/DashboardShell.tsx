@@ -51,6 +51,22 @@ export default function DashboardShell({ portal, groups, switchTo }: DashboardSh
   const avatarUrl = user?.avatar_url || firebaseUser?.photoURL || null;
 
   useEffect(() => {
+    const html = document.documentElement;
+    const body = document.body;
+    const prevHtmlBg = html.style.backgroundColor;
+    const prevBodyBg = body.style.backgroundColor;
+    const prevScheme = html.style.colorScheme;
+    html.style.backgroundColor = T.bg;
+    body.style.backgroundColor = T.bg;
+    html.style.colorScheme = 'dark';
+    return () => {
+      html.style.backgroundColor = prevHtmlBg;
+      body.style.backgroundColor = prevBodyBg;
+      html.style.colorScheme = prevScheme;
+    };
+  }, []);
+
+  useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
         setProfileOpen(false);
@@ -164,7 +180,7 @@ export default function DashboardShell({ portal, groups, switchTo }: DashboardSh
 
   return (
     <div
-      className="min-h-screen md:h-screen md:overflow-hidden flex selection:bg-cyan-500/30 selection:text-cyan-100 [&_input:-webkit-autofill]:![box-shadow:0_0_0_100px_#111113_inset] [&_input:-webkit-autofill]:![-webkit-text-fill-color:#d4d4d8]"
+      className="min-h-dvh md:h-dvh md:overflow-hidden flex selection:bg-cyan-500/30 selection:text-cyan-100 [&_input:-webkit-autofill]:![box-shadow:0_0_0_100px_#111113_inset] [&_input:-webkit-autofill]:![-webkit-text-fill-color:#d4d4d8]"
       style={{ background: T.bg, color: T.text, fontFamily: 'Inter, system-ui, sans-serif' }}
     >
       {/* Desktop Sidebar */}
@@ -212,7 +228,11 @@ export default function DashboardShell({ portal, groups, switchTo }: DashboardSh
 
         <header
           className="sticky top-0 z-20 flex items-center gap-4 px-5 md:px-8 h-[72px] shrink-0"
-          style={{ background: T.bgAlt, borderBottom: `1px solid ${T.border}` }}
+          style={{
+            background: T.bgAlt,
+            borderBottom: `1px solid ${T.border}`,
+            boxShadow: `0 -8px 0 0 ${T.bgAlt}`,
+          }}
         >
           <button
             onClick={() => setSidebarOpen(true)}

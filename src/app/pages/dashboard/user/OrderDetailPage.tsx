@@ -62,22 +62,24 @@ function formatDateTime(iso: string) {
 function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
   if (value === null || value === undefined || value === '') return null;
   return (
-    <div className="flex justify-between gap-3 py-2.5 border-b border-white/[0.04] last:border-0">
+    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1 sm:gap-3 py-2.5 border-b border-white/[0.04] last:border-0">
       <span className="text-[11px] font-bold tracking-widest uppercase text-neutral-500 shrink-0 pt-0.5">
         {label}
       </span>
-      <span className="text-sm font-medium text-neutral-200 text-right">{value}</span>
+      <span className="text-sm font-medium text-neutral-200 sm:text-right break-all min-w-0">{value}</span>
     </div>
   );
 }
 
 function SectionTitle({ icon: Icon, children }: { icon: React.ElementType; children: React.ReactNode }) {
   return (
-    <div className="flex items-center gap-2 mb-4">
-      <div className="w-7 h-7 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center">
+    <div className="flex items-center gap-2 mb-4 min-w-0">
+      <div className="w-7 h-7 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center shrink-0">
         <Icon className="w-3.5 h-3.5 text-cyan-400" />
       </div>
-      <span className="text-xs font-black tracking-[0.2em] uppercase text-neutral-400">{children}</span>
+      <span className="text-xs font-black tracking-[0.2em] uppercase text-neutral-400 min-w-0 break-words">
+        {children}
+      </span>
     </div>
   );
 }
@@ -184,7 +186,7 @@ export default function UserOrderDetailPage() {
 
   if (error || !order) {
     return (
-      <div>
+      <div className="min-w-0">
         <PageHeader
           title="Order"
           accent="Detail."
@@ -192,7 +194,7 @@ export default function UserOrderDetailPage() {
           action={
             <Link
               to="/dashboard/orders"
-              className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold tracking-wide border border-white/[0.1] text-white bg-black/40 hover:bg-white/[0.04] transition-all rounded-xl"
+              className="inline-flex items-center justify-center gap-2 w-full sm:w-auto shrink-0 px-5 py-2.5 text-sm font-bold tracking-wide border border-white/[0.1] text-white bg-black/40 hover:bg-white/[0.04] transition-all rounded-xl"
             >
               <ArrowLeft className="w-4 h-4" /> Back to orders
             </Link>
@@ -252,7 +254,7 @@ export default function UserOrderDetailPage() {
   };
 
   return (
-    <div>
+    <div className="min-w-0">
       <PageHeader
         title={order.order_number}
         accent="Detail."
@@ -261,7 +263,7 @@ export default function UserOrderDetailPage() {
           <button
             type="button"
             onClick={() => navigate('/dashboard/orders')}
-            className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold tracking-wide border border-white/[0.1] text-white bg-black/40 hover:bg-white/[0.04] hover:border-white/[0.2] transition-all rounded-xl"
+            className="inline-flex items-center justify-center gap-2 w-full sm:w-auto shrink-0 px-5 py-2.5 text-sm font-bold tracking-wide border border-white/[0.1] text-white bg-black/40 hover:bg-white/[0.04] hover:border-white/[0.2] transition-all rounded-xl"
           >
             <ArrowLeft className="w-4 h-4" /> Back to orders
           </button>
@@ -269,9 +271,9 @@ export default function UserOrderDetailPage() {
       />
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 relative z-10">
-        <div className="xl:col-span-8 flex flex-col gap-6">
+        <div className="xl:col-span-8 flex flex-col gap-6 min-w-0">
           <Card>
-            <div className="px-6 py-5 border-b border-white/[0.04] bg-[#0d0d0d]">
+            <div className="px-4 sm:px-6 py-5 border-b border-white/[0.04] bg-[#0d0d0d]">
               <SectionTitle icon={Package}>Order</SectionTitle>
               <div className="flex flex-wrap items-center gap-3 -mt-2">
                 {awaitingPayment ? (
@@ -287,7 +289,7 @@ export default function UserOrderDetailPage() {
               </div>
             </div>
 
-            <div className="p-6">
+            <div className="p-4 sm:p-6">
               <div className="bg-white/[0.02] border border-white/[0.04] rounded-2xl p-4">
                 <DetailRow
                   label="Order #"
@@ -328,7 +330,7 @@ export default function UserOrderDetailPage() {
                 items.map((item) => (
                   <div
                     key={item.id}
-                    className="flex items-center gap-4 bg-white/[0.02] border border-white/[0.04] rounded-2xl p-4"
+                    className="flex items-start sm:items-center gap-3 sm:gap-4 bg-white/[0.02] border border-white/[0.04] rounded-2xl p-3 sm:p-4 min-w-0"
                   >
                     {item.snapshot_image_url ? (
                       <img
@@ -342,12 +344,15 @@ export default function UserOrderDetailPage() {
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold text-white truncate">{item.snapshot_name}</p>
+                      <p className="text-sm font-bold text-white break-words">{item.snapshot_name}</p>
                       <p className="text-xs text-neutral-500 mt-1">
                         Qty {item.quantity} × {inrFromPaise(item.unit_price_paise)}
                       </p>
+                      <p className="text-sm font-black text-white mt-1 sm:hidden">
+                        {inrFromPaise(lineTotal(item))}
+                      </p>
                     </div>
-                    <p className="text-sm font-black text-white shrink-0">
+                    <p className="hidden sm:block text-sm font-black text-white shrink-0">
                       {inrFromPaise(lineTotal(item))}
                     </p>
                   </div>
@@ -364,7 +369,7 @@ export default function UserOrderDetailPage() {
                     key={pmt.id}
                     className="bg-white/[0.02] border border-white/[0.04] rounded-2xl p-4"
                   >
-                    <div className="flex items-center gap-2 mb-3">
+                    <div className="flex flex-wrap items-center gap-2 mb-3">
                       <CreditCard className="w-4 h-4 text-cyan-400" />
                       <span className="text-xs font-black uppercase tracking-widest text-neutral-400">
                         {pmt.provider}
@@ -400,9 +405,9 @@ export default function UserOrderDetailPage() {
           )}
         </div>
 
-        <div className="xl:col-span-4 flex flex-col gap-6">
+        <div className="xl:col-span-4 flex flex-col gap-6 min-w-0">
           <Card>
-            <div className="p-5 sm:p-6">
+            <div className="p-4 sm:p-6">
               <SectionTitle icon={MapPin}>Shipping</SectionTitle>
               <div className="bg-white/[0.02] border border-white/[0.04] rounded-2xl p-4">
                 <DetailRow label="Name" value={shipName} />
@@ -413,11 +418,11 @@ export default function UserOrderDetailPage() {
             </div>
           </Card>
 
-          <div className="rounded-2xl border border-white/[0.06] bg-[#0A0A0A] p-5">
+          <div className="rounded-2xl border border-white/[0.06] bg-[#0A0A0A] p-4 sm:p-5 min-w-0">
             <p className="text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-2">
               Order total
             </p>
-            <p className="text-3xl font-black text-white tracking-tight">
+            <p className="text-2xl sm:text-3xl font-black text-white tracking-tight break-all">
               {inrFromPaise(order.total_paise)}
             </p>
             {order.discount_paise > 0 && (
@@ -521,12 +526,12 @@ export default function UserOrderDetailPage() {
                   placeholder="Optional reason…"
                   className="w-full px-3 py-2 rounded-xl border border-white/[0.07] bg-[#111113] text-sm text-neutral-200 outline-none focus:border-white/20 resize-none"
                 />
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <button
                     type="button"
                     disabled={cancelBusy}
                     onClick={submitCancelRequest}
-                    className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 text-xs font-bold rounded-xl bg-red-500/15 text-red-300 border border-red-500/25 hover:bg-red-500/20 disabled:opacity-50"
+                    className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2.5 text-xs font-bold rounded-xl bg-red-500/15 text-red-300 border border-red-500/25 hover:bg-red-500/20 disabled:opacity-50"
                   >
                     {cancelBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Ban className="w-3.5 h-3.5" />}
                     Submit request
@@ -537,7 +542,7 @@ export default function UserOrderDetailPage() {
                       setShowCancelForm(false);
                       setCancelReason('');
                     }}
-                    className="px-3 py-2 text-xs font-bold rounded-xl border border-white/10 text-neutral-400 hover:text-white"
+                    className="px-3 py-2.5 text-xs font-bold rounded-xl border border-white/10 text-neutral-400 hover:text-white"
                   >
                     Close
                   </button>

@@ -49,22 +49,24 @@ function badgeStatus(status: string): 'paid' | 'pending' | 'refunded' | 'failed'
 function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
   if (value === null || value === undefined || value === '') return null;
   return (
-    <div className="flex justify-between gap-3 py-2.5 border-b border-white/[0.04] last:border-0">
+    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1 sm:gap-3 py-2.5 border-b border-white/[0.04] last:border-0">
       <span className="text-[11px] font-bold tracking-widest uppercase text-neutral-500 shrink-0 pt-0.5">
         {label}
       </span>
-      <span className="text-sm font-medium text-neutral-200 text-right break-all">{value}</span>
+      <span className="text-sm font-medium text-neutral-200 sm:text-right break-all min-w-0">{value}</span>
     </div>
   );
 }
 
 function SectionTitle({ icon: Icon, children }: { icon: React.ElementType; children: React.ReactNode }) {
   return (
-    <div className="flex items-center gap-2 mb-4">
-      <div className="w-7 h-7 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center">
+    <div className="flex items-center gap-2 mb-4 min-w-0">
+      <div className="w-7 h-7 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center shrink-0">
         <Icon className="w-3.5 h-3.5 text-cyan-400" />
       </div>
-      <span className="text-xs font-black tracking-[0.2em] uppercase text-neutral-400">{children}</span>
+      <span className="text-xs font-black tracking-[0.2em] uppercase text-neutral-400 min-w-0 break-words">
+        {children}
+      </span>
     </div>
   );
 }
@@ -105,7 +107,7 @@ export default function PaymentDetailPage() {
 
   if (error || !detail) {
     return (
-      <div>
+      <div className="min-w-0">
         <PageHeader
           title="Payment"
           accent="Detail."
@@ -113,7 +115,7 @@ export default function PaymentDetailPage() {
           action={
             <Link
               to="/dashboard/admin/payments"
-              className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold tracking-wide border border-white/[0.1] text-white bg-black/40 hover:bg-white/[0.04] transition-all rounded-xl"
+              className="inline-flex items-center justify-center gap-2 w-full sm:w-auto shrink-0 px-5 py-2.5 text-sm font-bold tracking-wide border border-white/[0.1] text-white bg-black/40 hover:bg-white/[0.04] transition-all rounded-xl"
             >
               <ArrowLeft className="w-4 h-4" /> Back to payments
             </Link>
@@ -142,7 +144,7 @@ export default function PaymentDetailPage() {
     .join(', ');
 
   return (
-    <div>
+    <div className="min-w-0">
       <PageHeader
         title="Payment"
         accent="Detail."
@@ -151,7 +153,7 @@ export default function PaymentDetailPage() {
           <button
             type="button"
             onClick={() => navigate('/dashboard/admin/payments')}
-            className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold tracking-wide border border-white/[0.1] text-white bg-black/40 hover:bg-white/[0.04] hover:border-white/[0.2] transition-all rounded-xl"
+            className="inline-flex items-center justify-center gap-2 w-full sm:w-auto shrink-0 px-5 py-2.5 text-sm font-bold tracking-wide border border-white/[0.1] text-white bg-black/40 hover:bg-white/[0.04] hover:border-white/[0.2] transition-all rounded-xl"
           >
             <ArrowLeft className="w-4 h-4" /> Back to payments
           </button>
@@ -159,10 +161,10 @@ export default function PaymentDetailPage() {
       />
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 relative z-10">
-        <div className="xl:col-span-8 flex flex-col gap-6">
+        <div className="xl:col-span-8 flex flex-col gap-6 min-w-0">
           <Card>
-            <div className="px-6 py-5 border-b border-white/[0.04] bg-[#0d0d0d] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div>
+            <div className="px-4 sm:px-6 py-5 border-b border-white/[0.04] bg-[#0d0d0d] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="min-w-0">
                 <SectionTitle icon={CreditCard}>Transaction</SectionTitle>
                 <div className="flex flex-wrap items-center gap-3 -mt-2">
                   <PaymentBadge status={badgeStatus(payment.status)} />
@@ -171,18 +173,18 @@ export default function PaymentDetailPage() {
                   </span>
                 </div>
               </div>
-              <div className="text-right">
+              <div className="text-left sm:text-right">
                 <p className="text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-1">
                   Amount
                 </p>
-                <p className="text-2xl font-black text-white tracking-tight">
+                <p className="text-2xl font-black text-white tracking-tight break-all">
                   {inrFromPaise(payment.amount_paise)}
                 </p>
                 <p className="text-xs text-neutral-500 mt-0.5">{payment.currency || 'INR'}</p>
               </div>
             </div>
 
-            <div className="p-6">
+            <div className="p-4 sm:p-6">
               <div className="bg-white/[0.02] border border-white/[0.04] rounded-2xl p-4">
                 <DetailRow
                   label="Payment ID"
@@ -217,16 +219,16 @@ export default function PaymentDetailPage() {
 
           {order && (
             <Card>
-              <div className="px-6 py-5 border-b border-white/[0.04] bg-[#0d0d0d] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="px-4 sm:px-6 py-5 border-b border-white/[0.04] bg-[#0d0d0d] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <SectionTitle icon={Package}>Linked order</SectionTitle>
                 <Link
                   to={`/dashboard/admin/orders/${order.id}`}
-                  className="inline-flex items-center gap-1.5 text-xs font-bold text-cyan-400 hover:text-cyan-300 transition-colors"
+                  className="inline-flex items-center justify-center sm:justify-start gap-1.5 text-xs font-bold text-cyan-400 hover:text-cyan-300 transition-colors"
                 >
                   Open order <ExternalLink className="w-3.5 h-3.5" />
                 </Link>
               </div>
-              <div className="p-6">
+              <div className="p-4 sm:p-6">
                 <div className="bg-white/[0.02] border border-white/[0.04] rounded-2xl p-4">
                   <DetailRow
                     label="Order #"
@@ -260,7 +262,7 @@ export default function PaymentDetailPage() {
           )}
         </div>
 
-        <div className="xl:col-span-4 flex flex-col gap-6">
+        <div className="xl:col-span-4 flex flex-col gap-6 min-w-0">
           <Card>
             <div className="p-5 sm:p-6">
               <SectionTitle icon={User}>Customer</SectionTitle>

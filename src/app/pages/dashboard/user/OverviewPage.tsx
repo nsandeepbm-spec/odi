@@ -107,10 +107,10 @@ export default function OverviewPage() {
 
   if (error) {
     return (
-      <div className="bg-[#0A0A0A] rounded-2xl border border-white/[0.06] p-10 flex flex-col items-center text-center gap-3">
+      <div className="min-w-0 bg-[#0A0A0A] rounded-2xl border border-white/[0.06] p-6 sm:p-10 flex flex-col items-center text-center gap-3">
         <AlertCircle className="w-8 h-8 text-red-500 drop-shadow-[0_0_15px_rgba(239,68,68,0.5)]" />
         <p className="font-bold text-sm text-white">Could not load your orders</p>
-        <p className="text-xs text-neutral-400 max-w-sm">{error}</p>
+        <p className="text-xs text-neutral-400 max-w-sm break-words">{error}</p>
       </div>
     );
   }
@@ -124,6 +124,7 @@ export default function OverviewPage() {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
+      className="min-w-0"
     >
       <PageHeader
         eyebrow={greeting}
@@ -133,28 +134,28 @@ export default function OverviewPage() {
         action={
           <Link
             to="/products"
-            className="inline-flex items-center gap-2 px-6 py-3 text-sm font-bold tracking-wide bg-gradient-to-r from-cyan-400 to-indigo-500 text-white shadow-[0_0_20px_rgba(34,211,238,0.3)] hover:shadow-[0_0_30px_rgba(99,102,241,0.5)] transform hover:-translate-y-0.5 active:translate-y-0 transition-all rounded-xl"
+            className="inline-flex items-center justify-center gap-2 w-full sm:w-auto shrink-0 px-6 py-3 text-sm font-bold tracking-wide bg-gradient-to-r from-cyan-400 to-indigo-500 text-white shadow-[0_0_20px_rgba(34,211,238,0.3)] hover:shadow-[0_0_30px_rgba(99,102,241,0.5)] sm:hover:-translate-y-0.5 active:translate-y-0 transition-all rounded-xl"
           >
             Browse Books <ArrowUpRight className="w-4 h-4" />
           </Link>
         }
       />
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8 relative z-10">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8 relative z-10 min-w-0">
         <StatCard label="Total Orders" value={String(orders.length)} icon={Package} delay={0} />
         <StatCard label="In Transit" value={String(inTransitCount)} icon={Truck} delay={0.06} />
         <StatCard label="Total Spent" value={inrFromPaise(totalSpent)} icon={CreditCard} delay={0.12} />
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-8 relative z-10">
-        <Card title="Active Shipment" className="xl:col-span-2">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-8 relative z-10 min-w-0">
+        <Card title="Active Shipment" className="xl:col-span-2 min-w-0">
           {activeOrder ? (
-            <div className="p-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-8">
-                <div>
+            <div className="p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 sm:mb-8 min-w-0">
+                <div className="min-w-0">
                   <Link
                     to={`/dashboard/orders/${activeOrder.id}`}
-                    className="font-black text-base tracking-tight text-white hover:text-cyan-300 transition-colors"
+                    className="font-black text-base tracking-tight text-white hover:text-cyan-300 transition-colors break-all"
                   >
                     Order #{activeOrder.order_number}
                   </Link>
@@ -172,9 +173,9 @@ export default function OverviewPage() {
                   <Loader2 className="w-3.5 h-3.5 animate-spin" /> Updating live location…
                 </p>
               ) : locationLine ? (
-                <div className="mt-6 flex items-center gap-2 text-xs text-neutral-400 font-medium">
-                  <MapPin className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                  <span>
+                <div className="mt-6 flex items-start gap-2 text-xs text-neutral-400 font-medium min-w-0">
+                  <MapPin className="w-3.5 h-3.5 text-cyan-400 shrink-0 mt-0.5" />
+                  <span className="break-words min-w-0">
                     {activeTracking?.statusLocation ? 'Latest update' : 'Delivering to'} · {locationLine}
                   </span>
                 </div>
@@ -208,7 +209,7 @@ export default function OverviewPage() {
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.15 }}
-          className="relative rounded-2xl overflow-hidden border border-white/[0.06] shadow-xl shadow-black/40 bg-[#0A0A0A] p-6 flex flex-col"
+          className="relative rounded-2xl overflow-hidden border border-white/[0.06] shadow-xl shadow-black/40 bg-[#0A0A0A] p-4 sm:p-6 flex flex-col min-w-0"
         >
           <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 via-indigo-500/5 to-purple-600/5 pointer-events-none" />
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-400 via-indigo-500 to-purple-600 flex items-center justify-center mb-5 shadow-[0_0_20px_rgba(99,102,241,0.4)]">
@@ -230,7 +231,7 @@ export default function OverviewPage() {
       </div>
 
       <Card
-        className="relative z-10"
+        className="relative z-10 min-w-0"
         title="Recent Orders"
         action={
           <Link
@@ -248,39 +249,71 @@ export default function OverviewPage() {
             subtitle="Your orders will appear here after your first purchase."
           />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left min-w-[540px]">
-              <thead className="bg-white/[0.02] text-neutral-400 text-[10px] uppercase tracking-[0.2em] font-bold border-b border-white/[0.04]">
-                <tr>
-                  <th className="px-6 py-4">Order</th>
-                  <th className="px-6 py-4">Date</th>
-                  <th className="px-6 py-4">Status</th>
-                  <th className="px-6 py-4 text-right">Amount</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/[0.04]">
-                {recentOrders.map((o) => (
-                  <tr key={o.id} className="hover:bg-white/[0.02] transition-colors group">
-                    <td className="px-6 py-4">
-                      <Link
-                        to={`/dashboard/orders/${o.id}`}
-                        className="font-black text-cyan-400 group-hover:text-cyan-300 transition-colors"
-                      >
-                        #{o.order_number}
-                      </Link>
-                    </td>
-                    <td className="px-6 py-4 text-neutral-400 font-medium">{formatDate(o.created_at)}</td>
-                    <td className="px-6 py-4">
-                      <ShipmentStatusChip order={o} />
-                    </td>
-                    <td className="px-6 py-4 text-right font-black text-white">
-                      {inrFromPaise(o.total_paise)}
-                    </td>
+          <>
+            <div className="md:hidden divide-y divide-white/[0.04]">
+              {recentOrders.map((o) => (
+                <Link
+                  key={o.id}
+                  to={`/dashboard/orders/${o.id}`}
+                  className="flex items-center gap-3 px-4 py-4 active:bg-white/[0.02] transition-colors"
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-black text-sm text-cyan-400 truncate">#{o.order_number}</span>
+                      <span className="font-black text-sm text-white shrink-0">
+                        {inrFromPaise(o.total_paise)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between gap-2 mt-1.5">
+                      <span className="text-xs text-neutral-500 font-medium truncate">
+                        {formatDate(o.created_at)}
+                      </span>
+                      <span className="shrink-0">
+                        <ShipmentStatusChip order={o} />
+                      </span>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-neutral-500 shrink-0" />
+                </Link>
+              ))}
+            </div>
+
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-sm text-left min-w-[540px]">
+                <thead className="bg-white/[0.02] text-neutral-400 text-[10px] uppercase tracking-[0.2em] font-bold border-b border-white/[0.04]">
+                  <tr>
+                    <th className="px-4 lg:px-6 py-4">Order</th>
+                    <th className="px-4 lg:px-6 py-4">Date</th>
+                    <th className="px-4 lg:px-6 py-4">Status</th>
+                    <th className="px-4 lg:px-6 py-4 text-right">Amount</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-white/[0.04]">
+                  {recentOrders.map((o) => (
+                    <tr key={o.id} className="hover:bg-white/[0.02] transition-colors group">
+                      <td className="px-4 lg:px-6 py-4">
+                        <Link
+                          to={`/dashboard/orders/${o.id}`}
+                          className="font-black text-cyan-400 group-hover:text-cyan-300 transition-colors"
+                        >
+                          #{o.order_number}
+                        </Link>
+                      </td>
+                      <td className="px-4 lg:px-6 py-4 text-neutral-400 font-medium">
+                        {formatDate(o.created_at)}
+                      </td>
+                      <td className="px-4 lg:px-6 py-4">
+                        <ShipmentStatusChip order={o} />
+                      </td>
+                      <td className="px-4 lg:px-6 py-4 text-right font-black text-white">
+                        {inrFromPaise(o.total_paise)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </Card>
     </motion.div>

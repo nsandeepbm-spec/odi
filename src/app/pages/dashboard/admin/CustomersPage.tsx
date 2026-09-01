@@ -44,12 +44,14 @@ function EditUserDialog({
   currentUserId,
   onUpdate,
   onRemoved,
+  fullWidth = false,
 }: {
   user: AppUser;
   isSuperAdmin: boolean;
   currentUserId: string;
   onUpdate: (updated: AppUser) => void;
   onRemoved: (id: string) => void;
+  fullWidth?: boolean;
 }) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -112,9 +114,14 @@ function EditUserDialog({
         onClick={() => setDialogOpen(true)}
         disabled={busy || isSelf}
         title={isSelf ? 'Cannot modify your own account' : 'Edit customer'}
-        className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.04] text-neutral-400 transition-colors hover:bg-white/[0.08] hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+        className={
+          fullWidth
+            ? 'inline-flex w-full items-center justify-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2.5 text-xs font-bold text-neutral-300 transition-colors hover:bg-white/[0.08] hover:text-white disabled:cursor-not-allowed disabled:opacity-30'
+            : 'inline-flex h-9 w-9 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.04] text-neutral-400 transition-colors hover:bg-white/[0.08] hover:text-white disabled:cursor-not-allowed disabled:opacity-30'
+        }
       >
         {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Pencil className="w-4 h-4" />}
+        {fullWidth ? 'Edit' : null}
       </button>
 
       <Dialog
@@ -124,8 +131,8 @@ function EditUserDialog({
           if (!open) setConfirmDelete(false);
         }}
       >
-        <DialogContent className="max-w-xl border-white/10 bg-[#0A0A0A] p-0 text-white shadow-2xl">
-          <DialogHeader className="border-b border-white/[0.06] bg-[#0d0d0d] px-6 py-5">
+        <DialogContent className="max-w-xl max-h-[85dvh] overflow-y-auto border-white/10 bg-[#0A0A0A] p-0 text-white shadow-2xl">
+          <DialogHeader className="border-b border-white/[0.06] bg-[#0d0d0d] px-4 sm:px-6 py-5">
             <DialogTitle className="text-left text-xl font-black tracking-tight text-white">
               Edit Customer
             </DialogTitle>
@@ -134,7 +141,7 @@ function EditUserDialog({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-6 px-6 py-5">
+          <div className="space-y-6 px-4 sm:px-6 py-5">
             <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4">
               <div className="flex items-start gap-3">
                 <div className="min-w-0 flex-1">
@@ -259,7 +266,7 @@ function EditUserDialog({
             </div>
           </div>
 
-          <DialogFooter className="border-t border-white/[0.06] bg-[#0d0d0d] px-6 py-4">
+          <DialogFooter className="border-t border-white/[0.06] bg-[#0d0d0d] px-4 sm:px-6 py-4">
             {confirmDelete ? (
               <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-xs text-red-300">
@@ -293,13 +300,13 @@ function EditUserDialog({
                     type="button"
                     onClick={() => setConfirmDelete(true)}
                     disabled={busy}
-                    className="mr-auto inline-flex items-center justify-center gap-2 rounded-xl border border-red-500/30 px-4 py-2.5 text-sm font-bold text-red-300 transition-colors hover:bg-red-500/10"
+                    className="w-full sm:w-auto sm:mr-auto inline-flex items-center justify-center gap-2 rounded-xl border border-red-500/30 px-4 py-2.5 text-sm font-bold text-red-300 transition-colors hover:bg-red-500/10"
                   >
                     <Trash2 className="h-4 w-4" />
                     Delete
                   </button>
                 ) : (
-                  <span />
+                  <span className="hidden sm:block" />
                 )}
                 <button
                   type="button"
@@ -308,7 +315,7 @@ function EditUserDialog({
                     setDraftStatus(user.status);
                     setDialogOpen(false);
                   }}
-                  className="rounded-xl border border-white/[0.08] px-4 py-2.5 text-sm font-bold text-neutral-300 transition-colors hover:bg-white/[0.05] hover:text-white"
+                  className="w-full sm:w-auto rounded-xl border border-white/[0.08] px-4 py-2.5 text-sm font-bold text-neutral-300 transition-colors hover:bg-white/[0.05] hover:text-white"
                 >
                   Cancel
                 </button>
@@ -316,7 +323,7 @@ function EditUserDialog({
                   type="button"
                   onClick={() => void apply()}
                   disabled={busy || isSelf}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-400 to-indigo-500 px-5 py-2.5 text-sm font-bold text-white shadow-[0_0_18px_rgba(56,189,248,0.22)] transition-all hover:shadow-[0_0_24px_rgba(99,102,241,0.35)] disabled:cursor-not-allowed disabled:opacity-50"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-400 to-indigo-500 px-5 py-2.5 text-sm font-bold text-white shadow-[0_0_18px_rgba(56,189,248,0.22)] transition-all hover:shadow-[0_0_24px_rgba(99,102,241,0.35)] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                   Save Changes
@@ -394,7 +401,7 @@ export default function CustomersPage() {
   }, [query, users]);
 
   return (
-    <div>
+    <div className="min-w-0">
       <PageHeader
         title="Customer"
         accent="Directory."
@@ -402,15 +409,15 @@ export default function CustomersPage() {
       />
 
       <Card className="relative z-10">
-        <div className="px-6 py-5 border-b border-white/[0.04] bg-[#0d0d0d]">
-          <div className="flex items-center gap-3 max-w-md px-4 py-2.5 rounded-xl bg-[#050505] border border-white/[0.06] shadow-inner focus-within:border-white/[0.2] transition-colors">
+        <div className="px-4 sm:px-6 py-4 sm:py-5 border-b border-white/[0.04] bg-[#0d0d0d]">
+          <div className="flex items-center gap-3 w-full lg:max-w-md px-4 py-2.5 rounded-xl bg-[#050505] border border-white/[0.06] shadow-inner focus-within:border-white/[0.2] transition-colors">
             <Search className="w-4 h-4 text-neutral-500 shrink-0" />
             <input
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search customers…"
-              className="w-full bg-transparent text-sm outline-none placeholder:text-neutral-500 text-white"
+              className="w-full min-w-0 bg-transparent text-sm outline-none placeholder:text-neutral-500 text-white"
             />
           </div>
         </div>
@@ -422,90 +429,168 @@ export default function CustomersPage() {
         ) : filtered.length === 0 ? (
           <EmptyState icon={UserX} title="No customers found" subtitle="Try a different name or email." />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left min-w-[860px]">
-              <thead className="bg-white/[0.02] text-neutral-400 text-[10px] uppercase tracking-[0.2em] font-bold border-b border-white/[0.04]">
-                <tr>
-                  <th className="px-6 py-4">Customer</th>
-                  <th className="px-6 py-4">Contact</th>
-                  <th className="px-6 py-4">Joined</th>
-                  <th className="px-6 py-4">Role</th>
-                  <th className="px-6 py-4">Status</th>
-                  <th className="px-6 py-4 text-right">Last Login</th>
-                  <th className="px-4 py-4 text-center">Edit</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/[0.04]">
-                {filtered.map((u, i) => {
-                  const name = displayName(u);
-                  return (
-                    <tr key={u.id} className="hover:bg-white/[0.02] transition-colors group">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-4">
-                          {u.avatar_url ? (
-                            <img
-                              src={u.avatar_url}
-                              alt={name}
-                              className="w-10 h-10 rounded-full object-cover shrink-0 ring-1 ring-white/10"
-                            />
-                          ) : (
-                            <div
-                              className={`w-10 h-10 rounded-full bg-gradient-to-br ${gradients[i % gradients.length]} flex items-center justify-center text-white text-[11px] font-black shrink-0 ring-1 ring-white/10 shadow-[0_0_10px_rgba(255,255,255,0.1)]`}
-                            >
-                              {getInitials(u.full_name, u.email)}
-                            </div>
-                          )}
-                          <div>
-                            <div className="font-bold text-white group-hover:text-cyan-300 transition-colors flex items-center gap-2">
-                              {name}
-                              {u.is_super_admin && (
-                                <span className="px-1.5 py-0.5 text-[8px] font-black uppercase tracking-widest rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">Super</span>
-                              )}
-                            </div>
-                            <div className="text-xs text-neutral-500 font-mono mt-0.5">{u.id.slice(0, 8)}…</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-neutral-300 font-medium">{u.email}</div>
-                        <div className="text-xs text-neutral-500 mt-0.5">{u.phone || '—'}</div>
-                      </td>
-                      <td className="px-6 py-4 text-neutral-400 font-medium">{formatDate(u.created_at)}</td>
-                      <td className="px-6 py-4">
-                        <span
-                          className={`px-3 py-1.5 text-[9px] font-black uppercase tracking-widest rounded border ${
-                            u.role === 'admin' ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' : 'bg-white/[0.03] text-neutral-400 border-white/[0.1]'
-                          }`}
-                        >
-                          {u.role}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span
-                          className={`px-3 py-1.5 text-[9px] font-black uppercase tracking-widest rounded border ${statusClass(u.status)}`}
-                        >
-                          {u.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-right text-neutral-400 font-medium">{formatDate(u.last_login_at)}</td>
-                      <td className="px-4 py-4 text-center">
-                        <EditUserDialog
-                          user={u}
-                          isSuperAdmin={isSuperAdmin}
-                          currentUserId={currentUser?.id ?? ''}
-                          onUpdate={handleUserUpdate}
-                          onRemoved={handleUserRemoved}
+          <>
+            {/* Mobile / tablet cards */}
+            <div className="md:hidden divide-y divide-white/[0.04]">
+              {filtered.map((u, i) => {
+                const name = displayName(u);
+                return (
+                  <div key={u.id} className="px-4 py-4 flex flex-col gap-3">
+                    <div className="flex items-start gap-3">
+                      {u.avatar_url ? (
+                        <img
+                          src={u.avatar_url}
+                          alt={name}
+                          className="w-10 h-10 rounded-full object-cover shrink-0 ring-1 ring-white/10"
                         />
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                      ) : (
+                        <div
+                          className={`w-10 h-10 rounded-full bg-gradient-to-br ${gradients[i % gradients.length]} flex items-center justify-center text-white text-[11px] font-black shrink-0 ring-1 ring-white/10`}
+                        >
+                          {getInitials(u.full_name, u.email)}
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="font-bold text-white truncate">{name}</p>
+                          {u.is_super_admin && (
+                            <span className="px-1.5 py-0.5 text-[8px] font-black uppercase tracking-widest rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                              Super
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-neutral-400 break-all mt-0.5">{u.email}</p>
+                        <p className="text-xs text-neutral-500 mt-0.5">{u.phone || '—'}</p>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span
+                        className={`px-3 py-1.5 text-[9px] font-black uppercase tracking-widest rounded border ${
+                          u.role === 'admin'
+                            ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
+                            : 'bg-white/[0.03] text-neutral-400 border-white/[0.1]'
+                        }`}
+                      >
+                        {u.role}
+                      </span>
+                      <span
+                        className={`px-3 py-1.5 text-[9px] font-black uppercase tracking-widest rounded border ${statusClass(u.status)}`}
+                      >
+                        {u.status}
+                      </span>
+                    </div>
+                    <p className="text-xs text-neutral-500">
+                      Joined {formatDate(u.created_at)} · Last login {formatDate(u.last_login_at)}
+                    </p>
+                    <EditUserDialog
+                      user={u}
+                      isSuperAdmin={isSuperAdmin}
+                      currentUserId={currentUser?.id ?? ''}
+                      onUpdate={handleUserUpdate}
+                      onRemoved={handleUserRemoved}
+                      fullWidth
+                    />
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-sm text-left min-w-[800px]">
+                <thead className="bg-white/[0.02] text-neutral-400 text-[10px] uppercase tracking-[0.2em] font-bold border-b border-white/[0.04]">
+                  <tr>
+                    <th className="px-4 lg:px-6 py-4">Customer</th>
+                    <th className="px-4 lg:px-6 py-4">Contact</th>
+                    <th className="px-4 lg:px-6 py-4">Joined</th>
+                    <th className="px-4 lg:px-6 py-4">Role</th>
+                    <th className="px-4 lg:px-6 py-4">Status</th>
+                    <th className="px-4 lg:px-6 py-4 text-right">Last Login</th>
+                    <th className="px-4 py-4 text-center">Edit</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/[0.04]">
+                  {filtered.map((u, i) => {
+                    const name = displayName(u);
+                    return (
+                      <tr key={u.id} className="hover:bg-white/[0.02] transition-colors group">
+                        <td className="px-4 lg:px-6 py-4">
+                          <div className="flex items-center gap-4">
+                            {u.avatar_url ? (
+                              <img
+                                src={u.avatar_url}
+                                alt={name}
+                                className="w-10 h-10 rounded-full object-cover shrink-0 ring-1 ring-white/10"
+                              />
+                            ) : (
+                              <div
+                                className={`w-10 h-10 rounded-full bg-gradient-to-br ${gradients[i % gradients.length]} flex items-center justify-center text-white text-[11px] font-black shrink-0 ring-1 ring-white/10 shadow-[0_0_10px_rgba(255,255,255,0.1)]`}
+                              >
+                                {getInitials(u.full_name, u.email)}
+                              </div>
+                            )}
+                            <div className="min-w-0">
+                              <div className="font-bold text-white group-hover:text-cyan-300 transition-colors flex items-center gap-2">
+                                <span className="truncate">{name}</span>
+                                {u.is_super_admin && (
+                                  <span className="px-1.5 py-0.5 text-[8px] font-black uppercase tracking-widest rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 shrink-0">
+                                    Super
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-xs text-neutral-500 font-mono mt-0.5">
+                                {u.id.slice(0, 8)}…
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 lg:px-6 py-4">
+                          <div className="text-neutral-300 font-medium break-all">{u.email}</div>
+                          <div className="text-xs text-neutral-500 mt-0.5">{u.phone || '—'}</div>
+                        </td>
+                        <td className="px-4 lg:px-6 py-4 text-neutral-400 font-medium">
+                          {formatDate(u.created_at)}
+                        </td>
+                        <td className="px-4 lg:px-6 py-4">
+                          <span
+                            className={`px-3 py-1.5 text-[9px] font-black uppercase tracking-widest rounded border ${
+                              u.role === 'admin'
+                                ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
+                                : 'bg-white/[0.03] text-neutral-400 border-white/[0.1]'
+                            }`}
+                          >
+                            {u.role}
+                          </span>
+                        </td>
+                        <td className="px-4 lg:px-6 py-4">
+                          <span
+                            className={`px-3 py-1.5 text-[9px] font-black uppercase tracking-widest rounded border ${statusClass(u.status)}`}
+                          >
+                            {u.status}
+                          </span>
+                        </td>
+                        <td className="px-4 lg:px-6 py-4 text-right text-neutral-400 font-medium">
+                          {formatDate(u.last_login_at)}
+                        </td>
+                        <td className="px-4 py-4 text-center">
+                          <EditUserDialog
+                            user={u}
+                            isSuperAdmin={isSuperAdmin}
+                            currentUserId={currentUser?.id ?? ''}
+                            onUpdate={handleUserUpdate}
+                            onRemoved={handleUserRemoved}
+                          />
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
 
-        <div className="px-6 py-5 border-t border-white/[0.04] bg-[#0d0d0d] text-xs text-neutral-500 font-bold tracking-wide">
+        <div className="px-4 sm:px-6 py-4 sm:py-5 border-t border-white/[0.04] bg-[#0d0d0d] text-xs text-neutral-500 font-bold tracking-wide">
           {loading
             ? '…'
             : `${filtered.length} customer${filtered.length === 1 ? '' : 's'}${

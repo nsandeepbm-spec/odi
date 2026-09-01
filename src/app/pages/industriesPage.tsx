@@ -1,225 +1,243 @@
 import { motion } from 'motion/react';
-import { 
-  Film, 
-  Tv, 
-  Users, 
-  Sparkles, 
-  Music, 
-  FileText, 
-  ArrowRight
+import {
+  Film,
+  Tv,
+  Users,
+  Sparkles,
+  Music,
+  ArrowRight,
+  type LucideIcon,
 } from 'lucide-react';
 import { Link } from 'react-router';
 
-// ─── PLACEHOLDER COMPONENT ───────────────────────────────────────────────────
-function ImagePlaceholder({ height = 400, label = 'Image Placeholder' }: { height?: number; label?: string }) {
-  return (
-    <div 
-      className="w-full flex items-center justify-center rounded-3xl bg-neutral-50/50 border-2 border-dashed border-neutral-200"
-      style={{ height }}
-    >
-      <span className="text-sm font-bold tracking-widest uppercase text-neutral-400">{label}</span>
-    </div>
-  );
+const ease = [0.25, 0.1, 0.25, 1] as const;
+
+interface Industry {
+  icon: LucideIcon;
+  image: string;
+  title: string;
+  headline: string;
+  description: string;
+  tags: string[];
 }
 
-const industries = [
+const industries: Industry[] = [
   {
     icon: Tv,
     image: '/OTT Platforms.png',
-    title: 'OTT PLATFORMS',
-    headline: 'Bringing Streaming Into Stereoscopic 3D',
-    description: 'We convert films, series, and originals into premium stereoscopic 3D, giving audiences a richer viewing experience while preserving the original creative vision.',
+    title: 'OTT Platforms',
+    headline: 'Bringing streaming into stereoscopic 3D',
+    description:
+      'We convert films, series, and originals into premium stereoscopic 3D, giving audiences a richer viewing experience while preserving the original creative vision.',
     tags: ['Series & Originals', 'Content Library Conversion', 'Premium Spatial Releases'],
   },
   {
     icon: Film,
     image: '/Film Studios.png',
-    title: 'FILM STUDIOS',
-    headline: 'Cinema, Reimagined in 3D',
-    description: 'From new releases to archive titles, we create natural stereoscopic 3D conversions that enhance storytelling without compromising the director\'s vision.',
+    title: 'Film Studios',
+    headline: 'Cinema, reimagined in 3D',
+    description:
+      "From new releases to archive titles, we create natural stereoscopic 3D conversions that enhance storytelling without compromising the director's vision.",
     tags: ['Feature Films', 'Theatrical Releases', 'Library Restoration'],
   },
   {
     icon: Sparkles,
     image: '/Advertising Agencies.png',
-    title: 'ADVERTISING AGENCIES',
-    headline: 'Campaigns With Real Presence',
-    description: 'We transform commercials and brand films into stereoscopic 3D experiences that capture attention and create stronger audience engagement.',
+    title: 'Advertising Agencies',
+    headline: 'Campaigns with real presence',
+    description:
+      'We transform commercials and brand films into stereoscopic 3D experiences that capture attention and create stronger audience engagement.',
     tags: ['TV Commercials', 'Brand Films', 'Product Launches'],
   },
   {
     icon: Users,
     image: '/Creators & Influencers.png',
-    title: 'CREATORS & INFLUENCERS',
-    headline: 'Content That Feels Closer',
-    description: 'Turn everyday videos into immersive stereoscopic experiences for modern spatial platforms, helping your audience connect in a whole new way.',
+    title: 'Creators & Influencers',
+    headline: 'Content that feels closer',
+    description:
+      'Turn everyday videos into immersive stereoscopic experiences for modern spatial platforms, helping your audience connect in a whole new way.',
     tags: ['Instagram Reels', 'YouTube Shorts', 'TikTok Content'],
   },
   {
     icon: Music,
     image: '/Music Labels.png',
-    title: 'MUSIC LABELS',
-    headline: 'Feel Every Performance',
-    description: 'From music videos to live concerts, we create stereoscopic 3D experiences that bring fans closer to every performance.',
+    title: 'Music Labels',
+    headline: 'Feel every performance',
+    description:
+      'From music videos to live concerts, we create stereoscopic 3D experiences that bring fans closer to every performance.',
     tags: ['Music Videos', 'Concert Films', 'Visual Albums'],
-  }
+  },
 ];
 
 export default function IndustriesPage() {
   return (
-    <div className="min-h-screen bg-white text-neutral-900 pt-28 md:pt-36 pb-24 selection:bg-indigo-100 font-sans">
-      
-      {/* ────────────────────────────────────────────────────────────────────────
-          HERO BANNER
-          ──────────────────────────────────────────────────────────────────────── */}
-      <section className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 mb-32">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          className="relative w-full h-[500px] md:h-[600px] rounded-[3rem] overflow-hidden border border-neutral-100 shadow-2xl group"
-        >
-          {/* Background Image */}
-          <img 
-            src="/industries_hero.png"
-            alt="Cinematic Industry Header"
-            className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
-          />
-          
-          {/* Professional Overlay Gradients */}
-          <div className="absolute inset-0 bg-neutral-900/70 transition-opacity duration-700"/>
+    <div className="min-h-screen bg-white text-neutral-900 selection:bg-indigo-100">
+      {/* Full-bleed cinematic hero — photography, not a card */}
+      <section className="relative h-svh min-h-[560px] max-h-[920px] w-full overflow-hidden">
+        <img
+          src="/industries_hero.png"
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/60 to-black/75" />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_35%,rgba(0,0,0,0.45)_100%)]" />
 
-          {/* Content inside the Banner */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.2, duration: 0.6 }}
-            >
-              <div className="flex items-center justify-center gap-4 mb-6">
-                <div className="h-px bg-white/30 w-12"></div>
-                <span className="text-white font-bold tracking-widest text-[11px] uppercase">Every Story Deserves a New Dimension</span>
-                <div className="h-px bg-white/30 w-12"></div>
-              </div>
-              <h1 className="text-5xl md:text-7xl lg:text-8xl font-black mb-6 tracking-tight text-white drop-shadow-md">
-                INDUSTRIES WE <span className="bg-gradient-to-r from-cyan-300 via-indigo-300 to-purple-400 bg-clip-text text-transparent">SERVE</span>
-              </h1>
-              <p className="text-lg md:text-2xl text-white/90 font-medium max-w-3xl mx-auto leading-relaxed drop-shadow-md">
-                We partner with filmmakers, streaming platforms, agencies, creators, and brands to transform 2D content into natural stereoscopic 3D experiences—crafted for cinema, spatial devices, and the future of immersive storytelling.
-              </p>
-            </motion.div>
-          </div>
-        </motion.div>
-      </section>
-
-      {/* ────────────────────────────────────────────────────────────────────────
-          WHY SPATIAL TECH? (VALUE PROP)
-          ──────────────────────────────────────────────────────────────────────── */}
-      <section className="bg-neutral-50 py-32 border-y border-neutral-100 mb-32">
-        <div className="max-w-screen-xl mx-auto px-6 md:px-12 lg:px-16 text-center">
-          <h2 className="text-4xl md:text-5xl font-black tracking-tight mb-8">Why Depth Matters</h2>
-          <p className="text-xl md:text-2xl text-neutral-500 font-medium leading-relaxed max-w-4xl mx-auto mb-16">
-            When a story is told in three dimensions, it stops being something you just watch and becomes something you feel. A wildlife scene feels grander. A dramatic moment feels closer. Depth doesn't just change the picture—it changes how people experience the story you're trying to tell.
-          </p>
-        </div>
-      </section>
-
-      {/* ────────────────────────────────────────────────────────────────────────
-          INDUSTRY SECTIONS (ALTERNATING BLOCKS)
-          ──────────────────────────────────────────────────────────────────────── */}
-      <section className="max-w-screen-xl mx-auto px-6 md:px-12 lg:px-16 space-y-40 mb-40">
-        {industries.map((industry, index) => {
-          const isEven = index % 2 === 0;
-          
-          return (
-            <div key={industry.title} className={`flex flex-col lg:flex-row items-center gap-16 ${isEven ? '' : 'lg:flex-row-reverse'}`}>
-              
-              {/* Image Side */}
-              <motion.div 
-                initial={{ opacity: 0, x: isEven ? -50 : 50 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6 }}
-                className="w-full lg:w-1/2"
-              >
-                <div className="rounded-[2.5rem] p-4 bg-neutral-50 border border-neutral-100 shadow-xl">
-                  {industry.image ? (
-                    <img src={industry.image} alt={industry.title} className="w-full h-[450px] object-cover rounded-3xl" />
-                  ) : (
-                    <ImagePlaceholder height={450} label={`${industry.title} Mockup`} />
-                  )}
-                </div>
-              </motion.div>
-
-              {/* Text Side */}
-              <motion.div 
-                initial={{ opacity: 0, x: isEven ? 50 : -50 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6, delay: 0.2 }}
-                className="w-full lg:w-1/2 flex flex-col"
-              >
-                <div className="flex items-center gap-4 mb-6">
-                  <span className="text-indigo-500 font-black tracking-widest uppercase text-sm">{industry.title}</span>
-                </div>
-                
-                <h3 className="text-4xl md:text-5xl font-black mb-6 tracking-tight text-neutral-900 leading-tight">
-                  {industry.headline}
-                </h3>
-                
-                <p className="text-lg md:text-xl text-neutral-500 font-medium leading-relaxed mb-10">
-                  {industry.description}
-                </p>
-
-                <div className="flex flex-wrap gap-3 mb-10">
-                  {industry.tags.map(tag => (
-                    <span 
-                      key={tag}
-                      className="px-4 py-2 text-xs uppercase tracking-widest font-black text-neutral-600 bg-neutral-100 rounded-full"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-
-                <div>
-                  <Link 
-                    to="/contact"
-                    className="inline-flex px-8 py-4 bg-neutral-900 text-white hover:bg-neutral-800 rounded-full font-black tracking-widest uppercase text-xs transition-all shadow-xl hover:-translate-y-0.5 items-center gap-2"
-                  >
-                    Partner With Us <ArrowRight className="w-4 h-4"/>
-                  </Link>
-                </div>
-              </motion.div>
-
-            </div>
-          );
-        })}
-      </section>
-
-      {/* ────────────────────────────────────────────────────────────────────────
-          FINAL CTA
-          ──────────────────────────────────────────────────────────────────────── */}
-      <section className="bg-neutral-900 text-white py-32 border-y border-neutral-800">
-        <div className="max-w-3xl mx-auto px-6 text-center">
+        <div className="relative z-10 flex h-full flex-col items-center justify-center px-6 pt-16 text-center">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, ease }}
+            className="max-w-4xl"
           >
-            <h2 className="text-5xl md:text-6xl font-black mb-8 tracking-tight">
-              Let's Build Something Real.
-            </h2>
-            <p className="text-xl text-neutral-400 font-medium leading-relaxed mb-12">
-              Every project is different, and we treat each one like a blank canvas. Let's talk about how we can bring true depth to your next idea.
+            <p className="mb-6 text-[10px] font-bold uppercase tracking-[0.22em] text-white/75">
+              Every story deserves a new dimension
             </p>
-            <Link to="/contact" className="inline-flex px-10 py-5 bg-white text-neutral-900 hover:bg-neutral-200 rounded-full font-black tracking-widest uppercase text-sm transition-all shadow-xl hover:-translate-y-0.5 items-center gap-3">
-              Start Your Project <ArrowRight className="w-4 h-4"/>
-            </Link>
+            <h1
+              className="mb-6 font-black tracking-tight text-white drop-shadow-[0_8px_32px_rgba(0,0,0,0.55)]"
+              style={{ fontSize: 'clamp(2.5rem, 7vw, 5.5rem)', letterSpacing: '-0.03em', lineHeight: 1.05 }}
+            >
+              Industries we{' '}
+              <span className="bg-gradient-to-r from-cyan-300 via-indigo-300 to-purple-300 bg-clip-text text-transparent">
+                Serve
+              </span>
+            </h1>
+            <p className="mx-auto max-w-2xl text-base font-medium leading-relaxed text-white/85 md:text-xl">
+              We partner with filmmakers, streaming platforms, agencies, creators, and brands to
+              transform 2D content into natural stereoscopic 3D — for cinema, spatial devices, and
+              the future of immersive storytelling.
+            </p>
           </motion.div>
         </div>
       </section>
 
+      {/* Editorial statement — type only */}
+      <section className="mx-auto max-w-3xl px-6 py-24 text-center md:py-32">
+        <motion.div
+          initial={{ opacity: 0, y: 14 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-80px' }}
+          transition={{ duration: 0.55, ease }}
+        >
+          <p className="mb-5 text-[10px] font-bold uppercase tracking-[0.22em] text-neutral-400">
+            Why depth matters
+          </p>
+          <h2
+            className="mb-8 font-black tracking-tight text-neutral-900"
+            style={{ fontSize: 'clamp(1.75rem, 4vw, 3rem)', letterSpacing: '-0.03em', lineHeight: 1.15 }}
+          >
+            When a story is told in three dimensions, it becomes something you feel.
+          </h2>
+          <p className="text-lg font-medium leading-relaxed text-neutral-500 md:text-xl">
+            A wildlife scene feels grander. A dramatic moment feels closer. Depth doesn’t just
+            change the picture — it changes how people experience the story you’re trying to tell.
+          </p>
+        </motion.div>
+      </section>
+
+      {/* Industries — studio renders sit on the page, unframed and uncropped */}
+      <div className="mx-auto max-w-7xl px-6 md:px-10 lg:px-12">
+        {industries.map((industry, index) => {
+          const reverse = index % 2 === 1;
+          const Icon = industry.icon;
+          const n = String(index + 1).padStart(2, '0');
+
+          return (
+            <section key={industry.title} className="py-16 md:py-24 lg:py-28">
+              <div
+                className={`grid items-center gap-10 lg:grid-cols-2 lg:gap-16 xl:gap-24 ${
+                  reverse ? 'lg:[&>div:first-child]:order-2' : ''
+                }`}
+              >
+                <motion.div
+                  initial={{ opacity: 0, y: 14 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: '-80px' }}
+                  transition={{ duration: 0.6, ease }}
+                >
+                  <img
+                    src={industry.image}
+                    alt={industry.title}
+                    className="h-auto w-full object-contain"
+                    loading="lazy"
+                  />
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, y: 14 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: '-80px' }}
+                  transition={{ duration: 0.55, delay: 0.08, ease }}
+                  className="flex flex-col lg:py-8"
+                >
+                  <div className="mb-6 flex items-center gap-3 text-neutral-400">
+                    <span className="text-[10px] font-bold uppercase tracking-[0.22em]">{n}</span>
+                    <span className="h-px w-6 bg-neutral-300" />
+                    <Icon className="h-3.5 w-3.5" strokeWidth={1.75} />
+                    <span className="text-[10px] font-bold uppercase tracking-[0.22em]">
+                      {industry.title}
+                    </span>
+                  </div>
+
+                  <h3
+                    className="mb-5 font-black tracking-tight text-neutral-900"
+                    style={{
+                      fontSize: 'clamp(1.75rem, 3.2vw, 2.75rem)',
+                      letterSpacing: '-0.03em',
+                      lineHeight: 1.15,
+                    }}
+                  >
+                    {industry.headline}
+                  </h3>
+
+                  <p className="mb-8 max-w-lg text-base font-medium leading-relaxed text-neutral-500 md:text-lg">
+                    {industry.description}
+                  </p>
+
+                  <p className="mb-10 text-[13px] font-medium tracking-wide text-neutral-400">
+                    {industry.tags.join('  ·  ')}
+                  </p>
+
+                  <Link
+                    to="/contact"
+                    className="group/link inline-flex w-fit items-center gap-1.5 text-sm font-bold text-neutral-900 transition-colors hover:text-indigo-600"
+                  >
+                    Partner with us
+                    <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover/link:translate-x-1" />
+                  </Link>
+                </motion.div>
+              </div>
+            </section>
+          );
+        })}
+      </div>
+
+      <section className="bg-neutral-900 px-6 py-28 text-center text-white md:py-36">
+        <motion.div
+          initial={{ opacity: 0, y: 14 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.55, ease }}
+          className="mx-auto max-w-2xl"
+        >
+          <h2
+            className="mb-6 font-black tracking-tight"
+            style={{ fontSize: 'clamp(2rem, 5vw, 3.5rem)', letterSpacing: '-0.03em', lineHeight: 1.1 }}
+          >
+            Let’s build something real.
+          </h2>
+          <p className="mb-10 text-lg font-medium leading-relaxed text-neutral-400">
+            Every project is different, and we treat each one like a blank canvas. Let’s talk about
+            how we can bring true depth to your next idea.
+          </p>
+          <Link
+            to="/contact"
+            className="inline-flex items-center gap-2 rounded-full bg-white px-8 py-4 text-xs font-black uppercase tracking-widest text-neutral-900 transition-all hover:-translate-y-0.5 hover:bg-neutral-200"
+          >
+            Start your project
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+        </motion.div>
+      </section>
     </div>
   );
 }

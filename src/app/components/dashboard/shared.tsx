@@ -65,7 +65,7 @@ export function StatCard({
       initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.45, delay, ease: [0.25, 0.1, 0.25, 1] }}
-      className="relative overflow-hidden bg-[#0A0A0A] p-5 md:p-6 rounded-2xl border border-white/[0.04] shadow-[0_4px_24px_-4px_rgba(0,0,0,0.5)] flex flex-col gap-4 group hover:border-white/[0.08] transition-colors"
+      className="relative overflow-hidden bg-[#0A0A0A] p-4 sm:p-5 md:p-6 rounded-2xl border border-white/[0.04] shadow-[0_4px_24px_-4px_rgba(0,0,0,0.5)] flex flex-col gap-4 min-w-0 group hover:border-white/[0.08] transition-colors"
     >
       <div className="absolute top-0 right-0 p-32 bg-gradient-to-bl from-white/[0.03] to-transparent rounded-bl-full pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
       <div className="flex items-center justify-between relative z-10">
@@ -83,8 +83,12 @@ export function StatCard({
         )}
       </div>
       <div className="relative z-10 mt-1">
-        <p className="text-3xl font-black tracking-tight text-white drop-shadow-sm">{value}</p>
-        <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-neutral-500 mt-2">{label}</p>
+        <p className="text-2xl sm:text-3xl font-black tracking-tight text-white drop-shadow-sm break-words">
+          {value}
+        </p>
+        <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-neutral-500 mt-2 break-words">
+          {label}
+        </p>
       </div>
     </motion.div>
   );
@@ -192,9 +196,11 @@ export function Card({
     <div className={`bg-[#0A0A0A] rounded-2xl border border-white/[0.06] shadow-xl shadow-black/40 overflow-hidden relative ${className}`}>
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/[0.15] to-transparent opacity-50" />
       {(title || action) && (
-        <div className="px-8 py-5 border-b border-white/[0.04] flex items-center justify-between gap-4 bg-[#0d0d0d]">
-          {title && <h2 className="text-sm font-bold tracking-wide text-white">{title}</h2>}
-          {action}
+        <div className="px-4 sm:px-8 py-4 sm:py-5 border-b border-white/[0.04] flex flex-wrap items-center justify-between gap-2 sm:gap-4 bg-[#0d0d0d]">
+          {title && (
+            <h2 className="text-sm font-bold tracking-wide text-white min-w-0 break-words">{title}</h2>
+          )}
+          {action ? <div className="shrink-0">{action}</div> : null}
         </div>
       )}
       <div className="relative z-10">
@@ -220,7 +226,7 @@ export function ListPager({
 }) {
   if (totalPages <= 1) return null;
   return (
-    <div className="px-8 py-4 border-t border-white/[0.04] flex items-center justify-between gap-3">
+    <div className="px-4 sm:px-8 py-4 border-t border-white/[0.04] flex items-center justify-between gap-3 min-w-0">
       <p className="text-[10px] text-neutral-500">
         Page {page} of {totalPages}
         {total > 0 ? ` · ${total} total` : ''}

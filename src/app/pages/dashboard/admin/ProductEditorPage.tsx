@@ -445,7 +445,7 @@ export default function ProductEditorPage() {
   }
 
   return (
-    <div className="max-w-7xl pb-20 mx-auto">
+    <div className="max-w-7xl pb-20 mx-auto min-w-0">
       <PageHeader
         title={isEdit ? 'Edit' : 'New'}
         accent="Product."
@@ -455,7 +455,7 @@ export default function ProductEditorPage() {
       <form onSubmit={handleSave} className="mt-6">
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
           {/* ── Left: content ─────────────────────────────────────────── */}
-          <div className="xl:col-span-7 flex flex-col gap-5">
+          <div className="xl:col-span-7 flex flex-col gap-5 min-w-0">
             <SectionCard title="Basics" hint="Name, URL slug, and short summary for cards.">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="sm:col-span-2">
@@ -513,7 +513,7 @@ export default function ProductEditorPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 <div>
                   <label className={labelCls}>Language</label>
                   <input
@@ -636,7 +636,7 @@ export default function ProductEditorPage() {
                   (longest edge = length). Shown on checkout as package info.
                 </p>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 <div>
                   <label className={labelCls}>Weight (g)</label>
                   <input
@@ -702,7 +702,7 @@ export default function ProductEditorPage() {
                         alt=""
                         className={`w-full h-full object-cover ${uploadingCard ? 'opacity-50' : ''}`}
                       />
-                      <div className="absolute inset-0 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 bg-black/40 transition-opacity">
+                      <div className="absolute inset-x-0 bottom-0 md:inset-0 flex items-center justify-center gap-2 p-2 bg-black/55 md:bg-black/40 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                         <label className="px-3 py-1.5 bg-[#0A0A0A] text-xs font-bold rounded-lg cursor-pointer">
                           Replace
                           <input
@@ -773,7 +773,7 @@ export default function ProductEditorPage() {
                     Optional thumbs under the hero on checkout.
                   </div>
                 ) : (
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                     {gallery.map((slot, idx) => (
                       <div
                         key={slot.id}
@@ -785,7 +785,7 @@ export default function ProductEditorPage() {
                             <Loader2 className="w-5 h-5 text-white animate-spin" />
                           </div>
                         )}
-                        <div className="absolute inset-0 flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 bg-black/35 transition-opacity">
+                        <div className="absolute inset-x-0 bottom-0 md:inset-0 flex items-center justify-center gap-1 p-1.5 bg-black/55 md:bg-black/35 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                           <label className="p-1.5 bg-[#0A0A0A] rounded-lg cursor-pointer shadow" title="Replace">
                             <ImageIcon className="w-3.5 h-3.5" />
                             <input
@@ -813,10 +813,10 @@ export default function ProductEditorPage() {
           </div>
 
           {/* ── Right: sticky preview / publish / checklist ──────────── */}
-          <div className="xl:col-span-5 flex flex-col gap-5 xl:sticky xl:top-24">
+          <div className="xl:col-span-5 flex flex-col gap-5 min-w-0 xl:sticky xl:top-24">
             {/* Live preview */}
             <div className="bg-[#0A0A0A] rounded-3xl border border-white/[0.06] shadow-[0_4px_24px_-4px_rgba(0,0,0,0.5)] relative z-10  overflow-hidden">
-              <div className="px-5 py-3 border-b border-white/[0.04] flex items-center justify-between gap-2">
+              <div className="px-4 sm:px-5 py-3 border-b border-white/[0.04] flex flex-wrap items-center justify-between gap-2">
                 <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-neutral-400">
                   Live preview
                 </p>
@@ -946,7 +946,7 @@ export default function ProductEditorPage() {
                   </button>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className={labelCls}>Price (₹)</label>
                   <input
@@ -990,7 +990,7 @@ export default function ProductEditorPage() {
                   required
                 />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className={labelCls}>Badge tag</label>
                   <input
@@ -1044,12 +1044,12 @@ export default function ProductEditorPage() {
                 </div>
               )}
 
-              <div className="flex gap-3 pt-1">
+              <div className="flex flex-col-reverse sm:flex-row gap-3 pt-1">
                 <button
                   type="button"
                   onClick={() => navigate('/dashboard/admin/products')}
                   disabled={saving}
-                  className="px-5 py-3 rounded-xl border border-white/[0.1] text-sm font-bold bg-black/40 hover:bg-white/[0.04] hover:border-white/[0.2] transition-all disabled:opacity-50 text-white"
+                  className="w-full sm:w-auto px-5 py-3 rounded-xl border border-white/[0.1] text-sm font-bold bg-black/40 hover:bg-white/[0.04] hover:border-white/[0.2] transition-all disabled:opacity-50 text-white"
                 >
                   Cancel
                 </button>

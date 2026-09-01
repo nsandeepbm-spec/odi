@@ -18,6 +18,90 @@ function formatDate(iso: string) {
   });
 }
 
+function customerName(order: AdminOrder) {
+  return (
+    [order.shipping_address?.first_name, order.shipping_address?.last_name]
+      .filter(Boolean)
+      .join(' ') || 'Customer'
+  );
+}
+
+function shipmentStatus(order: AdminOrder) {
+  if (order.delhivery_pickup_token) {
+    return { label: 'Pickup scheduled', short: 'Scheduled', className: 'text-emerald-400' };
+  }
+  if (order.delhivery_waybill) {
+    return { label: 'Manifested · needs pickup', short: 'Needs pickup', className: 'text-amber-400' };
+  }
+  return { label: 'Awaiting manifestation', short: 'Awaiting AWB', className: 'text-neutral-500' };
+}
+
+function ShipmentRowActions({
+  order,
+  processingId,
+  onRetry,
+  fullWidth = false,
+}: {
+  order: AdminOrder;
+  processingId: string | null;
+  onRetry: (id: string) => void;
+  fullWidth?: boolean;
+}) {
+  const btn = fullWidth
+    ? 'inline-flex items-center justify-center gap-1.5 w-full px-3 py-2.5 text-xs font-bold rounded-lg'
+    : 'inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg';
+
+  if (!order.delhivery_waybill) {
+    return (
+      <button
+        type="button"
+        onClick={() => onRetry(order.id)}
+        disabled={processingId !== null}
+        className={`${btn} bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 disabled:opacity-50`}
+      >
+        {processingId === order.id ? (
+          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+        ) : (
+          <Truck className="w-3.5 h-3.5" />
+        )}
+        Retry Shipment
+      </button>
+    );
+  }
+
+  return (
+    <div className={fullWidth ? 'flex flex-col gap-2' : 'inline-flex flex-wrap items-center justify-end gap-2'}>
+      <button
+        type="button"
+        onClick={() => {
+          void downloadShippingLabelForOrder(order.id, order).catch((err) => {
+            alert(err instanceof Error ? err.message : 'Could not download label');
+          });
+        }}
+        className={`${btn} bg-white/5 text-white border border-white/10 hover:bg-white/10`}
+        title="Delhivery 4R (4×6″) shipping label"
+      >
+        <FileDown className="w-3.5 h-3.5" />
+        Label PDF (4R)
+      </button>
+      {order.delhivery_pickup_token ? (
+        <span className="text-xs text-neutral-500 text-center">Done</span>
+      ) : (
+        <Link
+          to="/dashboard/admin/pickups"
+          className={
+            fullWidth
+              ? 'inline-flex items-center justify-center w-full px-3 py-2.5 text-xs font-bold rounded-lg text-cyan-400 border border-cyan-500/20 bg-cyan-500/10 hover:bg-cyan-500/20'
+              : 'text-xs font-bold text-cyan-400 hover:underline'
+          }
+        >
+          Pickups →
+        </Link>
+      )}
+    </div>
+  );
+}
+
 /** Waybill / manifestation only. Pickup lives on /dashboard/admin/pickups. */
 export default function ShipmentsPage() {
   const [query, setQuery] = useState('');
@@ -87,7 +171,7 @@ export default function ShipmentsPage() {
   ).length;
 
   return (
-    <div>
+    <div className="min-w-0">
       <PageHeader
         title="Pending"
         accent="Shipments."
@@ -95,7 +179,7 @@ export default function ShipmentsPage() {
         action={
           <Link
             to="/dashboard/admin/pickups"
-            className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold tracking-wide border border-white/[0.1] text-white bg-black/40 hover:bg-white/[0.04] rounded-xl"
+            className="inline-flex items-center justify-center gap-2 w-full sm:w-auto shrink-0 px-4 sm:px-5 py-2.5 text-sm font-bold tracking-wide border border-white/[0.1] text-white bg-black/40 hover:bg-white/[0.04] rounded-xl"
           >
             <CalendarClock className="w-4 h-4" />
             Go to Pickups
@@ -105,40 +189,48 @@ export default function ShipmentsPage() {
       />
 
       <Card className="relative z-10">
-        <div className="px-6 py-4 border-b border-white/[0.04] flex flex-col gap-3 bg-[#0d0d0d]">
+        <div className="px-4 sm:px-6 py-4 border-b border-white/[0.04] flex flex-col gap-3 bg-[#0d0d0d]">
           <div className="flex flex-col lg:flex-row lg:items-center gap-3">
-            <div className="flex items-center gap-3 flex-1 max-w-md px-4 py-2 rounded-xl bg-[#050505] border border-white/[0.06]">
+            <div className="flex items-center gap-3 w-full lg:flex-1 lg:max-w-md px-4 py-2 rounded-xl bg-[#050505] border border-white/[0.06]">
               <Search className="w-4 h-4 text-neutral-500 shrink-0" />
               <input
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search orders / waybill…"
-                className="w-full bg-transparent text-sm outline-none placeholder:text-neutral-500 text-white"
+                className="w-full min-w-0 bg-transparent text-sm outline-none placeholder:text-neutral-500 text-white"
               />
             </div>
-            <div className="flex flex-wrap items-center gap-2 text-xs text-neutral-500">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-neutral-500">
               <span>{missingWaybill} missing AWB</span>
-              <span>·</span>
+              <span className="text-neutral-700">·</span>
               <span>{readyForPickup} ready for pickup</span>
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <label className="text-[10px] font-black uppercase tracking-widest text-neutral-500">From</label>
-            <input
-              type="date"
-              value={dateFrom}
-              onChange={(e) => setDateFrom(e.target.value)}
-              className="px-3 py-1.5 rounded-lg bg-[#050505] border border-white/[0.08] text-sm text-white [color-scheme:dark]"
-            />
-            <label className="text-[10px] font-black uppercase tracking-widest text-neutral-500">To</label>
-            <input
-              type="date"
-              value={dateTo}
-              min={dateFrom || undefined}
-              onChange={(e) => setDateTo(e.target.value)}
-              className="px-3 py-1.5 rounded-lg bg-[#050505] border border-white/[0.08] text-sm text-white [color-scheme:dark]"
-            />
+          <div className="grid grid-cols-2 sm:flex sm:flex-wrap sm:items-end gap-2">
+            <div className="flex flex-col gap-1 min-w-0">
+              <label className="text-[10px] font-black uppercase tracking-widest text-neutral-500">
+                From
+              </label>
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="w-full min-w-0 px-2.5 sm:px-3 py-1.5 rounded-lg bg-[#050505] border border-white/[0.08] text-sm text-white [color-scheme:dark]"
+              />
+            </div>
+            <div className="flex flex-col gap-1 min-w-0">
+              <label className="text-[10px] font-black uppercase tracking-widest text-neutral-500">
+                To
+              </label>
+              <input
+                type="date"
+                value={dateTo}
+                min={dateFrom || undefined}
+                onChange={(e) => setDateTo(e.target.value)}
+                className="w-full min-w-0 px-2.5 sm:px-3 py-1.5 rounded-lg bg-[#050505] border border-white/[0.08] text-sm text-white [color-scheme:dark]"
+              />
+            </div>
           </div>
         </div>
 
@@ -153,111 +245,116 @@ export default function ShipmentsPage() {
             subtitle="No pending / paid / processing orders needing a waybill."
           />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left min-w-[800px]">
-              <thead className="bg-white/[0.02] text-neutral-400 text-[10px] uppercase tracking-[0.2em] font-bold border-b border-white/[0.04]">
-                <tr>
-                  <th className="px-6 py-3">Order</th>
-                  <th className="px-6 py-3">Customer</th>
-                  <th className="px-6 py-3">Waybill (AWB)</th>
-                  <th className="px-6 py-3">Status</th>
-                  <th className="px-6 py-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/[0.04]">
-                {filtered.map((o) => {
-                  const customer =
-                    [o.shipping_address?.first_name, o.shipping_address?.last_name]
-                      .filter(Boolean)
-                      .join(' ') || 'Customer';
-                  return (
-                    <tr key={o.id} className="hover:bg-white/[0.02] transition-colors">
-                      <td className="px-6 py-3">
+          <>
+            {/* Mobile / tablet cards */}
+            <div className="md:hidden divide-y divide-white/[0.04]">
+              {filtered.map((o) => {
+                const status = shipmentStatus(o);
+                return (
+                  <div key={o.id} className="px-4 py-4 flex flex-col gap-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
                         <Link
                           to={`/dashboard/admin/orders/${o.id}`}
-                          className="font-black text-cyan-400 hover:underline"
+                          className="font-black text-cyan-400 hover:underline break-all"
                         >
                           {o.order_number}
                         </Link>
                         <div className="text-xs text-neutral-500 mt-0.5">
                           {formatDate(o.created_at)} · {o.status}
                         </div>
-                      </td>
-                      <td className="px-6 py-3">
-                        <div className="font-bold text-white">{customer}</div>
-                        <div className="text-xs text-neutral-500">{o.shipping_address?.city || '—'}</div>
-                      </td>
-                      <td className="px-6 py-3">
-                        {o.delhivery_waybill ? (
-                          <span className="font-mono text-cyan-400 font-bold bg-cyan-500/10 px-2 py-1 rounded-md border border-cyan-500/20">
-                            {o.delhivery_waybill}
-                          </span>
-                        ) : (
-                          <span className="text-amber-500/90 text-xs font-medium">No AWB yet</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-3 text-xs font-bold">
-                        {o.delhivery_pickup_token ? (
-                          <span className="text-emerald-400">Pickup scheduled</span>
-                        ) : o.delhivery_waybill ? (
-                          <span className="text-amber-400">Manifested · needs pickup</span>
-                        ) : (
-                          <span className="text-neutral-500">Awaiting manifestation</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-3 text-right">
-                        <div className="inline-flex flex-wrap items-center justify-end gap-2">
-                          {!o.delhivery_waybill ? (
-                            <button
-                              type="button"
-                              onClick={() => void handleRetryShipment(o.id)}
-                              disabled={processingId !== null}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 disabled:opacity-50"
-                            >
-                              {processingId === o.id ? (
-                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                              ) : (
-                                <Truck className="w-3.5 h-3.5" />
-                              )}
-                              Retry Shipment
-                            </button>
+                      </div>
+                      <span
+                        className={`text-[10px] font-black uppercase tracking-wider text-right shrink-0 max-w-[40%] ${status.className}`}
+                      >
+                        {status.short}
+                      </span>
+                    </div>
+
+                    <div className="min-w-0">
+                      <div className="font-bold text-white truncate">{customerName(o)}</div>
+                      <div className="text-xs text-neutral-500">{o.shipping_address?.city || '—'}</div>
+                    </div>
+
+                    <div className="min-w-0">
+                      {o.delhivery_waybill ? (
+                        <span className="inline-block max-w-full font-mono text-cyan-400 font-bold bg-cyan-500/10 px-2 py-1 rounded-md border border-cyan-500/20 text-xs break-all">
+                          {o.delhivery_waybill}
+                        </span>
+                      ) : (
+                        <span className="text-amber-500/90 text-xs font-medium">No AWB yet</span>
+                      )}
+                    </div>
+
+                    <ShipmentRowActions
+                      order={o}
+                      processingId={processingId}
+                      onRetry={(id) => void handleRetryShipment(id)}
+                      fullWidth
+                    />
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-sm text-left min-w-[720px]">
+                <thead className="bg-white/[0.02] text-neutral-400 text-[10px] uppercase tracking-[0.2em] font-bold border-b border-white/[0.04]">
+                  <tr>
+                    <th className="px-4 lg:px-6 py-3">Order</th>
+                    <th className="px-4 lg:px-6 py-3">Customer</th>
+                    <th className="px-4 lg:px-6 py-3">Waybill (AWB)</th>
+                    <th className="px-4 lg:px-6 py-3">Status</th>
+                    <th className="px-4 lg:px-6 py-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/[0.04]">
+                  {filtered.map((o) => {
+                    const status = shipmentStatus(o);
+                    return (
+                      <tr key={o.id} className="hover:bg-white/[0.02] transition-colors">
+                        <td className="px-4 lg:px-6 py-3">
+                          <Link
+                            to={`/dashboard/admin/orders/${o.id}`}
+                            className="font-black text-cyan-400 hover:underline"
+                          >
+                            {o.order_number}
+                          </Link>
+                          <div className="text-xs text-neutral-500 mt-0.5">
+                            {formatDate(o.created_at)} · {o.status}
+                          </div>
+                        </td>
+                        <td className="px-4 lg:px-6 py-3">
+                          <div className="font-bold text-white">{customerName(o)}</div>
+                          <div className="text-xs text-neutral-500">{o.shipping_address?.city || '—'}</div>
+                        </td>
+                        <td className="px-4 lg:px-6 py-3">
+                          {o.delhivery_waybill ? (
+                            <span className="font-mono text-cyan-400 font-bold bg-cyan-500/10 px-2 py-1 rounded-md border border-cyan-500/20">
+                              {o.delhivery_waybill}
+                            </span>
                           ) : (
-                            <>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  void downloadShippingLabelForOrder(o.id, o).catch((err) => {
-                                    alert(
-                                      err instanceof Error ? err.message : 'Could not download label'
-                                    );
-                                  });
-                                }}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg bg-white/5 text-white border border-white/10 hover:bg-white/10"
-                                title="Delhivery 4R (4×6″) shipping label"
-                              >
-                                <FileDown className="w-3.5 h-3.5" />
-                                Label PDF (4R)
-                              </button>
-                              {o.delhivery_pickup_token ? (
-                                <span className="text-xs text-neutral-500">Done</span>
-                              ) : (
-                                <Link
-                                  to="/dashboard/admin/pickups"
-                                  className="text-xs font-bold text-cyan-400 hover:underline"
-                                >
-                                  Pickups →
-                                </Link>
-                              )}
-                            </>
+                            <span className="text-amber-500/90 text-xs font-medium">No AWB yet</span>
                           )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                        </td>
+                        <td className={`px-4 lg:px-6 py-3 text-xs font-bold ${status.className}`}>
+                          {status.label}
+                        </td>
+                        <td className="px-4 lg:px-6 py-3 text-right">
+                          <ShipmentRowActions
+                            order={o}
+                            processingId={processingId}
+                            onRetry={(id) => void handleRetryShipment(id)}
+                          />
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </Card>
     </div>

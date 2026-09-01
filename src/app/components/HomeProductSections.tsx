@@ -105,9 +105,9 @@ function ProductBlock({ section, index }: { section: ProductSection; index: numb
         {/* Product Image */}
         <motion.div 
           style={{ y }}
-          className="relative z-0 flex items-center justify-center w-full"
+          className="relative z-0 flex items-center justify-center w-full px-4 sm:px-6"
         >
-          <div className="relative w-full max-w-[1200px] flex items-center justify-center">
+          <div className="relative w-full max-w-[320px] sm:max-w-[440px] md:max-w-[640px] lg:max-w-[880px] xl:max-w-[1100px] aspect-[16/10] flex items-center justify-center mx-auto">
             
             {/* Custom Colored Shadow for Glasses - ultra soft */}
             {section.id === 'glasses' && (
@@ -122,17 +122,21 @@ function ProductBlock({ section, index }: { section: ProductSection; index: numb
             )}
             
             {/* Standard Premium Shadow for others - ultra soft */}
-            {section.id !== 'glasses' && (
+            {section.id !== 'glasses' && section.id !== 'bundle' && (
               <div className="absolute bottom-2 md:bottom-8 left-[55%] md:left-[60%] -translate-x-1/2 w-[75%] h-12 md:h-20 bg-black/15 blur-[30px] md:blur-[50px] rounded-[100%] pointer-events-none z-0" />
             )}
 
             <img
               src={section.image}
               alt={section.alt}
-              className="relative z-10 w-full h-auto object-contain scale-[1.15] md:scale-[1.3] lg:scale-[1.4] hover:scale-[1.45] transition-transform duration-[1.5s] ease-out"
-              style={{
-                filter: "drop-shadow(0px 30px 40px rgba(0, 0, 0, 0.15)) drop-shadow(0px 15px 15px rgba(0, 0, 0, 0.1))"
-              }}
+              className="relative z-10 w-full h-full object-contain scale-100 sm:scale-[1.1] md:scale-[1.2] lg:scale-[1.3] hover:scale-[1.05] sm:hover:scale-[1.15] md:hover:scale-[1.25] lg:hover:scale-[1.35] transition-transform duration-[1.5s] ease-out"
+              style={
+                section.id === 'bundle'
+                  ? undefined
+                  : {
+                      filter: "drop-shadow(0px 30px 40px rgba(0, 0, 0, 0.15)) drop-shadow(0px 15px 15px rgba(0, 0, 0, 0.1))"
+                    }
+              }
               loading="lazy"
             />
           </div>

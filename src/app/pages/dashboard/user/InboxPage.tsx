@@ -167,14 +167,14 @@ export default function InboxPage() {
 
   if (error) {
     return (
-      <div className="bg-[#0A0A0A] rounded-2xl border border-white/[0.06] p-10 flex flex-col items-center text-center gap-3">
+      <div className="min-w-0 bg-[#0A0A0A] rounded-2xl border border-white/[0.06] p-6 sm:p-10 flex flex-col items-center text-center gap-3">
         <AlertCircle className="w-8 h-8 text-red-500" />
         <p className="font-bold text-sm text-white">Could not load inbox</p>
-        <p className="text-xs text-neutral-400 max-w-sm">{error}</p>
+        <p className="text-xs text-neutral-400 max-w-sm break-words">{error}</p>
         <button
           type="button"
           onClick={() => void load()}
-          className="mt-2 px-4 py-2 text-sm font-bold rounded-xl bg-gradient-to-r from-cyan-400 to-indigo-500 text-white"
+          className="mt-2 w-full sm:w-auto px-4 py-2.5 text-sm font-bold rounded-xl bg-gradient-to-r from-cyan-400 to-indigo-500 text-white"
         >
           Retry
         </button>
@@ -187,17 +187,18 @@ export default function InboxPage() {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
+      className="min-w-0"
     >
       <PageHeader
         eyebrow="Updates & help"
         title="Inbox"
         accent="& Support."
-        subtitle="Order alerts on the left. Open a ticket on the right to read the full thread."
+        subtitle="Order alerts and support tickets — open a ticket to read the full thread."
       />
 
-      <div className="grid lg:grid-cols-12 gap-6 relative z-10 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 relative z-10 items-start">
         <Card
-          className="lg:col-span-5"
+          className="lg:col-span-5 min-w-0"
           title="Notification history"
           action={
             <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">
@@ -219,7 +220,7 @@ export default function InboxPage() {
                     <button
                       type="button"
                       onClick={() => void onNotifClick(n)}
-                      className="w-full text-left px-6 py-4 hover:bg-white/[0.03] transition-colors"
+                      className="w-full text-left px-4 sm:px-6 py-4 hover:bg-white/[0.03] transition-colors"
                     >
                       <div className="flex items-start gap-3">
                         <span
@@ -268,7 +269,7 @@ export default function InboxPage() {
         </Card>
 
         <Card
-          className="lg:col-span-7"
+          className="lg:col-span-7 min-w-0"
           title="Support tickets"
           action={
             <button
@@ -277,7 +278,7 @@ export default function InboxPage() {
                 setComposeOpen((open) => !open);
                 setFormMsg(null);
               }}
-              className="px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider border border-white/15 text-white bg-white/10 hover:bg-white/[0.14] transition-colors"
+              className="shrink-0 px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider border border-white/15 text-white bg-white/10 hover:bg-white/[0.14] transition-colors"
             >
               {composeOpen ? 'Cancel' : 'New ticket'}
             </button>
@@ -286,7 +287,7 @@ export default function InboxPage() {
           {composeOpen && (
             <form
               onSubmit={onCreateTicket}
-              className="mx-6 mt-5 mb-2 rounded-2xl border border-white/[0.06] bg-[#050505] p-4 space-y-4"
+              className="mx-4 sm:mx-6 mt-5 mb-2 rounded-2xl border border-white/[0.06] bg-[#050505] p-3 sm:p-4 space-y-4"
             >
               <div>
                 <label className="text-[10px] font-black tracking-[0.18em] uppercase text-neutral-500">
@@ -320,7 +321,7 @@ export default function InboxPage() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-bold rounded-xl bg-gradient-to-r from-cyan-400 to-indigo-500 text-white disabled:opacity-50"
+                className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-5 py-2.5 text-sm font-bold rounded-xl bg-gradient-to-r from-cyan-400 to-indigo-500 text-white disabled:opacity-50"
               >
                 {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                 Submit ticket
@@ -330,7 +331,7 @@ export default function InboxPage() {
 
           {formMsg && (
             <p
-              className={`px-6 pt-4 text-xs font-medium ${
+              className={`px-4 sm:px-6 pt-4 text-xs font-medium ${
                 formMsg.type === 'ok' ? 'text-emerald-400' : 'text-red-400'
               }`}
             >
@@ -345,35 +346,35 @@ export default function InboxPage() {
               subtitle="Tap New ticket if you need help with an order or product."
             />
           ) : tickets.length === 0 ? (
-            <p className="px-6 py-8 text-xs text-neutral-500">No tickets yet — send the form above to start one.</p>
+            <p className="px-4 sm:px-6 py-8 text-xs text-neutral-500">No tickets yet — send the form above to start one.</p>
           ) : (
             <>
               <ul className={`divide-y divide-white/[0.04] ${paging ? 'opacity-60' : ''}`}>
                 {tickets.map((t) => {
                   const open = openId === t.id;
                   return (
-                    <li key={t.id} className="px-6 py-4">
+                    <li key={t.id} className="px-4 sm:px-6 py-4">
                       <button
                         type="button"
                         onClick={() => setOpenId(open ? null : t.id)}
-                        className="w-full text-left"
+                        className="w-full text-left min-w-0"
                       >
                         <div className="flex items-start gap-3">
                           <div className="min-w-0 flex-1">
                             <div className="flex flex-wrap items-center gap-2">
-                              <p className="text-sm font-bold text-white">{t.subject}</p>
+                              <p className="text-sm font-bold text-white break-words">{t.subject}</p>
                               {statusChip(t.status)}
                             </div>
                             <p className="text-[11px] text-neutral-500 mt-1">{formatDate(t.created_at)}</p>
                             <p
                               className={`text-xs text-neutral-400 mt-2 leading-relaxed ${
-                                open ? '' : 'line-clamp-2'
+                                open ? 'break-words' : 'line-clamp-2'
                               }`}
                             >
                               {t.message}
                             </p>
                             {!open && t.admin_note && (
-                              <p className="text-[11px] text-cyan-300/80 mt-2 truncate">
+                              <p className="text-[11px] text-cyan-300/80 mt-2 line-clamp-2">
                                 Reply: {t.admin_note}
                               </p>
                             )}
@@ -387,21 +388,21 @@ export default function InboxPage() {
                       </button>
 
                       {open && (
-                        <div className="mt-4 rounded-2xl border border-white/[0.06] bg-[#050505] p-4 space-y-3">
+                        <div className="mt-4 rounded-2xl border border-white/[0.06] bg-[#050505] p-3 sm:p-4 space-y-3">
                           <div>
                             <p className="text-[10px] font-black uppercase tracking-[0.18em] text-neutral-500">
                               Your message
                             </p>
-                            <p className="mt-2 text-sm text-neutral-300 whitespace-pre-wrap leading-relaxed">
+                            <p className="mt-2 text-sm text-neutral-300 whitespace-pre-wrap leading-relaxed break-words">
                               {t.message}
                             </p>
                           </div>
                           {t.admin_note ? (
-                            <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/[0.06] px-4 py-3">
+                            <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/[0.06] px-3 sm:px-4 py-3">
                               <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-400/80">
                                 ODI reply
                               </p>
-                              <p className="mt-2 text-sm text-cyan-100/90 whitespace-pre-wrap leading-relaxed">
+                              <p className="mt-2 text-sm text-cyan-100/90 whitespace-pre-wrap leading-relaxed break-words">
                                 {t.admin_note}
                               </p>
                             </div>
