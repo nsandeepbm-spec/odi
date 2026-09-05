@@ -60,6 +60,8 @@ Auth and profile use the Express API in `odi-backend/`:
 | `POST /careers` | Save career application (`submitCareerApplication`) — no email |
 | `GET /admin/contact-inquiries` | Admin contact form list |
 | `GET /admin/career-applications` | Admin careers form list |
+| `GET /legal/:slug` | Public legal CMS (`terms` \| `privacy` \| `cookies`) |
+| `GET/PUT /admin/legal` | Admin legal pages + company card |
 | `GET /shipping/pincode/:pincode` | Delhivery serviceability before checkout (`checkPincodeServiceability`) |
 | `GET /shipping/tat/:destinationPin` | Delhivery expected delivery time after PIN is serviceable (`getExpectedTat`) |
 | `GET /shipping/charges/:destinationPin` | Delhivery shipping cost for Order Summary (`getShippingQuote`) |

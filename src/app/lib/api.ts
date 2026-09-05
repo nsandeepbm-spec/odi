@@ -50,6 +50,7 @@ export const API = {
     careerApplications: '/admin/career-applications',
     cancels: '/admin/cancels',
     refunds: '/admin/refunds',
+    legal: '/admin/legal',
     mailWelcome: '/admin/mail/welcome',
     mailRefund: '/admin/mail/refund',
     mailOrder: '/admin/mail/order',
@@ -64,6 +65,7 @@ export const API = {
     products: '/products',
     contact: '/contact',
     careers: '/careers',
+    legal: (slug: string) => `/legal/${slug}`,
   },
   shipping: {
     pincode: (pincode: string) => `/shipping/pincode/${pincode}`,
@@ -809,6 +811,101 @@ export async function updateAdminCareerApplication(
     { method: 'PATCH', body: JSON.stringify(patch) }
   );
   return body.data.application;
+}
+
+export type LegalSlug = 'terms' | 'privacy' | 'cookies';
+
+export type LegalBlock =
+  | { type: 'p'; text: string }
+  | { type: 'h3'; text: string }
+  | { type: 'ul'; items: string[] }
+  | { type: 'contact' };
+
+export type LegalSectionDto = {
+  id: string;
+  title: string;
+  blocks: LegalBlock[];
+};
+
+export type LegalCompany = {
+  brand: string;
+  entity: string;
+  address: string;
+  gstin: string;
+  email: string;
+  phone: string;
+  websiteHref: string;
+  websiteLabel: string;
+};
+
+export type LegalPageDto = {
+  slug: LegalSlug;
+  eyebrow: string;
+  title: string;
+  titleAccent: string;
+  intro: string;
+  effectiveDate: string;
+  lastUpdated: string;
+  sections: LegalSectionDto[];
+  updatedAt: string | null;
+};
+
+export type LegalPageInput = Omit<LegalPageDto, 'slug' | 'updatedAt'>;
+
+export async function getPublicLegalPage(slug: LegalSlug) {
+  const body = await publicFetch<ApiSuccess<{ page: LegalPageDto; company: LegalCompany }>>(
+    API.public.legal(slug)
+  );
+  return body.data;
+}
+
+export async function listAdminLegal() {
+  const body = await authFetch<
+    ApiSuccess<{
+      pages: Array<{
+        slug: LegalSlug;
+        title: string;
+        titleAccent: string;
+        effectiveDate: string;
+        lastUpdated: string;
+        updatedAt: string | null;
+        sectionCount: number;
+      }>;
+      company: LegalCompany;
+    }>
+  >(API.admin.legal);
+  return body.data;
+}
+
+export async function getAdminLegalPage(slug: LegalSlug) {
+  const body = await authFetch<ApiSuccess<{ page: LegalPageDto; company: LegalCompany }>>(
+    `${API.admin.legal}/${slug}`
+  );
+  return body.data;
+}
+
+export async function updateAdminLegalPage(slug: LegalSlug, input: LegalPageInput) {
+  const body = await authFetch<ApiSuccess<{ page: LegalPageDto }>>(`${API.admin.legal}/${slug}`, {
+    method: 'PUT',
+    body: JSON.stringify(input),
+  });
+  return body.data.page;
+}
+
+export async function restoreAdminLegalPage(slug: LegalSlug) {
+  const body = await authFetch<ApiSuccess<{ page: LegalPageDto; company: LegalCompany }>>(
+    `${API.admin.legal}/${slug}/restore`,
+    { method: 'POST' }
+  );
+  return body.data;
+}
+
+export async function updateAdminLegalCompany(input: LegalCompany) {
+  const body = await authFetch<ApiSuccess<{ company: LegalCompany }>>(`${API.admin.legal}/company`, {
+    method: 'PUT',
+    body: JSON.stringify(input),
+  });
+  return body.data.company;
 }
 
 // ─── Admin commerce ───────────────────────────────────────────────────────────

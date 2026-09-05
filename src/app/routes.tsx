@@ -64,6 +64,7 @@ import AdminSettingsPage from "./pages/dashboard/admin/SettingsPage";
 import AdminInboxPage from "./pages/dashboard/admin/InboxPage";
 import AdminContactInquiriesPage from "./pages/dashboard/admin/ContactInquiriesPage";
 import AdminCareerApplicationsPage from "./pages/dashboard/admin/CareerApplicationsPage";
+import AdminLegalPagesPage from "./pages/dashboard/admin/LegalPagesPage";
 import AdminCancelManagementPage from "./pages/dashboard/admin/CancelManagementPage";
 import AdminRefundManagementPage from "./pages/dashboard/admin/RefundManagementPage";
 import AdminRefundDetailPage from "./pages/dashboard/admin/RefundDetailPage";
@@ -99,6 +100,7 @@ export const router = createBrowserRouter([
           { path: "inbox", Component: AdminInboxPage },
           { path: "contact-inquiries", Component: AdminContactInquiriesPage },
           { path: "career-applications", Component: AdminCareerApplicationsPage },
+          { path: "legal", Component: AdminLegalPagesPage },
           { path: "orders", Component: AdminOrdersPage },
           { path: "orders/:orderId", Component: AdminOrderDetailPage },
           { path: "shipments", Component: AdminShipmentsPage },

@@ -191,7 +191,7 @@ export function Footer() {
             </Link>
             <span className="text-white/20 hidden sm:inline">|</span>
             <Link to="/terms" className="hover:text-white transition-colors">
-              Terms of Service
+              Terms & Conditions
             </Link>
             <span className="text-white/20 hidden sm:inline">|</span>
             <Link to="/cookies" className="hover:text-white transition-colors">

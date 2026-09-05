@@ -185,7 +185,7 @@ export default function RegisterPage() {
       <p className="mt-6 text-[11px] leading-relaxed" style={{ color: '#A3A3A3' }}>
         By creating an account you agree to our{' '}
         <Link to="/terms" className="font-bold underline underline-offset-2" style={{ color: T.text }}>
-          Terms of Service
+          Terms & Conditions
         </Link>{' '}
         and{' '}
         <Link to="/privacy" className="font-bold underline underline-offset-2" style={{ color: T.text }}>

@@ -14,6 +14,7 @@ import {
   CalendarClock,
   Ban,
   Banknote,
+  Scale,
 } from 'lucide-react';
 import DashboardShell, { type NavGroup } from './DashboardShell';
 
@@ -52,6 +53,7 @@ const adminGroups: NavGroup[] = [
       { name: 'Notifications', path: '/dashboard/admin/inbox', icon: Inbox },
       { name: 'Contact inquiries', path: '/dashboard/admin/contact-inquiries', icon: Mail },
       { name: 'Job applications', path: '/dashboard/admin/career-applications', icon: Briefcase },
+      { name: 'Legal pages', path: '/dashboard/admin/legal', icon: Scale },
     ],
   },
 ];
