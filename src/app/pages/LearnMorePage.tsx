@@ -1,7 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { motion, useInView } from 'motion/react';
 import { useNavigate } from 'react-router';
-import { ArrowLeft, ArrowRight } from 'lucide-react';
 
 // ─── DESIGN TOKENS ────────────────────────────────────────────────────────────
 const T = { bg: '#FFFFFF', bgAlt: '#F7F7F5', text: '#111111', sub: '#666666', border: '#E8E8E8' };
@@ -43,15 +42,6 @@ function Shard({ size = 40, className = '' }: { size?: number; className?: strin
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
 const LearnMorePage: React.FC = () => {
   const navigate = useNavigate();
-  const nextCollectionScrollRef = useRef<HTMLDivElement>(null);
-
-  const scrollCollection = (direction: 'left' | 'right') => {
-    if (nextCollectionScrollRef.current) {
-      const { scrollLeft } = nextCollectionScrollRef.current;
-      const offset = direction === 'left' ? -380 : 380;
-      nextCollectionScrollRef.current.scrollTo({ left: scrollLeft + offset, behavior: 'smooth' });
-    }
-  };
 
   return (
     <main style={{ background: T.bg, color: T.text, fontFamily: 'Inter, system-ui, sans-serif' }}>
@@ -380,46 +370,20 @@ const LearnMorePage: React.FC = () => {
       {/* ═══════════════════════════════════════════════════════════════════════
           09 · COMING NEXT
           ═══════════════════════════════════════════════════════════════════════ */}
-      <section id="coming-next" style={{ background: T.bg, padding: '96px 0', overflow: 'hidden' }}>
-        <div className="max-w-screen-xl mx-auto px-8 lg:px-16">
-          <div className="flex flex-col md:flex-row md:items-end justify-between mb-12">
-            <FadeUp>
-              <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-4" style={{ color: T.sub }}>The Collection</p>
-              <h2 className="font-black leading-none tracking-tight"
-                style={{ fontSize: 'clamp(2rem, 4vw, 4rem)', letterSpacing: '-0.03em' }}>
-                What's{' '}
-                <span className="bg-gradient-to-r from-cyan-400 via-indigo-500 to-purple-600 bg-clip-text text-transparent">
-                  Next.
-                </span>
-              </h2>
-            </FadeUp>
-            <FadeUp delay={0.1} className="flex gap-3 mt-6 md:mt-0">
-              <button
-                onClick={() => scrollCollection('left')}
-                className="w-12 h-12 rounded-full border border-neutral-200 flex items-center justify-center text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900 transition-all duration-300 shadow-sm active:scale-95"
-                aria-label="Scroll left"
-              >
-                <ArrowLeft className="w-5 h-5" strokeWidth={2.5} />
-              </button>
-              <button
-                onClick={() => scrollCollection('right')}
-                className="w-12 h-12 rounded-full border border-neutral-200 flex items-center justify-center text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900 transition-all duration-300 shadow-sm active:scale-95"
-                aria-label="Scroll right"
-              >
-                <ArrowRight className="w-5 h-5" strokeWidth={2.5} />
-              </button>
-            </FadeUp>
-          </div>
+      <section id="coming-next" style={{ background: T.bg, padding: '96px 0' }}>
+        <div className="max-w-screen-xl mx-auto px-4 sm:px-8 lg:px-16">
+          <FadeUp className="mb-10 md:mb-12">
+            <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-4" style={{ color: T.sub }}>The Collection</p>
+            <h2 className="font-black leading-none tracking-tight"
+              style={{ fontSize: 'clamp(2rem, 4vw, 4rem)', letterSpacing: '-0.03em' }}>
+              What's{' '}
+              <span className="bg-gradient-to-r from-cyan-400 via-indigo-500 to-purple-600 bg-clip-text text-transparent">
+                Next.
+              </span>
+            </h2>
+          </FadeUp>
 
-          <div
-            ref={nextCollectionScrollRef}
-            className="flex gap-6 overflow-x-auto pb-10 pt-4 px-1 scroll-smooth snap-x snap-mandatory cursor-grab active:cursor-grabbing"
-            style={{
-              scrollbarWidth: 'none',
-              msOverflowStyle: 'none',
-              WebkitOverflowScrolling: 'touch'
-            }}
-          >
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5 lg:gap-6">
             {[
               {
                 title: 'Ocean Explorer',
@@ -475,31 +439,22 @@ const LearnMorePage: React.FC = () => {
                 border: 'border-indigo-100/40',
                 glow: 'group-hover:shadow-[0_24px_48px_-15px_rgba(129,140,248,0.25)]'
               }
-            ].map((item, i) => (
-              <div
-                key={item.title}
-                className="flex-shrink-0 w-[240px] md:w-[290px] snap-start"
-              >
-                <div className={`group flex flex-col h-full bg-white p-4 rounded-3xl border border-neutral-200/50 cursor-pointer transition-all duration-500 hover:-translate-y-2 hover:border-transparent ${item.glow}`}>
-                  {/* Aspect ratio frame with custom pastel theme background */}
-                  <div className={`w-full aspect-[3/4] bg-gradient-to-br ${item.gradient} rounded-2xl flex items-center justify-center relative overflow-hidden border ${item.border} p-0 [perspective:1000px]`}>
-                    
-                    {/* Book mockup with 3D rotation on hover */}
+            ].map((item) => (
+              <div key={item.title} className="min-w-0 w-full">
+                <div className={`group flex flex-col h-full bg-white p-3 sm:p-4 rounded-2xl sm:rounded-3xl border border-neutral-200/50 cursor-pointer transition-all duration-500 hover:-translate-y-2 hover:border-transparent ${item.glow}`}>
+                  <div className={`w-full aspect-[3/4] bg-gradient-to-br ${item.gradient} rounded-xl sm:rounded-2xl flex items-center justify-center relative overflow-hidden border ${item.border} p-0 [perspective:1000px]`}>
                     <img
                       src={item.img}
                       alt={item.title}
                       className="w-full h-full object-cover filter drop-shadow-[2px_10px_20px_rgba(0,0,0,0.12)] transition-all duration-700 ease-[cubic-bezier(0.25,1,0.5,1)] group-hover:[transform:rotateY(-15deg)_rotateX(6deg)_scale(1.06)_translateZ(10px)]"
                     />
-
-                    {/* Subtle book spine shadow on the left side of book to create 3D realism */}
                     <div className="absolute left-0 top-0 bottom-0 w-3 pointer-events-none bg-gradient-to-r from-black/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
                   </div>
 
-                  {/* Text details below card */}
-                  <div className="mt-4 px-1 flex flex-col flex-1">
-                    <div className="flex items-center justify-between mb-1.5">
-                      <h3 className="font-bold text-sm text-neutral-900 tracking-tight">{item.title}</h3>
-                      <span className="text-[10px] font-bold tracking-widest uppercase text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">
+                  <div className="mt-4 px-0.5 sm:px-1 flex flex-col flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2 mb-1.5">
+                      <h3 className="font-bold text-sm text-neutral-900 tracking-tight min-w-0">{item.title}</h3>
+                      <span className="shrink-0 text-[9px] sm:text-[10px] font-bold tracking-widest uppercase text-indigo-600 bg-indigo-50 px-1.5 sm:px-2 py-0.5 rounded whitespace-nowrap">
                         Coming Soon
                       </span>
                     </div>

@@ -10,6 +10,18 @@ import {
 } from './LegalPageLayout';
 import { getPublicLegalPage, type LegalBlock, type LegalCompany, type LegalSlug } from '../../lib/api';
 
+/** Document-about-the-document / lawyer filler — not shown on public pages. */
+const HIDDEN_SECTION_IDS = new Set([
+  'changes',
+  'updates',
+  'business-transfers',
+  'severability',
+  'entire-agreement',
+  'force-majeure',
+  'legal-basis',
+  'consent',
+]);
+
 function Blocks({ blocks, company }: { blocks: LegalBlock[]; company: LegalCompany }) {
   return (
     <>
@@ -100,7 +112,9 @@ export default function LegalCmsPage({ slug }: { slug: LegalSlug }) {
       lastUpdated={page.lastUpdated}
       effectiveDate={page.effectiveDate}
       intro={page.intro}
-      sections={page.sections.map((section) => ({
+      sections={page.sections
+        .filter((section) => !HIDDEN_SECTION_IDS.has(section.id))
+        .map((section) => ({
         id: section.id,
         title: section.title,
         content: <Blocks blocks={section.blocks} company={company} />,

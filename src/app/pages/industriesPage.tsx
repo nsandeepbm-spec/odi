@@ -9,6 +9,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { Link } from 'react-router';
+import { PageCTA } from '../components/PageCTA';
 
 const ease = [0.25, 0.1, 0.25, 1] as const;
 
@@ -72,15 +73,26 @@ const industries: Industry[] = [
 export default function IndustriesPage() {
   return (
     <div className="min-h-screen bg-white text-neutral-900 selection:bg-indigo-100">
-      {/* Full-bleed cinematic hero — photography, not a card */}
+
+      {/* ── HERO ── */}
       <section className="relative h-svh min-h-[560px] max-h-[920px] w-full overflow-hidden">
         <img
           src="/industries_hero.png"
           alt=""
           className="absolute inset-0 h-full w-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/60 to-black/75" />
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_35%,rgba(0,0,0,0.45)_100%)]" />
+        {/* Lightened vertical overlay */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/35 to-black/55" />
+        {/* Subtle left & right side lights */}
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              'radial-gradient(ellipse 60% 100% at 0% 50%, rgba(99,102,241,0.12) 0%, transparent 70%), radial-gradient(ellipse 60% 100% at 100% 50%, rgba(6,182,212,0.10) 0%, transparent 70%)',
+          }}
+        />
+        {/* Light center vignette */}
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_50%,rgba(0,0,0,0.22)_100%)]" />
 
         <div className="relative z-10 flex h-full flex-col items-center justify-center px-6 pt-16 text-center">
           <motion.div
@@ -110,17 +122,23 @@ export default function IndustriesPage() {
         </div>
       </section>
 
-      {/* Editorial statement — type only */}
+      {/* ── EDITORIAL STATEMENT ── */}
       <section className="mx-auto max-w-3xl px-6 py-24 text-center md:py-32">
         <motion.div
-          initial={{ opacity: 0, y: 14 }}
+          initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-80px' }}
-          transition={{ duration: 0.55, ease }}
+          transition={{ duration: 0.65, ease }}
         >
-          <p className="mb-5 text-[10px] font-bold uppercase tracking-[0.22em] text-neutral-400">
+          <motion.p
+            className="mb-5 text-[10px] font-bold uppercase tracking-[0.22em] text-neutral-400"
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.1, ease }}
+          >
             Why depth matters
-          </p>
+          </motion.p>
           <h2
             className="mb-8 font-black tracking-tight text-neutral-900"
             style={{ fontSize: 'clamp(1.75rem, 4vw, 3rem)', letterSpacing: '-0.03em', lineHeight: 1.15 }}
@@ -128,31 +146,52 @@ export default function IndustriesPage() {
             When a story is told in three dimensions, it becomes something you feel.
           </h2>
           <p className="text-lg font-medium leading-relaxed text-neutral-500 md:text-xl">
-            A wildlife scene feels grander. A dramatic moment feels closer. Depth doesn’t just
-            change the picture — it changes how people experience the story you’re trying to tell.
+            A wildlife scene feels grander. A dramatic moment feels closer. Depth doesn't just
+            change the picture — it changes how people experience the story you're trying to tell.
           </p>
         </motion.div>
       </section>
 
-      {/* Industries — studio renders sit on the page, unframed and uncropped */}
-      <div className="mx-auto max-w-7xl px-6 md:px-10 lg:px-12">
+      {/* ── INDUSTRIES LIST ── */}
+      <div className="mx-auto max-w-screen-xl px-6 md:px-10 lg:px-16">
         {industries.map((industry, index) => {
           const reverse = index % 2 === 1;
           const Icon = industry.icon;
           const n = String(index + 1).padStart(2, '0');
 
           return (
-            <section key={industry.title} className="py-16 md:py-24 lg:py-28">
+            <section
+              key={industry.title}
+              className={`relative py-20 md:py-28 lg:py-36 ${index !== 0 ? 'border-t border-neutral-100' : ''}`}
+            >
+              {/* Ghost number — very subtle watermark */}
+              <span
+                className="pointer-events-none absolute select-none font-black text-neutral-100 leading-none"
+                style={{
+                  fontSize: 'clamp(6rem, 18vw, 14rem)',
+                  letterSpacing: '-0.06em',
+                  top: '0',
+                  right: reverse ? 'auto' : '0',
+                  left: reverse ? '0' : 'auto',
+                  lineHeight: 1,
+                }}
+                aria-hidden="true"
+              >
+                {n}
+              </span>
+
               <div
-                className={`grid items-center gap-10 lg:grid-cols-2 lg:gap-16 xl:gap-24 ${
-                  reverse ? 'lg:[&>div:first-child]:order-2' : ''
+                className={`relative z-10 flex flex-col gap-12 lg:flex-row lg:items-center ${
+                  reverse ? 'lg:flex-row-reverse' : ''
                 }`}
               >
+                {/* Image — 60% width on desktop */}
                 <motion.div
-                  initial={{ opacity: 0, y: 14 }}
-                  whileInView={{ opacity: 1, y: 0 }}
+                  className="w-full lg:w-[60%] shrink-0"
+                  initial={{ opacity: 0, x: reverse ? 50 : -50 }}
+                  whileInView={{ opacity: 1, x: 0 }}
                   viewport={{ once: true, margin: '-80px' }}
-                  transition={{ duration: 0.6, ease }}
+                  transition={{ duration: 0.8, ease }}
                 >
                   <img
                     src={industry.image}
@@ -162,47 +201,54 @@ export default function IndustriesPage() {
                   />
                 </motion.div>
 
+                {/* Text — 40% width on desktop */}
                 <motion.div
-                  initial={{ opacity: 0, y: 14 }}
-                  whileInView={{ opacity: 1, y: 0 }}
+                  className={`w-full lg:w-[40%] flex flex-col ${reverse ? 'lg:pr-8' : 'lg:pl-8'}`}
+                  initial={{ opacity: 0, x: reverse ? -40 : 40 }}
+                  whileInView={{ opacity: 1, x: 0 }}
                   viewport={{ once: true, margin: '-80px' }}
-                  transition={{ duration: 0.55, delay: 0.08, ease }}
-                  className="flex flex-col lg:py-8"
+                  transition={{ duration: 0.7, delay: 0.15, ease }}
                 >
-                  <div className="mb-6 flex items-center gap-3 text-neutral-400">
-                    <span className="text-[10px] font-bold uppercase tracking-[0.22em]">{n}</span>
-                    <span className="h-px w-6 bg-neutral-300" />
-                    <Icon className="h-3.5 w-3.5" strokeWidth={1.75} />
-                    <span className="text-[10px] font-bold uppercase tracking-[0.22em]">
+                  <div className="mb-5 flex items-center gap-2.5 text-neutral-400">
+                    <Icon className="h-4 w-4" strokeWidth={1.75} />
+                    <span className="h-px w-8 bg-neutral-300" />
+                    <span className="text-[10px] font-bold uppercase tracking-[0.2em]">
                       {industry.title}
                     </span>
                   </div>
 
                   <h3
-                    className="mb-5 font-black tracking-tight text-neutral-900"
+                    className="mb-5 font-bold tracking-tight text-neutral-900"
                     style={{
-                      fontSize: 'clamp(1.75rem, 3.2vw, 2.75rem)',
+                      fontSize: 'clamp(1.6rem, 2.8vw, 2.5rem)',
                       letterSpacing: '-0.03em',
-                      lineHeight: 1.15,
+                      lineHeight: 1.1,
                     }}
                   >
                     {industry.headline}
                   </h3>
 
-                  <p className="mb-8 max-w-lg text-base font-medium leading-relaxed text-neutral-500 md:text-lg">
+                  <p className="mb-8 text-base font-medium leading-relaxed text-neutral-500 md:text-[1.05rem]">
                     {industry.description}
                   </p>
 
-                  <p className="mb-10 text-[13px] font-medium tracking-wide text-neutral-400">
-                    {industry.tags.join('  ·  ')}
-                  </p>
+                  <div className="mb-10 flex flex-wrap gap-2">
+                    {industry.tags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="rounded-full border border-neutral-200 bg-neutral-50 px-4 py-1.5 text-xs font-semibold text-neutral-600"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
 
                   <Link
                     to="/contact"
-                    className="group/link inline-flex w-fit items-center gap-1.5 text-sm font-bold text-neutral-900 transition-colors hover:text-indigo-600"
+                    className="group/link inline-flex w-fit items-center gap-2 rounded-full border border-neutral-900 bg-neutral-900 px-7 py-3.5 text-sm font-semibold text-white transition-all hover:bg-white hover:text-neutral-900 shadow-lg hover:shadow-xl"
                   >
                     Partner with us
-                    <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover/link:translate-x-1" />
+                    <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover/link:translate-x-0.5" />
                   </Link>
                 </motion.div>
               </div>
@@ -211,33 +257,16 @@ export default function IndustriesPage() {
         })}
       </div>
 
-      <section className="bg-neutral-900 px-6 py-28 text-center text-white md:py-36">
-        <motion.div
-          initial={{ opacity: 0, y: 14 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.55, ease }}
-          className="mx-auto max-w-2xl"
-        >
-          <h2
-            className="mb-6 font-black tracking-tight"
-            style={{ fontSize: 'clamp(2rem, 5vw, 3.5rem)', letterSpacing: '-0.03em', lineHeight: 1.1 }}
-          >
-            Let’s build something real.
-          </h2>
-          <p className="mb-10 text-lg font-medium leading-relaxed text-neutral-400">
-            Every project is different, and we treat each one like a blank canvas. Let’s talk about
-            how we can bring true depth to your next idea.
-          </p>
-          <Link
-            to="/contact"
-            className="inline-flex items-center gap-2 rounded-full bg-white px-8 py-4 text-xs font-black uppercase tracking-widest text-neutral-900 transition-all hover:-translate-y-0.5 hover:bg-neutral-200"
-          >
-            Start your project
-            <ArrowRight className="h-4 w-4" />
-          </Link>
-        </motion.div>
-      </section>
+
+      {/* ── CTA ── */}
+      <PageCTA
+        heading="Let's build something real."
+        subtext="Every project is different, and we treat each one like a blank canvas. Let's talk about how we can bring true depth to your next idea."
+        showServices={true}
+        showOrder={false}
+        showContact={true}
+      />
+
     </div>
   );
 }
