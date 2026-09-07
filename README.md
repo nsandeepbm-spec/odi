@@ -21,6 +21,8 @@ npm run dev    # localhost → local API (from .env)
 npm run build  # live domain → https://api.odi.studio
 ```
 
+Hostinger is Apache: `public/.htaccess` is copied into `dist/` on build so routes like `/products` still load `index.html` on refresh. Redeploy after this file is on `main`.
+
 ## Checkout flow (frontend)
 
 Multi-step checkout at `/checkout` (standalone layout — no main site navbar):
