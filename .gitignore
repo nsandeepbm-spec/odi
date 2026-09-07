@@ -16,9 +16,10 @@ dist/
 Thumbs.db
 desktop.ini
 
-# Environment variables
+# Environment variables (never commit — live API URL is chosen at runtime in api.ts)
 .env
 .env.local
+.env.production
 .env.*.local
 
 # Logs

@@ -1,13 +1,23 @@
 import type { User } from 'firebase/auth';
 import { auth } from './firebase';
 
+const LIVE_API_URL = 'https://api.odi.studio';
+const LOCAL_API_URL = 'http://localhost:5000';
+
 /**
- * Backend base URL — set in odinew/.env:
- *   Local:      VITE_API_URL=http://localhost:5000
- *   Production: VITE_API_URL=https://odi.studio  (or empty for same-origin)
+ * Live Hostinger site → `https://api.odi.studio` (from the page hostname, no .env).
+ * Localhost → `.env` `VITE_API_URL`, else `http://localhost:5000`.
  */
-export const API_URL =
-  (import.meta.env.VITE_API_URL as string | undefined) ?? 'http://localhost:5000';
+function resolveApiUrl(): string {
+  if (typeof window === 'undefined') return LOCAL_API_URL;
+  const host = window.location.hostname;
+  const isLocal = host === 'localhost' || host === '127.0.0.1';
+  if (!isLocal) return LIVE_API_URL;
+  const fromEnv = (import.meta.env.VITE_API_URL as string | undefined)?.trim();
+  return fromEnv || LOCAL_API_URL;
+}
+
+export const API_URL = resolveApiUrl();
 
 const DEFAULT_API_HEADERS: HeadersInit = {
   'Content-Type': 'application/json',

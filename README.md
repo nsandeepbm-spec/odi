@@ -8,17 +8,17 @@ React + Vite app for the ODI brand: marketing site, ODI Kids storefront UI, auth
 npm install
 ```
 
-Create `odinew/.env`:
+Create `odinew/.env` (gitignored — laptop only, never deployed):
 
 ```env
 VITE_API_URL=http://localhost:5000
-# Production build:
-# VITE_API_URL=https://odi.studio
 ```
 
+On Hostinger (`odi.studio`) the app does **not** read `.env`. `lib/api.ts` uses `https://api.odi.studio` when the page is not localhost.
+
 ```bash
-npm run dev    # http://localhost:5173
-npm run build
+npm run dev    # localhost → local API (from .env)
+npm run build  # live domain → https://api.odi.studio
 ```
 
 ## Checkout flow (frontend)
