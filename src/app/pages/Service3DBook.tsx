@@ -58,7 +58,7 @@ export default function Service3DBook() {
               </p>
 
               <div className="flex flex-col sm:flex-row items-center gap-5 w-full sm:w-auto">
-                <Link to="/checkout?product=space-explorer" className="px-10 py-4 bg-neutral-900 text-white hover:bg-neutral-800 rounded-full font-semibold text-lg transition-colors flex items-center justify-center gap-2 w-full sm:w-auto shadow-xl shadow-neutral-900/20 hover:scale-105 transform duration-200">
+                <Link to="/products" className="px-10 py-4 bg-neutral-900 text-white hover:bg-neutral-800 rounded-full font-semibold text-lg transition-colors flex items-center justify-center gap-2 w-full sm:w-auto shadow-xl shadow-neutral-900/20 hover:scale-105 transform duration-200">
                   Order Now <ArrowRight className="w-5 h-5"/>
                 </Link>
                 <button onClick={() => document.getElementById('demo-video')?.scrollIntoView({ behavior: 'smooth' })} className="px-10 py-4 bg-transparent text-neutral-900 border-2 border-neutral-200 hover:border-neutral-900 rounded-full font-semibold text-lg transition-colors w-full sm:w-auto hover:bg-neutral-50 cursor-pointer">

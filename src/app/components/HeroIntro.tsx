@@ -85,7 +85,7 @@ export function HeroIntro() {
             <div className="flex flex-row items-center gap-6">
               {/* Afacad Flux Variable Weight Flex Button */}
               <motion.button
-                onClick={() => navigate('/checkout?product=space-explorer')}
+                onClick={() => navigate('/products')}
                 whileHover={{
                   fontWeight: 800,
                   letterSpacing: '0.12em',
