@@ -52,6 +52,7 @@ export default function SettingsPage() {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
+      className="min-w-0"
     >
       <PageHeader
         eyebrow="Preferences"
@@ -60,12 +61,12 @@ export default function SettingsPage() {
         subtitle="Manage your profile, security and notification preferences."
       />
 
-      <div className="space-y-6 max-w-3xl relative z-10">
+      <div className="space-y-6 max-w-3xl relative z-10 min-w-0">
         {/* Profile */}
         <Card title="Profile" action={<User className="w-4 h-4 text-neutral-600" />}>
-          <form onSubmit={handleSave} className="p-6">
+          <form onSubmit={handleSave} className="p-4 sm:p-6">
             {/* Avatar + meta */}
-            <div className="flex items-center gap-4 mb-8 p-4 rounded-xl border border-white/[0.04] bg-white/[0.02]">
+            <div className="flex items-start sm:items-center gap-3 sm:gap-4 mb-6 sm:mb-8 p-3 sm:p-4 rounded-xl border border-white/[0.04] bg-white/[0.02] min-w-0">
               {avatarUrl ? (
                 <img
                   src={avatarUrl}
@@ -78,9 +79,9 @@ export default function SettingsPage() {
                   {initials}
                 </div>
               )}
-              <div>
-                <p className="font-black tracking-tight text-white text-base">{name}</p>
-                <p className="text-sm text-neutral-500">{user.email}</p>
+              <div className="min-w-0">
+                <p className="font-black tracking-tight text-white text-base break-words">{name}</p>
+                <p className="text-sm text-neutral-500 break-all">{user.email}</p>
                 <p className="text-[10px] font-bold tracking-widest uppercase text-neutral-600 mt-1">
                   {user.role} · {user.provider}
                 </p>
@@ -147,7 +148,7 @@ export default function SettingsPage() {
             <button
               type="submit"
               disabled={saving}
-              className="mt-6 inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-400 to-indigo-500 text-white text-sm font-bold tracking-wide shadow-[0_0_20px_rgba(34,211,238,0.3)] hover:shadow-[0_0_30px_rgba(99,102,241,0.5)] hover:-translate-y-0.5 active:translate-y-0 transition-all disabled:opacity-50 disabled:shadow-none disabled:hover:translate-y-0"
+              className="mt-6 inline-flex items-center justify-center gap-2 w-full sm:w-auto px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-400 to-indigo-500 text-white text-sm font-bold tracking-wide shadow-[0_0_20px_rgba(34,211,238,0.3)] hover:shadow-[0_0_30px_rgba(99,102,241,0.5)] sm:hover:-translate-y-0.5 active:translate-y-0 transition-all disabled:opacity-50 disabled:shadow-none disabled:hover:translate-y-0"
             >
               {saving && <Loader2 className="w-4 h-4 animate-spin" />}
               {saving ? 'Saving…' : 'Save Changes'}
@@ -157,7 +158,7 @@ export default function SettingsPage() {
 
         {/* Security */}
         <Card title="Security" action={<Shield className="w-4 h-4 text-neutral-600" />}>
-          <div className="p-6">
+          <div className="p-4 sm:p-6">
             <div className="space-y-5 max-w-md">
               <div className="space-y-2">
                 <label className={labelCls}>Current Password</label>
@@ -174,7 +175,7 @@ export default function SettingsPage() {
             </div>
             <button
               type="button"
-              className="mt-6 px-6 py-2.5 rounded-xl border border-white/[0.08] text-sm font-bold tracking-wide text-neutral-300 hover:bg-white/[0.04] hover:text-white transition-colors"
+              className="mt-6 w-full sm:w-auto px-6 py-2.5 rounded-xl border border-white/[0.08] text-sm font-bold tracking-wide text-neutral-300 hover:bg-white/[0.04] hover:text-white transition-colors"
             >
               Update Password
             </button>
@@ -183,7 +184,7 @@ export default function SettingsPage() {
 
         {/* Notifications */}
         <Card title="Notifications" action={<Bell className="w-4 h-4 text-neutral-600" />}>
-          <div className="p-6 divide-y divide-white/[0.04]">
+          <div className="p-4 sm:p-6 divide-y divide-white/[0.04]">
             {[
               { label: 'Order updates',     desc: 'Status changes for your orders and deliveries.',      on: true },
               { label: 'New releases',      desc: 'Be first to know when a new Explorer volume drops.',  on: true },
@@ -191,9 +192,9 @@ export default function SettingsPage() {
             ].map((n) => (
               <label
                 key={n.label}
-                className="flex items-center justify-between gap-6 py-4 first:pt-0 last:pb-0 cursor-pointer group"
+                className="flex items-start sm:items-center justify-between gap-3 sm:gap-6 py-4 first:pt-0 last:pb-0 cursor-pointer group"
               >
-                <div>
+                <div className="min-w-0">
                   <p className="text-sm font-bold text-white group-hover:text-neutral-100 transition-colors">{n.label}</p>
                   <p className="text-xs text-neutral-500 mt-0.5">{n.desc}</p>
                 </div>

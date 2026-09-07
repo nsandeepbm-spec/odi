@@ -205,6 +205,7 @@ export default function ReviewsPage() {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
+      className="min-w-0"
     >
       <PageHeader
         eyebrow="Your voice"
@@ -222,7 +223,7 @@ export default function ReviewsPage() {
               subtitle="After you complete an order, that kit will appear here so you can write a review."
             />
           ) : activeSlug ? (
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+            <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4">
               <div className="flex items-center gap-3 pb-4 border-b border-white/[0.06]">
                 {activeTarget?.imageUrl && (
                   <div className="w-12 h-12 rounded-lg bg-white/[0.04] border border-white/[0.06] overflow-hidden shrink-0">
@@ -275,18 +276,18 @@ export default function ReviewsPage() {
 
               {message && <p className="text-xs text-red-400 font-medium">{message}</p>}
 
-              <div className="flex flex-wrap gap-3">
+              <div className="flex flex-col sm:flex-row flex-wrap gap-3">
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-5 py-2.5 rounded-xl bg-cyan-500 text-white text-sm font-black hover:bg-cyan-400 disabled:opacity-60"
+                  className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-cyan-500 text-white text-sm font-black hover:bg-cyan-400 disabled:opacity-60"
                 >
                   {saving ? 'Saving…' : editingId ? 'Update review' : 'Publish review'}
                 </button>
                 <button
                   type="button"
                   onClick={resetForm}
-                  className="px-5 py-2.5 rounded-xl border border-white/[0.08] bg-transparent text-sm font-bold text-neutral-300 hover:bg-white/[0.04]"
+                  className="w-full sm:w-auto px-5 py-2.5 rounded-xl border border-white/[0.08] bg-transparent text-sm font-bold text-neutral-300 hover:bg-white/[0.04]"
                 >
                   Cancel
                 </button>
@@ -297,7 +298,7 @@ export default function ReviewsPage() {
               {reviewable.map((target) => (
                 <li
                   key={`${target.orderId}-${target.slug}`}
-                  className="flex items-center justify-between gap-4 px-5 py-4"
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 sm:px-5 py-4"
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="w-12 h-12 rounded-lg bg-white/[0.04] border border-white/[0.06] overflow-hidden shrink-0">
@@ -319,7 +320,7 @@ export default function ReviewsPage() {
                   <button
                     type="button"
                     onClick={() => startNewReview(target)}
-                    className="shrink-0 px-4 py-2 rounded-xl border border-white/20 bg-transparent text-xs font-bold text-neutral-300 hover:border-white/40 hover:bg-white/[0.04] transition-colors"
+                    className="w-full sm:w-auto shrink-0 px-4 py-2.5 rounded-xl border border-white/20 bg-transparent text-xs font-bold text-neutral-300 hover:border-white/40 hover:bg-white/[0.04] transition-colors text-center"
                   >
                     Write a review
                   </button>
@@ -339,7 +340,7 @@ export default function ReviewsPage() {
           ) : (
             <ul className="divide-y divide-white/[0.04]">
               {reviews.map((review) => (
-                <li key={review.id} className="p-5">
+                <li key={review.id} className="p-4 sm:p-5">
                   <div className="flex items-start justify-between gap-3 mb-2">
                     <div className="min-w-0">
                       <p className="text-sm font-bold text-white truncate">

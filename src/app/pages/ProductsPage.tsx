@@ -26,6 +26,7 @@ import { invalidatePublicCache, peekPublicProductsCache } from '../lib/api';
 import { useCartStore } from '../store/cartStore';
 import { useWishlistStore, WishlistAuthError, bindWishlistAuthSync } from '../store/wishlistStore';
 import { useNotifyMeStore, NotifyMeAuthError, bindNotifyMeAuthSync } from '../store/notifyMeStore';
+import { ODILoader } from '../components/ODILoader';
 
 const CTA = '#f05a13';
 const ACCENT = '#1a4fd6';
@@ -510,7 +511,7 @@ export default function ProductsPage() {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 py-10 sm:py-12">
         <h2 className="text-xl font-black mb-6">Featured Immersive Series</h2>
         {isLoading ? (
-          <div className="flex items-center justify-center py-20 text-neutral-400">Loading...</div>
+          <ODILoader size="sm" label="Loading…" className="py-16" />
         ) : featuredSeries.length === 0 ? (
           <p className="text-sm text-neutral-500 py-8">
             No featured kits yet. In admin, open a product and turn on <strong>Featured series</strong> next to Status
@@ -591,7 +592,9 @@ export default function ProductsPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 lg:gap-6">
             {isLoading ? (
-              <div className="col-span-full py-16 text-center text-neutral-500">Loading products...</div>
+              <div className="col-span-full">
+                <ODILoader size="sm" label="Loading products…" className="py-16" />
+              </div>
             ) : (
               products.map((product) => (
                 <ProductCard key={product.slug} product={product} />

@@ -219,6 +219,48 @@ function isScheduled(c: AdminCoupon) {
   return !!c.starts_at && new Date(c.starts_at).getTime() > Date.now();
 }
 
+function couponStatus(c: AdminCoupon) {
+  if (isExpired(c)) {
+    return {
+      label: 'Expired',
+      className: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+    };
+  }
+  if (isExhausted(c)) {
+    return {
+      label: 'Exhausted',
+      className: 'bg-red-500/10 text-red-400 border-red-500/20',
+    };
+  }
+  if (isScheduled(c)) {
+    return {
+      label: 'Scheduled',
+      className: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20',
+    };
+  }
+  if (c.active) {
+    return {
+      label: 'Active',
+      className: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+    };
+  }
+  return {
+    label: 'Inactive',
+    className: 'bg-neutral-500/10 text-neutral-400 border-neutral-500/20',
+  };
+}
+
+function StatusBadge({ coupon }: { coupon: AdminCoupon }) {
+  const s = couponStatus(coupon);
+  return (
+    <span
+      className={`px-2.5 py-1 text-[9px] font-black uppercase tracking-widest rounded border ${s.className}`}
+    >
+      {s.label}
+    </span>
+  );
+}
+
 export default function CouponsPage() {
   const [coupons, setCoupons] = useState<AdminCoupon[]>([]);
   const [total, setTotal] = useState(0);
@@ -426,7 +468,7 @@ export default function CouponsPage() {
   }
 
   return (
-    <div>
+    <div className="min-w-0">
       <PageHeader
         title="Promotions &"
         accent="Coupons."
@@ -435,7 +477,7 @@ export default function CouponsPage() {
           <button
             type="button"
             onClick={openCreate}
-            className="inline-flex items-center gap-2 px-6 py-3 text-sm font-bold tracking-wide bg-gradient-to-r from-cyan-400 to-indigo-500 text-white shadow-[0_0_20px_rgba(34,211,238,0.3)] hover:shadow-[0_0_30px_rgba(99,102,241,0.5)] transform hover:-translate-y-0.5 active:translate-y-0 transition-all rounded-xl relative z-10"
+            className="inline-flex items-center justify-center gap-2 w-full sm:w-auto shrink-0 px-6 py-3 text-sm font-bold tracking-wide bg-gradient-to-r from-cyan-400 to-indigo-500 text-white shadow-[0_0_20px_rgba(34,211,238,0.3)] hover:shadow-[0_0_30px_rgba(99,102,241,0.5)] transform hover:-translate-y-0.5 active:translate-y-0 transition-all rounded-xl relative z-10"
           >
             <Plus className="w-4 h-4" /> New Coupon
           </button>
@@ -456,7 +498,7 @@ export default function CouponsPage() {
 
       {/* Quick promo templates */}
       <Card title="Promo templates" className="mb-6 relative z-10">
-        <div className="px-6 py-5">
+        <div className="px-4 sm:px-6 py-4 sm:py-5">
           <p className="text-xs text-neutral-500 mb-4 max-w-2xl">
             One-click starters for common ODI Kids offers. If a code is already live, the card opens
             Edit instead of creating a duplicate.
@@ -508,7 +550,7 @@ export default function CouponsPage() {
             </button>
           }
         >
-          <form onSubmit={handleSubmit} className="p-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+          <form onSubmit={handleSubmit} className="p-4 sm:p-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
             <div>
               <label className={labelClass}>Code</label>
               <input
@@ -639,14 +681,14 @@ export default function CouponsPage() {
               <p className={hintClass}>Optional. Blank = no expiry date.</p>
             </div>
 
-            <div className="xl:col-span-3 flex flex-wrap items-center justify-between gap-4 pt-2">
-              <label className="inline-flex items-center gap-3 cursor-pointer select-none">
+            <div className="xl:col-span-3 flex flex-col sm:flex-row sm:flex-wrap sm:items-center sm:justify-between gap-4 pt-2">
+              <label className="inline-flex items-center gap-3 cursor-pointer select-none min-w-0">
                 <button
                   type="button"
                   role="switch"
                   aria-checked={form.active}
                   onClick={() => setForm((f) => ({ ...f, active: !f.active }))}
-                  className={`relative w-11 h-6 rounded-full transition-colors ${
+                  className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${
                     form.active ? 'bg-emerald-500/80' : 'bg-white/[0.1]'
                   }`}
                 >
@@ -656,30 +698,34 @@ export default function CouponsPage() {
                     }`}
                   />
                 </button>
-                <span className="text-sm font-bold text-neutral-300">
+                <span className="text-sm font-bold text-neutral-300 min-w-0">
                   {form.active ? 'Active — customers can redeem' : 'Inactive — hidden from checkout'}
                 </span>
               </label>
 
-              <div className="flex items-center gap-3">
+              <div className="flex flex-col-reverse sm:flex-row sm:items-center gap-3 w-full sm:w-auto">
                 {formError && (
-                  <p className="text-xs text-red-400 font-medium max-w-xs text-right">{formError}</p>
+                  <p className="text-xs text-red-400 font-medium sm:max-w-xs sm:text-right break-words">
+                    {formError}
+                  </p>
                 )}
-                <button
-                  type="button"
-                  onClick={closeForm}
-                  className="px-5 py-2.5 text-sm font-bold rounded-xl text-neutral-400 hover:text-white hover:bg-white/[0.04] transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="px-6 py-2.5 text-sm font-bold rounded-xl bg-gradient-to-r from-cyan-400 to-indigo-500 text-white shadow-[0_0_20px_rgba(34,211,238,0.3)] hover:shadow-[0_0_30px_rgba(99,102,241,0.5)] transition-all disabled:opacity-50 inline-flex items-center gap-2"
-                >
-                  {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-                  {editingId ? 'Update Coupon' : 'Save Coupon'}
-                </button>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={closeForm}
+                    className="flex-1 sm:flex-none px-5 py-2.5 text-sm font-bold rounded-xl text-neutral-400 hover:text-white hover:bg-white/[0.04] transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="flex-1 sm:flex-none px-6 py-2.5 text-sm font-bold rounded-xl bg-gradient-to-r from-cyan-400 to-indigo-500 text-white shadow-[0_0_20px_rgba(34,211,238,0.3)] hover:shadow-[0_0_30px_rgba(99,102,241,0.5)] transition-all disabled:opacity-50 inline-flex items-center justify-center gap-2"
+                  >
+                    {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+                    {editingId ? 'Update Coupon' : 'Save Coupon'}
+                  </button>
+                </div>
               </div>
             </div>
           </form>
@@ -687,15 +733,15 @@ export default function CouponsPage() {
       )}
 
       <Card title="All Coupons" className="relative z-10">
-        <div className="px-6 py-5 border-b border-white/[0.04] bg-[#0d0d0d]">
-          <div className="flex items-center gap-3 max-w-md px-4 py-2.5 rounded-xl bg-[#050505] border border-white/[0.06] shadow-inner focus-within:border-white/[0.2] transition-colors">
+        <div className="px-4 sm:px-6 py-4 sm:py-5 border-b border-white/[0.04] bg-[#0d0d0d]">
+          <div className="flex items-center gap-3 w-full lg:max-w-md px-4 py-2.5 rounded-xl bg-[#050505] border border-white/[0.06] shadow-inner focus-within:border-white/[0.2] transition-colors">
             <Search className="w-4 h-4 text-neutral-500 shrink-0" />
             <input
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search by code or status…"
-              className="w-full bg-transparent text-sm outline-none placeholder:text-neutral-500 text-white"
+              className="w-full min-w-0 bg-transparent text-sm outline-none placeholder:text-neutral-500 text-white"
             />
           </div>
         </div>
@@ -711,28 +757,92 @@ export default function CouponsPage() {
             }
           />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left min-w-[880px]">
-              <thead className="bg-white/[0.02] text-neutral-400 text-[10px] uppercase tracking-[0.2em] font-bold border-b border-white/[0.04]">
-                <tr>
-                  <th className="px-6 py-4">Code</th>
-                  <th className="px-6 py-4">Discount</th>
-                  <th className="px-6 py-4">Limits</th>
-                  <th className="px-6 py-4">Usage</th>
-                  <th className="px-6 py-4">Window</th>
-                  <th className="px-6 py-4">Status</th>
-                  <th className="px-6 py-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/[0.04]">
-                {filtered.map((c) => {
-                  const expired = isExpired(c);
-                  const exhausted = isExhausted(c);
-                  const scheduled = isScheduled(c);
+          <>
+            {/* Mobile / tablet cards */}
+            <div className="md:hidden divide-y divide-white/[0.04]">
+              {filtered.map((c) => (
+                <div key={c.id} className="px-4 py-4 flex flex-col gap-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-black font-mono text-cyan-400 tracking-wide break-all">
+                        {c.code}
+                      </p>
+                      <p className="text-[10px] font-bold tracking-[0.15em] uppercase text-neutral-600 mt-1">
+                        {c.type === 'percent' ? 'Percent' : 'Fixed'}
+                      </p>
+                    </div>
+                    <StatusBadge coupon={c} />
+                  </div>
+                  <div>
+                    <p className="font-bold text-white">{discountLabel(c)}</p>
+                    <p className="text-xs text-neutral-500 mt-0.5">
+                      {c.min_subtotal_paise > 0
+                        ? `Min ${inrFromPaise(c.min_subtotal_paise)}`
+                        : 'No minimum'}
+                      {c.max_discount_paise != null
+                        ? ` · Cap ${inrFromPaise(c.max_discount_paise)}`
+                        : ''}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs text-neutral-400">
+                    <span>
+                      {c.used_count}
+                      {c.max_uses != null ? ` / ${c.max_uses}` : ''} uses
+                      {' · '}
+                      {c.max_uses != null ? `${c.max_uses} global` : 'Unlimited'}
+                      {' · '}
+                      {c.per_user_limit}/user
+                    </span>
+                  </div>
+                  <p className="text-xs text-neutral-500">
+                    {formatDate(c.starts_at)} → {formatDate(c.ends_at)}
+                  </p>
+                  <div className="flex flex-col gap-2">
+                    <button
+                      type="button"
+                      onClick={() => openEdit(c)}
+                      className="inline-flex items-center justify-center gap-1.5 w-full px-3 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-lg bg-white/[0.04] text-neutral-300 border border-white/[0.08] hover:bg-white/[0.08] hover:text-white transition-colors"
+                    >
+                      <Pencil className="w-3 h-3" /> Edit
+                    </button>
+                    <button
+                      type="button"
+                      disabled={togglingId === c.id}
+                      onClick={() => void handleToggleActive(c)}
+                      className={`inline-flex items-center justify-center gap-1.5 w-full px-3 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-lg border transition-colors disabled:opacity-50 ${
+                        c.active
+                          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20'
+                          : 'bg-white/[0.04] text-neutral-400 border-white/[0.08] hover:bg-white/[0.08] hover:text-white'
+                      }`}
+                    >
+                      {togglingId === c.id ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : null}
+                      {c.active ? 'On' : 'Off'}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
 
-                  return (
+            {/* Desktop table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-sm text-left min-w-[800px]">
+                <thead className="bg-white/[0.02] text-neutral-400 text-[10px] uppercase tracking-[0.2em] font-bold border-b border-white/[0.04]">
+                  <tr>
+                    <th className="px-4 lg:px-6 py-4">Code</th>
+                    <th className="px-4 lg:px-6 py-4">Discount</th>
+                    <th className="px-4 lg:px-6 py-4">Limits</th>
+                    <th className="px-4 lg:px-6 py-4">Usage</th>
+                    <th className="px-4 lg:px-6 py-4">Window</th>
+                    <th className="px-4 lg:px-6 py-4">Status</th>
+                    <th className="px-4 lg:px-6 py-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/[0.04]">
+                  {filtered.map((c) => (
                     <tr key={c.id} className="hover:bg-white/[0.02] transition-colors group">
-                      <td className="px-6 py-4">
+                      <td className="px-4 lg:px-6 py-4">
                         <div className="font-black font-mono text-cyan-400 tracking-wide group-hover:text-cyan-300 transition-colors">
                           {c.code}
                         </div>
@@ -740,7 +850,7 @@ export default function CouponsPage() {
                           {c.type === 'percent' ? 'Percent' : 'Fixed'}
                         </div>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 lg:px-6 py-4">
                         <div className="font-bold text-white">{discountLabel(c)}</div>
                         <div className="text-xs text-neutral-500 mt-0.5">
                           {c.min_subtotal_paise > 0
@@ -751,19 +861,19 @@ export default function CouponsPage() {
                             : ''}
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-neutral-400 font-medium">
+                      <td className="px-4 lg:px-6 py-4 text-neutral-400 font-medium">
                         <div>{c.max_uses != null ? `${c.max_uses} global` : 'Unlimited'}</div>
                         <div className="text-xs text-neutral-600 mt-0.5">
                           {c.per_user_limit}/user
                         </div>
                       </td>
-                      <td className="px-6 py-4 font-black text-white">
+                      <td className="px-4 lg:px-6 py-4 font-black text-white">
                         {c.used_count}
                         {c.max_uses != null ? (
                           <span className="text-neutral-500 font-bold"> / {c.max_uses}</span>
                         ) : null}
                       </td>
-                      <td className="px-6 py-4 text-neutral-400 font-medium">
+                      <td className="px-4 lg:px-6 py-4 text-neutral-400 font-medium">
                         <div>
                           {formatDate(c.starts_at)} → {formatDate(c.ends_at)}
                         </div>
@@ -771,30 +881,10 @@ export default function CouponsPage() {
                           Created {formatDate(c.created_at)}
                         </div>
                       </td>
-                      <td className="px-6 py-4">
-                        {expired ? (
-                          <span className="px-2.5 py-1 text-[9px] font-black uppercase tracking-widest rounded border bg-amber-500/10 text-amber-400 border-amber-500/20">
-                            Expired
-                          </span>
-                        ) : exhausted ? (
-                          <span className="px-2.5 py-1 text-[9px] font-black uppercase tracking-widest rounded border bg-red-500/10 text-red-400 border-red-500/20">
-                            Exhausted
-                          </span>
-                        ) : scheduled ? (
-                          <span className="px-2.5 py-1 text-[9px] font-black uppercase tracking-widest rounded border bg-indigo-500/10 text-indigo-400 border-indigo-500/20">
-                            Scheduled
-                          </span>
-                        ) : c.active ? (
-                          <span className="px-2.5 py-1 text-[9px] font-black uppercase tracking-widest rounded border bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
-                            Active
-                          </span>
-                        ) : (
-                          <span className="px-2.5 py-1 text-[9px] font-black uppercase tracking-widest rounded border bg-neutral-500/10 text-neutral-400 border-neutral-500/20">
-                            Inactive
-                          </span>
-                        )}
+                      <td className="px-4 lg:px-6 py-4">
+                        <StatusBadge coupon={c} />
                       </td>
-                      <td className="px-6 py-4 text-right">
+                      <td className="px-4 lg:px-6 py-4 text-right">
                         <div className="inline-flex items-center gap-2">
                           <button
                             type="button"
@@ -821,14 +911,14 @@ export default function CouponsPage() {
                         </div>
                       </td>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
 
-        <div className="px-6 py-5 border-t border-white/[0.04] bg-[#0d0d0d] text-xs text-neutral-500 font-bold tracking-wide">
+        <div className="px-4 sm:px-6 py-4 sm:py-5 border-t border-white/[0.04] bg-[#0d0d0d] text-xs text-neutral-500 font-bold tracking-wide">
           {filtered.length} coupon{filtered.length === 1 ? '' : 's'}
           {!query.trim() && total > coupons.length ? ` · ${total} total` : ''}
         </div>

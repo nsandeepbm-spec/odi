@@ -33,10 +33,10 @@ const navLinks: NavLink[] = [
  {
  name: 'Services',
  path: '/services',
- isMega: true,
+ isMega: false,
  dropdown: [
- { name: 'Stereo Conversion', path: '/services/3d-movie-conversion', desc: 'Cinematic depth for feature films.' },
- { name: '3D Books', path: '/services/3d-books', desc: 'Premium 3D learning products for kids.' },
+ { name: 'Stereo Conversion', path: '/services/3d-movie-conversion' },
+ { name: '3D Books', path: '/services/3d-books' },
  ]
  },
  {
@@ -70,6 +70,7 @@ export function Navbar() {
   // Dark glass + white nav text over dark product hero; light chrome for white storefront pages
   const isLight =
     location.pathname.startsWith('/checkout') ||
+    location.pathname.startsWith('/services') ||
     location.pathname === '/learn-more' ||
     location.pathname === '/careers' ||
     location.pathname === '/contact' ||

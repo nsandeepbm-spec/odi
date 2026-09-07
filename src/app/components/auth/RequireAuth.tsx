@@ -1,7 +1,7 @@
 import React from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router';
-import { Loader2 } from 'lucide-react';
 import { useAuth } from '../../lib/auth';
+import { ODILoader } from '../ODILoader';
 
 /**
  * Protects dashboard routes. Waits for Firebase + profile load,
@@ -12,16 +12,7 @@ export function RequireAuth({ adminOnly = false }: { adminOnly?: boolean }) {
   const location = useLocation();
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F7F7F5]">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="w-7 h-7 animate-spin text-neutral-400" />
-          <p className="text-xs font-bold tracking-[0.2em] uppercase text-neutral-400">
-            Loading account…
-          </p>
-        </div>
-      </div>
-    );
+    return <ODILoader variant="full" size="md" label="Loading account…" />;
   }
 
   if (!user) {

@@ -29,29 +29,32 @@ function formatDate(iso: string) {
   });
 }
 
+const chipBase =
+  'px-2.5 py-1 text-[9px] font-black uppercase tracking-widest rounded-md border shadow-lg shadow-black/40';
+
 function statusChip(status: AdminProductStatus) {
   switch (status) {
     case 'live':
       return (
-        <span className="px-2.5 py-1 text-[9px] font-black uppercase tracking-widest rounded border bg-emerald-500/10 text-emerald-400 border-emerald-500/20 backdrop-blur-md">
+        <span className={`${chipBase} bg-emerald-950 text-emerald-300 border-emerald-500/50`}>
           Live
         </span>
       );
     case 'coming_soon':
       return (
-        <span className="px-2.5 py-1 text-[9px] font-black uppercase tracking-widest rounded border bg-indigo-500/10 text-indigo-400 border-indigo-500/20 backdrop-blur-md">
+        <span className={`${chipBase} bg-indigo-950 text-indigo-200 border-indigo-400/50`}>
           Coming Soon
         </span>
       );
     case 'archived':
       return (
-        <span className="px-2.5 py-1 text-[9px] font-black uppercase tracking-widest rounded border bg-neutral-500/10 text-neutral-400 border-neutral-500/20 backdrop-blur-md">
+        <span className={`${chipBase} bg-neutral-950 text-neutral-200 border-neutral-500/50`}>
           Archived
         </span>
       );
     default:
       return (
-        <span className="px-2.5 py-1 text-[9px] font-black uppercase tracking-widest rounded border bg-amber-500/10 text-amber-400 border-amber-500/20 backdrop-blur-md">
+        <span className={`${chipBase} bg-amber-950 text-amber-300 border-amber-500/50`}>
           Draft
         </span>
       );
@@ -124,7 +127,7 @@ export default function ProductsPage() {
     statusFilter !== 'all' || Boolean(dateFrom) || Boolean(dateTo) || Boolean(query.trim());
 
   return (
-    <div>
+    <div className="min-w-0">
       <PageHeader
         title="Product"
         accent="Catalog."
@@ -132,7 +135,7 @@ export default function ProductsPage() {
         action={
           <Link
             to="/dashboard/admin/products/new"
-            className="inline-flex items-center gap-2 px-6 py-3 text-sm font-bold tracking-wide bg-gradient-to-r from-cyan-400 to-indigo-500 text-white shadow-[0_0_20px_rgba(34,211,238,0.3)] hover:shadow-[0_0_30px_rgba(99,102,241,0.5)] transform hover:-translate-y-0.5 active:translate-y-0 transition-all rounded-xl relative z-10"
+            className="inline-flex items-center justify-center gap-2 w-full sm:w-auto shrink-0 px-6 py-3 text-sm font-bold tracking-wide bg-gradient-to-r from-cyan-400 to-indigo-500 text-white shadow-[0_0_20px_rgba(34,211,238,0.3)] hover:shadow-[0_0_30px_rgba(99,102,241,0.5)] transform hover:-translate-y-0.5 active:translate-y-0 transition-all rounded-xl relative z-10"
           >
             <Plus className="w-4 h-4" /> Add Product
           </Link>
@@ -160,34 +163,38 @@ export default function ProductsPage() {
       )}
 
       <Card className="relative z-10 mb-6">
-        <div className="px-6 py-5 border-b border-white/[0.04] flex flex-col gap-4 bg-[#0d0d0d]">
+        <div className="px-4 sm:px-6 py-4 sm:py-5 border-b border-white/[0.04] flex flex-col gap-4 bg-[#0d0d0d]">
           <div className="flex flex-col lg:flex-row lg:items-center gap-4">
-            <div className="flex items-center gap-3 flex-1 max-w-md px-4 py-2.5 rounded-xl bg-[#050505] border border-white/[0.06] shadow-inner focus-within:border-white/[0.2] transition-colors">
+            <div className="flex items-center gap-3 w-full lg:flex-1 lg:max-w-md px-4 py-2.5 rounded-xl bg-[#050505] border border-white/[0.06] shadow-inner focus-within:border-white/[0.2] transition-colors">
               <Search className="w-4 h-4 text-neutral-500 shrink-0" />
               <input
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search by name, slug, volume, tag…"
-                className="w-full bg-transparent text-sm outline-none placeholder:text-neutral-500 text-white"
+                className="w-full min-w-0 bg-transparent text-sm outline-none placeholder:text-neutral-500 text-white"
               />
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-neutral-500">From</label>
-              <input
-                type="date"
-                value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
-                className="px-3 py-2 rounded-xl bg-[#050505] border border-white/[0.08] text-sm text-white outline-none focus:border-cyan-500 [color-scheme:dark]"
-              />
-              <label className="text-[10px] font-black uppercase tracking-widest text-neutral-500">To</label>
-              <input
-                type="date"
-                value={dateTo}
-                min={dateFrom || undefined}
-                onChange={(e) => setDateTo(e.target.value)}
-                className="px-3 py-2 rounded-xl bg-[#050505] border border-white/[0.08] text-sm text-white outline-none focus:border-cyan-500 [color-scheme:dark]"
-              />
+            <div className="grid grid-cols-2 sm:flex sm:flex-wrap sm:items-end gap-2">
+              <div className="flex flex-col gap-1 min-w-0">
+                <label className="text-[10px] font-black uppercase tracking-widest text-neutral-500">From</label>
+                <input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  className="w-full min-w-0 px-2.5 sm:px-3 py-2 rounded-xl bg-[#050505] border border-white/[0.08] text-sm text-white outline-none focus:border-cyan-500 [color-scheme:dark]"
+                />
+              </div>
+              <div className="flex flex-col gap-1 min-w-0">
+                <label className="text-[10px] font-black uppercase tracking-widest text-neutral-500">To</label>
+                <input
+                  type="date"
+                  value={dateTo}
+                  min={dateFrom || undefined}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  className="w-full min-w-0 px-2.5 sm:px-3 py-2 rounded-xl bg-[#050505] border border-white/[0.08] text-sm text-white outline-none focus:border-cyan-500 [color-scheme:dark]"
+                />
+              </div>
               {(dateFrom || dateTo) && (
                 <button
                   type="button"
@@ -195,7 +202,7 @@ export default function ProductsPage() {
                     setDateFrom('');
                     setDateTo('');
                   }}
-                  className="px-3 py-2 text-xs font-bold rounded-xl text-neutral-400 border border-white/[0.06] hover:text-white hover:bg-white/[0.05] transition-colors"
+                  className="col-span-2 sm:col-auto px-3 py-2 text-xs font-bold rounded-xl text-neutral-400 border border-white/[0.06] hover:text-white hover:bg-white/[0.05] transition-colors"
                 >
                   Clear dates
                 </button>
@@ -208,7 +215,7 @@ export default function ProductsPage() {
                 key={f.value}
                 type="button"
                 onClick={() => setStatusFilter(f.value)}
-                className={`px-4 py-2 text-xs font-bold rounded-xl transition-all ${
+                className={`px-3 sm:px-4 py-1.5 sm:py-2 text-xs font-bold rounded-xl transition-all ${
                   statusFilter === f.value
                     ? 'bg-gradient-to-r from-cyan-400 to-indigo-500 text-white shadow-[0_0_20px_rgba(34,211,238,0.3)]'
                     : 'bg-white/[0.03] text-neutral-400 border border-white/[0.06] hover:bg-white/[0.08] hover:text-white'
@@ -219,7 +226,7 @@ export default function ProductsPage() {
             ))}
           </div>
         </div>
-        <div className="px-6 py-3 text-xs text-neutral-500">
+        <div className="px-4 sm:px-6 py-3 text-xs text-neutral-500 break-words">
           Showing {filtered.length} of {products.length} product{products.length === 1 ? '' : 's'}
           {statusFilter !== 'all' && ` · ${STATUS_FILTERS.find((f) => f.value === statusFilter)?.label}`}
           {(dateFrom || dateTo) &&
@@ -302,28 +309,30 @@ export default function ProductsPage() {
                   <div className="absolute top-4 left-4 z-20 flex flex-wrap gap-2">
                     {statusChip(p.status)}
                     {p.is_featured && (
-                      <span className="px-2.5 py-1 text-[9px] font-black uppercase tracking-widest rounded border bg-cyan-500/15 text-cyan-300 border-cyan-500/30 backdrop-blur-md">
+                      <span className={`${chipBase} bg-cyan-950 text-cyan-200 border-cyan-400/50`}>
                         Featured
                       </span>
                     )}
                     {low && (
-                      <span className="px-2.5 py-1 text-[9px] font-black uppercase tracking-widest rounded border bg-amber-500/15 text-amber-300 border-amber-500/30">
+                      <span className={`${chipBase} bg-amber-950 text-amber-300 border-amber-500/50`}>
                         Low stock
                       </span>
                     )}
                   </div>
                 </div>
-                <div className="p-6 flex flex-col flex-1 relative z-10 bg-gradient-to-b from-[#0A0A0A]/50 to-[#0A0A0A]">
-                  <div className="flex items-start justify-between gap-3 mb-1">
-                    <div>
-                      <h3 className="font-black tracking-tight text-lg leading-tight text-white">{p.name}</h3>
-                      <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-neutral-500 mt-1">
+                <div className="p-4 sm:p-6 flex flex-col flex-1 relative z-10 bg-gradient-to-b from-[#0A0A0A]/50 to-[#0A0A0A]">
+                  <div className="flex items-start justify-between gap-3 mb-1 min-w-0">
+                    <div className="min-w-0">
+                      <h3 className="font-black tracking-tight text-base sm:text-lg leading-tight text-white break-words">
+                        {p.name}
+                      </h3>
+                      <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-neutral-500 mt-1 truncate">
                         {p.volume || p.slug}
                       </p>
                       <p className="text-[10px] text-neutral-600 mt-1">Added {formatDate(p.created_at)}</p>
                     </div>
                     <div className="shrink-0 text-right">
-                      <span className="font-black text-lg text-white drop-shadow-sm block">
+                      <span className="font-black text-base sm:text-lg text-white drop-shadow-sm block">
                         {inrFromPaise(p.price_paise)}
                       </span>
                       {p.compare_at_paise != null && p.compare_at_paise > p.price_paise && (
@@ -338,23 +347,25 @@ export default function ProductsPage() {
                       )}
                     </div>
                   </div>
-                  <div className="flex gap-6 mt-5 pt-5 border-t border-white/[0.04]">
-                    <div>
-                      <p className={`text-sm font-black ${low ? 'text-amber-300' : 'text-white'}`}>{p.stock_qty}</p>
-                      <p className="text-[10px] font-bold tracking-widest uppercase text-neutral-500">
-                        {low ? 'Low stock' : 'In Stock'}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-black text-white truncate max-w-[80px]">{p.tag || '—'}</p>
-                      <p className="text-[10px] font-bold tracking-widest uppercase text-neutral-500">
-                        Tag
-                      </p>
+                  <div className="flex flex-col sm:flex-row sm:items-end gap-4 mt-5 pt-5 border-t border-white/[0.04]">
+                    <div className="flex gap-6 min-w-0">
+                      <div>
+                        <p className={`text-sm font-black ${low ? 'text-amber-300' : 'text-white'}`}>{p.stock_qty}</p>
+                        <p className="text-[10px] font-bold tracking-widest uppercase text-neutral-500">
+                          {low ? 'Low stock' : 'In Stock'}
+                        </p>
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-black text-white truncate max-w-[120px]">{p.tag || '—'}</p>
+                        <p className="text-[10px] font-bold tracking-widest uppercase text-neutral-500">
+                          Tag
+                        </p>
+                      </div>
                     </div>
                     <Link
                       to={`/dashboard/admin/products/${p.id}`}
                       state={{ product: p }}
-                      className="ml-auto self-center inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold border border-white/[0.1] rounded-xl text-neutral-300 hover:text-white hover:bg-white/[0.05] transition-colors"
+                      className="w-full sm:w-auto sm:ml-auto inline-flex items-center justify-center gap-1.5 px-4 py-2.5 sm:py-2 text-xs font-bold border border-white/[0.1] rounded-xl text-neutral-300 hover:text-white hover:bg-white/[0.05] transition-colors"
                     >
                       <Pencil className="w-3.5 h-3.5" /> Edit
                     </Link>

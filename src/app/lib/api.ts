@@ -1,18 +1,26 @@
 import type { User } from 'firebase/auth';
 import { auth } from './firebase';
 
-/**
- * Backend base URL — set in odinew/.env:
- *   VITE_API_URL=http://localhost:5000
- * For ngrok sharing, use the API tunnel HTTPS URL.
- */
-export const API_URL =
-  (import.meta.env.VITE_API_URL as string | undefined) ?? 'http://localhost:5000';
+const LIVE_API_URL = 'https://api.odi.studio';
+const LOCAL_API_URL = 'http://localhost:5000';
 
-/** Free ngrok injects an interstitial unless this header is present. Harmless on localhost. */
+/**
+ * Live Hostinger site → `https://api.odi.studio` (from the page hostname, no .env).
+ * Localhost → `.env` `VITE_API_URL`, else `http://localhost:5000`.
+ */
+function resolveApiUrl(): string {
+  if (typeof window === 'undefined') return LOCAL_API_URL;
+  const host = window.location.hostname;
+  const isLocal = host === 'localhost' || host === '127.0.0.1';
+  if (!isLocal) return LIVE_API_URL;
+  const fromEnv = (import.meta.env.VITE_API_URL as string | undefined)?.trim();
+  return fromEnv || LOCAL_API_URL;
+}
+
+export const API_URL = resolveApiUrl();
+
 const DEFAULT_API_HEADERS: HeadersInit = {
   'Content-Type': 'application/json',
-  'ngrok-skip-browser-warning': 'true',
 };
 
 /** Clean route paths (no /api/v1 prefix). */
@@ -48,6 +56,16 @@ export const API = {
     payments: '/admin/payments',
     coupons: '/admin/coupons',
     supportTickets: '/admin/support-tickets',
+    contactInquiries: '/admin/contact-inquiries',
+    careerApplications: '/admin/career-applications',
+    cancels: '/admin/cancels',
+    refunds: '/admin/refunds',
+    legal: '/admin/legal',
+    mailWelcome: '/admin/mail/welcome',
+    mailRefund: '/admin/mail/refund',
+    mailOrder: '/admin/mail/order',
+    mailProductLive: '/admin/mail/product-live',
+    mailCancel: '/admin/mail/cancel',
   },
   orders: {
     list: '/orders',
@@ -55,6 +73,18 @@ export const API = {
   },
   public: {
     products: '/products',
+    contact: '/contact',
+    careers: '/careers',
+    legal: (slug: string) => `/legal/${slug}`,
+  },
+  shipping: {
+    pincode: (pincode: string) => `/shipping/pincode/${pincode}`,
+    tat: (destinationPin: string, mot?: 'E' | 'S') =>
+      mot ? `/shipping/tat/${destinationPin}?mot=${mot}` : `/shipping/tat/${destinationPin}`,
+    charges: (destinationPin: string, slug: string, quantity: number) => {
+      const qs = new URLSearchParams({ slug, quantity: String(quantity) });
+      return `/shipping/charges/${destinationPin}?${qs.toString()}`;
+    },
   },
   reviews: {
     item: (id: string) => `/reviews/${id}`,
@@ -89,10 +119,25 @@ interface ApiFailure {
 
 async function parseResponse<T>(res: Response): Promise<T> {
   const body = (await res.json().catch(() => null)) as ApiSuccess<T> | ApiFailure | null;
-  if (!res.ok) {
-    throw new Error(body && 'error' in body ? body.error.message : `Request failed (${res.status})`);
+  if (!res.ok || !body || !('success' in body) || body.success !== true) {
+    throw new Error(formatApiFailure(body, res.status));
   }
   return body as T;
+}
+
+function formatApiFailure(body: ApiSuccess<unknown> | ApiFailure | null, status: number): string {
+  if (!body || !('error' in body)) return `Request failed (${status})`;
+  const { message, details } = body.error;
+  if (details && typeof details === 'object' && details !== null && !Array.isArray(details)) {
+    const fields = Object.entries(details as Record<string, unknown>)
+      .map(([key, value]) => {
+        const text = Array.isArray(value) ? value.filter(Boolean).join(', ') : value != null ? String(value) : '';
+        return text ? `${key.replace(/_/g, ' ')}: ${text}` : '';
+      })
+      .filter(Boolean);
+    if (fields.length) return `${message} (${fields.join('; ')})`;
+  }
+  return message;
 }
 
 /** Fetch wrapper that attaches the current Firebase ID token. */
@@ -192,7 +237,6 @@ export async function syncUserWithBackend(user: User): Promise<AppUser | null> {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
-        'ngrok-skip-browser-warning': 'true',
       },
     });
     const body = await parseResponse<ApiSuccess<{ user: AppUser }>>(res);
@@ -253,7 +297,9 @@ export interface CheckoutSession {
 }
 
 export interface CheckoutSessionInput {
-  shippingAddress: {
+  /** Prefer saved address UUID from user_addresses when available. */
+  addressId?: string;
+  shippingAddress?: {
     first_name: string;
     last_name: string;
     phone: string;
@@ -308,6 +354,90 @@ export interface CouponValidation {
   discount_paise: number;
   total_paise: number;
   currency: string;
+}
+
+// ─── Shipping (Delhivery pincode) ─────────────────────────────────────────────
+
+export interface PincodeServiceability {
+  pincode: string;
+  serviceable: boolean;
+  prepaid: boolean;
+  cod: boolean;
+  /** Original JSON from Delhivery (`delivery_codes`, etc.). */
+  delhivery?: {
+    delivery_codes?: Array<{ postal_code?: Record<string, unknown> }>;
+  };
+  requestUrl?: string;
+  provider: string;
+  environment: string;
+  baseUrl?: string;
+}
+
+/** GET /shipping/pincode/:pincode — Delhivery serviceability (public, read-only). */
+export async function checkPincodeServiceability(pincode: string): Promise<PincodeServiceability> {
+  const digits = pincode.replace(/\D/g, '');
+  if (digits.length !== 6) {
+    throw new Error('Enter a valid 6-digit PIN code');
+  }
+  const body = await publicFetch<ApiSuccess<PincodeServiceability>>(API.shipping.pincode(digits));
+  return body.data;
+}
+
+export interface ExpectedTat {
+  originPin: string;
+  destinationPin: string;
+  mot: 'E' | 'S';
+  pdt: string;
+  days: number | null;
+  label: string;
+  delhivery?: Record<string, unknown>;
+  requestUrl?: string;
+  provider: string;
+  environment: string;
+  baseUrl?: string;
+}
+
+/** GET /shipping/tat/:destinationPin — Delhivery expected TAT (public, read-only). */
+export async function getExpectedTat(
+  destinationPin: string,
+  mot?: 'E' | 'S'
+): Promise<ExpectedTat> {
+  const digits = destinationPin.replace(/\D/g, '');
+  if (digits.length !== 6) {
+    throw new Error('Enter a valid 6-digit PIN code');
+  }
+  const body = await publicFetch<ApiSuccess<ExpectedTat>>(API.shipping.tat(digits, mot));
+  return body.data;
+}
+
+export interface ShippingQuote {
+  originPin: string;
+  destinationPin: string;
+  mot: 'E' | 'S';
+  pt: string;
+  chargeableGrams: number;
+  shippingPaise: number;
+  delhivery?: Record<string, unknown> | Array<Record<string, unknown>>;
+  requestUrl?: string;
+  provider: string;
+  environment: string;
+  baseUrl?: string;
+}
+
+/** GET /shipping/charges/:destinationPin — Delhivery shipping cost (public, read-only). */
+export async function getShippingQuote(input: {
+  destinationPin: string;
+  slug: string;
+  quantity: number;
+}): Promise<ShippingQuote> {
+  const digits = input.destinationPin.replace(/\D/g, '');
+  if (digits.length !== 6) {
+    throw new Error('Enter a valid 6-digit PIN code');
+  }
+  const body = await publicFetch<ApiSuccess<ShippingQuote>>(
+    API.shipping.charges(digits, input.slug, input.quantity)
+  );
+  return body.data;
 }
 
 /** POST /coupons/validate — preview discount for a code (auth required). */
@@ -593,6 +723,201 @@ export async function updateAdminSupportTicket(
   return body.data.ticket;
 }
 
+export type InquiryStatus = 'new' | 'in_review' | 'closed';
+
+export interface ContactInquiry {
+  id: string;
+  name: string;
+  email: string;
+  company: string | null;
+  service: string;
+  message: string;
+  status: InquiryStatus;
+  admin_note: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CareerApplication {
+  id: string;
+  full_name: string;
+  email: string;
+  phone: string | null;
+  role: string;
+  portfolio_url: string;
+  cover_note: string;
+  status: InquiryStatus;
+  admin_note: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+type PageMeta = { total: number; page: number; perPage: number; totalPages: number };
+
+export async function submitContactInquiry(input: {
+  name: string;
+  email: string;
+  company?: string | null;
+  service: string;
+  message: string;
+}): Promise<ContactInquiry> {
+  const body = await publicFetch<ApiSuccess<{ inquiry: ContactInquiry }>>(API.public.contact, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+  return body.data.inquiry;
+}
+
+export async function submitCareerApplication(input: {
+  full_name: string;
+  email: string;
+  phone?: string | null;
+  role: string;
+  portfolio_url: string;
+  cover_note: string;
+}): Promise<CareerApplication> {
+  const body = await publicFetch<ApiSuccess<{ application: CareerApplication }>>(API.public.careers, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+  return body.data.application;
+}
+
+export async function listAdminContactInquiries(page = 1, perPage = 20, status?: string) {
+  const qs = new URLSearchParams({ page: String(page), perPage: String(perPage) });
+  if (status) qs.set('status', status);
+  const body = await authFetch<ApiSuccess<{ inquiries: ContactInquiry[]; meta: PageMeta }>>(
+    `${API.admin.contactInquiries}?${qs}`
+  );
+  return body.data;
+}
+
+export async function updateAdminContactInquiry(
+  id: string,
+  patch: { status?: InquiryStatus; admin_note?: string | null }
+): Promise<ContactInquiry> {
+  const body = await authFetch<ApiSuccess<{ inquiry: ContactInquiry }>>(
+    `${API.admin.contactInquiries}/${id}`,
+    { method: 'PATCH', body: JSON.stringify(patch) }
+  );
+  return body.data.inquiry;
+}
+
+export async function listAdminCareerApplications(page = 1, perPage = 20, status?: string) {
+  const qs = new URLSearchParams({ page: String(page), perPage: String(perPage) });
+  if (status) qs.set('status', status);
+  const body = await authFetch<ApiSuccess<{ applications: CareerApplication[]; meta: PageMeta }>>(
+    `${API.admin.careerApplications}?${qs}`
+  );
+  return body.data;
+}
+
+export async function updateAdminCareerApplication(
+  id: string,
+  patch: { status?: InquiryStatus; admin_note?: string | null }
+): Promise<CareerApplication> {
+  const body = await authFetch<ApiSuccess<{ application: CareerApplication }>>(
+    `${API.admin.careerApplications}/${id}`,
+    { method: 'PATCH', body: JSON.stringify(patch) }
+  );
+  return body.data.application;
+}
+
+export type LegalSlug = 'terms' | 'privacy' | 'cookies';
+
+export type LegalBlock =
+  | { type: 'p'; text: string }
+  | { type: 'h3'; text: string }
+  | { type: 'ul'; items: string[] }
+  | { type: 'contact' };
+
+export type LegalSectionDto = {
+  id: string;
+  title: string;
+  blocks: LegalBlock[];
+};
+
+export type LegalCompany = {
+  brand: string;
+  entity: string;
+  address: string;
+  gstin: string;
+  email: string;
+  phone: string;
+  websiteHref: string;
+  websiteLabel: string;
+};
+
+export type LegalPageDto = {
+  slug: LegalSlug;
+  eyebrow: string;
+  title: string;
+  titleAccent: string;
+  intro: string;
+  effectiveDate: string;
+  lastUpdated: string;
+  sections: LegalSectionDto[];
+  updatedAt: string | null;
+};
+
+export type LegalPageInput = Omit<LegalPageDto, 'slug' | 'updatedAt'>;
+
+export async function getPublicLegalPage(slug: LegalSlug) {
+  const body = await publicFetch<ApiSuccess<{ page: LegalPageDto; company: LegalCompany }>>(
+    API.public.legal(slug)
+  );
+  return body.data;
+}
+
+export async function listAdminLegal() {
+  const body = await authFetch<
+    ApiSuccess<{
+      pages: Array<{
+        slug: LegalSlug;
+        title: string;
+        titleAccent: string;
+        effectiveDate: string;
+        lastUpdated: string;
+        updatedAt: string | null;
+        sectionCount: number;
+      }>;
+      company: LegalCompany;
+    }>
+  >(API.admin.legal);
+  return body.data;
+}
+
+export async function getAdminLegalPage(slug: LegalSlug) {
+  const body = await authFetch<ApiSuccess<{ page: LegalPageDto; company: LegalCompany }>>(
+    `${API.admin.legal}/${slug}`
+  );
+  return body.data;
+}
+
+export async function updateAdminLegalPage(slug: LegalSlug, input: LegalPageInput) {
+  const body = await authFetch<ApiSuccess<{ page: LegalPageDto }>>(`${API.admin.legal}/${slug}`, {
+    method: 'PUT',
+    body: JSON.stringify(input),
+  });
+  return body.data.page;
+}
+
+export async function restoreAdminLegalPage(slug: LegalSlug) {
+  const body = await authFetch<ApiSuccess<{ page: LegalPageDto; company: LegalCompany }>>(
+    `${API.admin.legal}/${slug}/restore`,
+    { method: 'POST' }
+  );
+  return body.data;
+}
+
+export async function updateAdminLegalCompany(input: LegalCompany) {
+  const body = await authFetch<ApiSuccess<{ company: LegalCompany }>>(`${API.admin.legal}/company`, {
+    method: 'PUT',
+    body: JSON.stringify(input),
+  });
+  return body.data.company;
+}
+
 // ─── Admin commerce ───────────────────────────────────────────────────────────
 
 export type AdminProductStatus = 'draft' | 'live' | 'coming_soon' | 'archived';
@@ -729,6 +1054,72 @@ export interface AdminProductInput {
 export async function getAdminOverview(): Promise<AdminOverview> {
   const body = await authFetch<ApiSuccess<AdminOverview>>(API.admin.overview);
   return body.data;
+}
+
+/** POST /admin/mail/welcome — send the registration welcome template (SMTP check). */
+export async function sendAdminWelcomeEmail(to?: string): Promise<{
+  to: string;
+  sent: boolean;
+  mode: 'smtp' | 'console';
+}> {
+  const body = await authFetch<ApiSuccess<{ to: string; sent: boolean; mode: 'smtp' | 'console' }>>(
+    API.admin.mailWelcome,
+    {
+      method: 'POST',
+      body: JSON.stringify(to ? { to } : {}),
+    }
+  );
+  return body.data;
+}
+
+/** POST /admin/mail/refund — send the refund-processed template (SMTP check). */
+export async function sendAdminRefundEmail(opts?: {
+  to?: string;
+  orderNumber?: string;
+  amountPaise?: number;
+}): Promise<{
+  to: string;
+  sent: boolean;
+  mode: 'smtp' | 'console';
+}> {
+  const body = await authFetch<ApiSuccess<{ to: string; sent: boolean; mode: 'smtp' | 'console' }>>(
+    API.admin.mailRefund,
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        ...(opts?.to ? { to: opts.to } : {}),
+        ...(opts?.orderNumber ? { orderNumber: opts.orderNumber } : {}),
+        ...(opts?.amountPaise ? { amountPaise: opts.amountPaise } : {}),
+      }),
+    }
+  );
+  return body.data;
+}
+
+async function sendAdminMailTemplate(
+  path: string,
+  to?: string
+): Promise<{ to: string; sent: boolean; mode: 'smtp' | 'console' }> {
+  const body = await authFetch<ApiSuccess<{ to: string; sent: boolean; mode: 'smtp' | 'console' }>>(path, {
+    method: 'POST',
+    body: JSON.stringify(to ? { to } : {}),
+  });
+  return body.data;
+}
+
+/** POST /admin/mail/order — send the order-placed template (SMTP check). */
+export function sendAdminOrderEmail(to?: string) {
+  return sendAdminMailTemplate(API.admin.mailOrder, to);
+}
+
+/** POST /admin/mail/product-live — send the product-live template (SMTP check). */
+export function sendAdminProductLiveEmail(to?: string) {
+  return sendAdminMailTemplate(API.admin.mailProductLive, to);
+}
+
+/** POST /admin/mail/cancel — send the order-cancelled template (SMTP check). */
+export function sendAdminCancelEmail(to?: string) {
+  return sendAdminMailTemplate(API.admin.mailCancel, to);
 }
 
 export async function listAdminProducts(page = 1, perPage = 50, status?: string, q?: string) {
@@ -881,7 +1272,6 @@ export async function uploadAdminProductImage(file: File): Promise<{ url: string
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,
-      'ngrok-skip-browser-warning': 'true',
     },
     body: formData,
   });
@@ -925,6 +1315,13 @@ export interface AdminOrder {
   user_id: string;
   created_at: string;
   paid_at?: string | null;
+  delhivery_waybill?: string | null;
+  delhivery_status?: string | null;
+  delhivery_pickup_token?: string | null;
+  delhivery_pickup_date?: string | null;
+  delhivery_pickup_time?: string | null;
+  /** Includes pickup_schedule { date, time } after admin schedules pickup. */
+  delhivery_raw?: Record<string, unknown> | null;
   order_items?: AdminOrderItem[];
   payments?: Array<{
     id: string;
@@ -976,9 +1373,266 @@ export async function updateAdminOrderStatus(id: string, status: string) {
   return body.data.order;
 }
 
+export async function createAdminOrderShipment(id: string) {
+  const body = await authFetch<ApiSuccess<{ order: AdminOrder }>>(`${API.admin.orders}/${id}/shipment`, {
+    method: 'POST',
+  });
+  return body.data.order;
+}
+
+export async function createAdminOrderPickup(
+  id: string,
+  options?: { pickupDate?: string; pickupTime?: string; packageCount?: number }
+) {
+  const body = await authFetch<ApiSuccess<{ order: AdminOrder }>>(`${API.admin.orders}/${id}/pickup`, {
+    method: 'POST',
+    body: JSON.stringify(options ?? {}),
+  });
+  return body.data.order;
+}
+
+export type AdminPickupRow = {
+  id: string;
+  orderNumber: string;
+  status: string;
+  delhiveryStatus: string | null;
+  createdAt: string;
+  waybill: string;
+  pickupToken: string | null;
+  pickupDate: string | null;
+  pickupTime: string | null;
+  pickupTimeLabel: string | null;
+  customerName: string;
+  city: string | null;
+  state: string | null;
+};
+
+/** GET /admin/pickups — needs + scheduled rows with pickup date/time */
+export async function listAdminPickups() {
+  const body = await authFetch<
+    ApiSuccess<{ needs: AdminPickupRow[]; scheduled: AdminPickupRow[] }>
+  >('/admin/pickups');
+  return body.data;
+}
+
 export async function getAdminOrderDetail(id: string): Promise<AdminOrderDetail> {
   const body = await authFetch<ApiSuccess<AdminOrderDetail>>(`${API.admin.orders}/${id}`);
   return body.data;
+}
+
+export type ShipmentTrackingScan = {
+  scan: string;
+  scanType: string | null;
+  statusCode: string | null;
+  instructions: string | null;
+  scannedLocation: string | null;
+  scanDateTime: string | null;
+};
+
+export type ShipmentTracking = {
+  waybill: string;
+  status: string | null;
+  statusType: string | null;
+  statusCode: string | null;
+  statusLocation: string | null;
+  statusDateTime: string | null;
+  instructions: string | null;
+  origin: string | null;
+  destination: string | null;
+  expectedDeliveryDate: string | null;
+  pickedUpDate: string | null;
+  deliveryDate: string | null;
+  orderType: string | null;
+  scans: ShipmentTrackingScan[];
+};
+
+/** GET /admin/orders/:id/tracking */
+export async function getAdminOrderTracking(id: string): Promise<ShipmentTracking> {
+  const body = await authFetch<ApiSuccess<{ tracking: ShipmentTracking }>>(
+    `${API.admin.orders}/${id}/tracking`
+  );
+  return body.data.tracking;
+}
+
+export type AdminPackingSlip = {
+  waybill: string;
+  orderNumber: string;
+  sortCode: string | null;
+  payment: string | null;
+  mot: string | null;
+  status: string | null;
+  consignee: {
+    name: string;
+    address: string;
+    city: string;
+    pin: string;
+    phone: string;
+    state: string;
+  };
+  seller: {
+    name: string;
+    address: string;
+    city: string;
+    state: string;
+    pin: string;
+    phone: string;
+    email: string;
+  };
+  productsDesc: string;
+  quantity: number | string | null;
+  weight: number | string | null;
+  totalPaise: number;
+  codAmountPaise: number | null;
+  items: Array<{
+    snapshot_name: string;
+    quantity: number;
+    unit_price_paise: number;
+    line_total_paise?: number;
+  }>;
+  delhiveryPackage: { raw?: Record<string, unknown> } | null;
+  delhiveryRaw: unknown;
+  delhiveryEnvironment: string;
+};
+
+/** GET /admin/orders/:id/packing-slip — Delhivery JSON merged with order snapshot */
+export async function getAdminPackingSlip(orderId: string): Promise<AdminPackingSlip> {
+  const body = await authFetch<ApiSuccess<AdminPackingSlip>>(
+    `${API.admin.orders}/${orderId}/packing-slip`
+  );
+  return body.data;
+}
+
+/** GET /orders/:id/tracking — signed-in owner */
+export async function getMyOrderTracking(id: string): Promise<ShipmentTracking> {
+  const body = await authFetch<ApiSuccess<{ tracking: ShipmentTracking }>>(
+    `${API.orders.detail(id)}/tracking`
+  );
+  return body.data.tracking;
+}
+
+export type CancelStatus = 'pending' | 'approved' | 'rejected';
+export type RefundStatus = 'pending' | 'approved' | 'rejected' | 'completed';
+
+export type CancelRow = {
+  id: string;
+  orderId: string;
+  userId: string;
+  orderNumber: string;
+  waybill: string | null;
+  amountPaise: number;
+  reason: string;
+  status: CancelStatus;
+  adminNote: string | null;
+  reviewedBy: string | null;
+  reviewedAt: string | null;
+  delhiveryError: string | null;
+  delhiveryAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  userEmail: string | null;
+  userName: string | null;
+};
+
+export type RefundRow = {
+  id: string;
+  orderId: string;
+  userId: string;
+  cancelId: string | null;
+  paymentId: string | null;
+  orderNumber: string;
+  amountPaise: number;
+  currency: string;
+  reason: string;
+  status: RefundStatus;
+  adminNote: string | null;
+  reviewedBy: string | null;
+  reviewedAt: string | null;
+  provider: string;
+  providerPaymentId: string | null;
+  providerRefundId: string | null;
+  providerError: string | null;
+  refundedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  userEmail: string | null;
+  userName: string | null;
+};
+
+/** POST /orders/:id/cancel */
+export async function createMyOrderCancel(orderId: string, reason?: string): Promise<CancelRow> {
+  const body = await authFetch<ApiSuccess<{ cancel: CancelRow }>>(
+    `${API.orders.detail(orderId)}/cancel`,
+    { method: 'POST', body: JSON.stringify({ reason: reason ?? '' }) }
+  );
+  return body.data.cancel;
+}
+
+/** GET /orders/:id/cancel */
+export async function getMyOrderCancel(orderId: string): Promise<CancelRow | null> {
+  const body = await authFetch<ApiSuccess<{ cancel: CancelRow | null }>>(
+    `${API.orders.detail(orderId)}/cancel`
+  );
+  return body.data.cancel;
+}
+
+/** GET /orders/:id/refund */
+export async function getMyOrderRefund(orderId: string): Promise<RefundRow | null> {
+  const body = await authFetch<ApiSuccess<{ refund: RefundRow | null }>>(
+    `${API.orders.detail(orderId)}/refund`
+  );
+  return body.data.refund;
+}
+
+/** GET /admin/cancels */
+export async function listAdminCancels(status?: string) {
+  const qs = new URLSearchParams({ page: '1', perPage: '100' });
+  if (status && status !== 'all') qs.set('status', status);
+  const body = await authFetch<
+    ApiSuccess<{ cancels: CancelRow[]; meta: { total: number } }>
+  >(`${API.admin.cancels}?${qs}`);
+  return body.data;
+}
+
+/** PATCH /admin/cancels/:id */
+export async function reviewAdminCancel(
+  id: string,
+  decision: 'approved' | 'rejected',
+  adminNote?: string
+): Promise<CancelRow> {
+  const body = await authFetch<ApiSuccess<{ cancel: CancelRow }>>(`${API.admin.cancels}/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ decision, adminNote: adminNote || null }),
+  });
+  return body.data.cancel;
+}
+
+/** GET /admin/refunds/:id */
+export async function getAdminRefund(id: string): Promise<RefundRow> {
+  const body = await authFetch<ApiSuccess<{ refund: RefundRow }>>(`${API.admin.refunds}/${id}`);
+  return body.data.refund;
+}
+
+/** GET /admin/refunds */
+export async function listAdminRefunds(status?: string) {
+  const qs = new URLSearchParams({ page: '1', perPage: '100' });
+  if (status && status !== 'all') qs.set('status', status);
+  const body = await authFetch<
+    ApiSuccess<{ refunds: RefundRow[]; meta: { total: number } }>
+  >(`${API.admin.refunds}?${qs}`);
+  return body.data;
+}
+
+/** PATCH /admin/refunds/:id */
+export async function reviewAdminRefund(
+  id: string,
+  decision: 'approved' | 'rejected' | 'completed',
+  adminNote?: string
+): Promise<RefundRow> {
+  const body = await authFetch<ApiSuccess<{ refund: RefundRow }>>(`${API.admin.refunds}/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ decision, adminNote: adminNote || null }),
+  });
+  return body.data.refund;
 }
 
 export async function adminUpdateUser(
@@ -990,6 +1644,22 @@ export async function adminUpdateUser(
     body: JSON.stringify(patch),
   });
   return body.data.user;
+}
+
+export interface AdminDeleteUserResult {
+  deleted: boolean;
+  banned: boolean;
+  firebaseDeleted: boolean;
+  user: AppUser | null;
+  message: string;
+}
+
+/** DELETE /users/:id — admin: remove Firebase login + profile (or ban if they have orders). */
+export async function adminDeleteUser(id: string): Promise<AdminDeleteUserResult> {
+  const body = await authFetch<ApiSuccess<AdminDeleteUserResult>>(`${API.users.list}/${id}`, {
+    method: 'DELETE',
+  });
+  return body.data;
 }
 
 export interface AdminPayment {
@@ -1063,6 +1733,7 @@ export async function listAdminPayments(page = 1, perPage = 50) {
     ApiSuccess<{
       payments: AdminPayment[];
       kpis: { collectedPaise: number; pendingPaise: number; refundedPaise: number };
+      razorpay?: { mode: 'test' | 'live' | 'unset'; webhookConfigured: boolean; webhookUrl: string };
       meta: { total: number; page: number; perPage: number };
     }>
   >(`${API.admin.payments}?${qs}`);
@@ -1156,6 +1827,7 @@ export interface UserOrder {
   status: UserOrderStatus;
   subtotal_paise: number;
   discount_paise: number;
+  shipping_paise: number;
   total_paise: number;
   coupon_code: string | null;
   shipping_address: {
@@ -1178,6 +1850,12 @@ export interface UserOrder {
   paid_at: string | null;
   created_at: string;
   updated_at?: string;
+  delhivery_waybill?: string | null;
+  delhivery_status?: string | null;
+  delhivery_pickup_token?: string | null;
+  /** Latest refund row for this order (`pending` = under review). */
+  refund_status?: RefundStatus | null;
+  razorpay_refund_id?: string | null;
   /** Included in list and detail responses. */
   order_items?: UserOrderItem[];
 }

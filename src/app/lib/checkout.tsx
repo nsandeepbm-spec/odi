@@ -7,10 +7,12 @@ import {
   createAddress,
   updateAddress,
   validateCoupon,
+  getShippingQuote,
 } from './api';
 import type { UserAddress } from './api';
 import type { StoreProduct } from '../data/products';
 import { auth } from './firebase';
+import { useCartStore } from '../store/cartStore';
 
 export interface ShippingDetails {
   email: string;
@@ -38,8 +40,8 @@ const EMPTY_SHIPPING: ShippingDetails = {
 };
 
 const STORAGE_KEY = 'odi-checkout';
-const ADDRESSES_KEY = 'odi-saved-addresses';
 const IKEY_STORAGE_KEY = 'odi-checkout-ikey';
+const LEGACY_ADDRESSES_KEY = 'odi-saved-addresses';
 
 function loadIdempotencyKey(): string | null {
   try { return sessionStorage.getItem(IKEY_STORAGE_KEY); } catch { return null; }
@@ -57,17 +59,10 @@ function clearIdempotencyKey() {
   try { sessionStorage.removeItem(IKEY_STORAGE_KEY); } catch { /* noop */ }
 }
 
-function loadSavedAddresses(): SavedAddress[] {
-  try {
-    const raw = localStorage.getItem(ADDRESSES_KEY);
-    return raw ? (JSON.parse(raw) as SavedAddress[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-function persistSavedAddresses(addresses: SavedAddress[]) {
-  localStorage.setItem(ADDRESSES_KEY, JSON.stringify(addresses));
+try {
+  localStorage.removeItem(LEGACY_ADDRESSES_KEY);
+} catch {
+  /* ignore */
 }
 
 /** Convert a DB UserAddress row to the local SavedAddress shape. */
@@ -118,6 +113,8 @@ interface PersistedCheckout {
   couponDiscountPaise?: number;
 }
 
+export type ShippingQuoteStatus = 'idle' | 'loading' | 'ready' | 'error';
+
 interface CheckoutContextValue {
   product: StoreProduct | null;
   isLoadingProduct: boolean;
@@ -128,12 +125,20 @@ interface CheckoutContextValue {
   savedAddresses: SavedAddress[];
   selectedAddressId: string | null;
   selectSavedAddress: (id: string) => void;
-  saveCurrentAddress: (label: string) => void;
+  /** Persist address to user_addresses (auth required). Returns saved address id. */
+  saveCurrentAddress: (label: string, existingId?: string | null) => Promise<string>;
+  refreshSavedAddresses: () => Promise<void>;
   subtotalPaise: number;
   /** Coupon discount in paise (server-validated). */
   discountPaise: number;
   totalPaise: number;
-  shippingFree: boolean;
+  shippingPaise: number;
+  shippingQuoteStatus: ShippingQuoteStatus;
+  /** Delhivery quote error message (when status is error). */
+  shippingQuoteError: string | null;
+  /** Fetch Delhivery shipping cost for destination PIN (after address is serviceable). */
+  refreshShippingQuote: (destinationPin: string) => Promise<void>;
+  clearShippingQuote: () => void;
   couponCode: string | null;
   couponInput: string;
   setCouponInput: (value: string) => void;
@@ -201,7 +206,7 @@ export function CheckoutProvider({ children }: { children: React.ReactNode }) {
     ...EMPTY_SHIPPING,
     ...persisted.shipping,
   });
-  const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>(loadSavedAddresses);
+  const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(
     persisted.selectedAddressId ?? null
   );
@@ -214,6 +219,9 @@ export function CheckoutProvider({ children }: { children: React.ReactNode }) {
     persisted.couponCode ? `Offer ${persisted.couponCode} applied` : null
   );
   const [couponApplying, setCouponApplying] = useState(false);
+  const [shippingPaise, setShippingPaise] = useState(0);
+  const [shippingQuoteStatus, setShippingQuoteStatus] = useState<ShippingQuoteStatus>('idle');
+  const [shippingQuoteError, setShippingQuoteError] = useState<string | null>(null);
   /** Bumped on clear/remove so in-flight validate responses are ignored. */
   const couponEpochRef = useRef(0);
 
@@ -225,22 +233,6 @@ export function CheckoutProvider({ children }: { children: React.ReactNode }) {
     if (saved && p.ikeySlug === slug) return saved;
     return makeIdempotencyKey();
   });
-
-  // Sync saved addresses from the DB whenever the user signs in.
-  useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      if (!user) return;
-      listAddresses()
-        .then((rows) => {
-          if (rows.length === 0) return;
-          const mapped = rows.map(dbToSaved);
-          setSavedAddresses(mapped);
-          persistSavedAddresses(mapped);
-        })
-        .catch(() => {/* keep localStorage addresses */});
-    });
-    return unsubscribe;
-  }, []);
 
   useEffect(() => {
     if (!productFromUrl) return;
@@ -420,45 +412,73 @@ export function CheckoutProvider({ children }: { children: React.ReactNode }) {
     setSelectedAddressId(id);
   }, [savedAddresses]);
 
-  const saveCurrentAddress = useCallback((label: string) => {
-    const trimmed = label.trim() || 'Address';
-    const key = addressKey(shipping);
-    const existing = savedAddresses.find((a) => addressKey(a) === key);
-
-    if (existing) {
-      const updated = savedAddresses.map((a) =>
-        a.id === existing.id ? { ...a, ...shipping, label: trimmed } : a
-      );
-      setSavedAddresses(updated);
-      persistSavedAddresses(updated);
-      setSelectedAddressId(existing.id);
-
-      // Persist update to DB in background if signed in and address has a DB UUID
-      if (auth.currentUser && !existing.id.startsWith('addr-')) {
-        updateAddress(existing.id, shippingToDbInput(shipping, trimmed)).catch(() => {/* no-op */});
+  const saveCurrentAddress = useCallback(
+    async (label: string, existingId?: string | null): Promise<string> => {
+      if (!isShippingComplete(shipping)) {
+        throw new Error('Fill in all required address fields');
       }
-      return;
-    }
+      if (!auth.currentUser) {
+        throw new Error('Sign in to save your address');
+      }
 
-    // Optimistically add with a local ID, replace with DB UUID once the request resolves.
-    const localId = `addr-${Date.now().toString(36)}`;
-    const entry: SavedAddress = { id: localId, label: trimmed, ...shipping };
-    const next = [...savedAddresses, entry];
-    setSavedAddresses(next);
-    persistSavedAddresses(next);
-    setSelectedAddressId(localId);
+      const trimmed = label.trim() || 'Address';
+      const dbInput = shippingToDbInput(shipping, trimmed);
 
-    if (auth.currentUser) {
-      createAddress(shippingToDbInput(shipping, trimmed))
-        .then((created) => {
-          setSavedAddresses((prev) =>
-            prev.map((a) => (a.id === localId ? { ...a, id: created.id } : a))
-          );
-          setSelectedAddressId((prev) => (prev === localId ? created.id : prev));
-        })
-        .catch(() => {/* keep local ID */});
-    }
-  }, [shipping, savedAddresses]);
+      const applySaved = (saved: SavedAddress) => {
+        const next = savedAddresses.some((a) => a.id === saved.id)
+          ? savedAddresses.map((a) => (a.id === saved.id ? saved : a))
+          : [...savedAddresses.filter((a) => a.id !== existingId), saved];
+        setSavedAddresses(next);
+        setShippingState({
+          email: saved.email,
+          phone: saved.phone,
+          firstName: saved.firstName,
+          lastName: saved.lastName,
+          street: saved.street,
+          city: saved.city,
+          postalCode: saved.postalCode,
+        });
+        setSelectedAddressId(saved.id);
+        return saved.id;
+      };
+
+      if (existingId && !existingId.startsWith('addr-')) {
+        const updated = await updateAddress(existingId, dbInput);
+        return applySaved(dbToSaved(updated));
+      }
+
+      const key = addressKey(shipping);
+      const duplicate = savedAddresses.find((a) => addressKey(a) === key && !a.id.startsWith('addr-'));
+      if (duplicate) {
+        const updated = await updateAddress(duplicate.id, dbInput);
+        return applySaved(dbToSaved(updated));
+      }
+
+      const created = await createAddress(dbInput);
+      return applySaved(dbToSaved(created));
+    },
+    [shipping, savedAddresses]
+  );
+
+  const refreshSavedAddresses = useCallback(async () => {
+    if (!auth.currentUser) return;
+    const rows = await listAddresses();
+    const mapped = rows.map(dbToSaved);
+    setSavedAddresses((prev) => {
+      if (JSON.stringify(prev) === JSON.stringify(mapped)) return prev;
+      return mapped;
+    });
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (!user) return;
+      refreshSavedAddresses().catch(() => {
+        /* keep in-memory list; next visit refetches from API */
+      });
+    });
+    return unsubscribe;
+  }, [refreshSavedAddresses]);
 
   const subtotalPaise = product ? product.price_paise * quantity : 0;
   // Only apply discount while a coupon is actively applied (guards against stale async responses)
@@ -466,8 +486,42 @@ export function CheckoutProvider({ children }: { children: React.ReactNode }) {
     couponCode && couponDiscountPaise > 0
       ? Math.min(couponDiscountPaise, subtotalPaise)
       : 0;
-  const shippingFree = true;
-  const totalPaise = Math.max(0, subtotalPaise - discountPaise);
+  const clearShippingQuote = useCallback(() => {
+    setShippingPaise(0);
+    setShippingQuoteStatus('idle');
+    setShippingQuoteError(null);
+  }, []);
+
+  const refreshShippingQuote = useCallback(
+    async (destinationPin: string) => {
+      if (!product) return;
+      const pin = destinationPin.replace(/\D/g, '').slice(0, 6);
+      if (pin.length !== 6) {
+        clearShippingQuote();
+        return;
+      }
+
+      setShippingQuoteStatus('loading');
+      setShippingQuoteError(null);
+      try {
+        const quote = await getShippingQuote({
+          destinationPin: pin,
+          slug: product.slug,
+          quantity,
+        });
+        setShippingPaise(quote.shippingPaise);
+        setShippingQuoteStatus('ready');
+      } catch (err) {
+        setShippingPaise(0);
+        setShippingQuoteStatus('error');
+        setShippingQuoteError(err instanceof Error ? err.message : 'Could not calculate shipping');
+      }
+    },
+    [product, quantity, clearShippingQuote]
+  );
+
+  const shippingIncludedPaise = shippingQuoteStatus === 'ready' ? shippingPaise : 0;
+  const totalPaise = Math.max(0, subtotalPaise - discountPaise + shippingIncludedPaise);
 
   const productQuery = product ? `?product=${product.slug}` : '';
 
@@ -482,6 +536,7 @@ export function CheckoutProvider({ children }: { children: React.ReactNode }) {
 
   const completeOrder = useCallback((realOrderNumber: string) => {
     setLastOrderId(realOrderNumber);
+    useCartStore.getState().clearCart();
     sessionStorage.removeItem(STORAGE_KEY);
     clearIdempotencyKey();
     couponEpochRef.current += 1;
@@ -489,6 +544,9 @@ export function CheckoutProvider({ children }: { children: React.ReactNode }) {
     setCouponDiscountPaise(0);
     setCouponInput('');
     setCouponMessage(null);
+    setShippingPaise(0);
+    setShippingQuoteStatus('idle');
+    setShippingQuoteError(null);
     // Generate a fresh key so if the user somehow starts another checkout
     // in the same tab after success, they get a new session.
     setIdempotencyKey(makeIdempotencyKey());
@@ -506,10 +564,15 @@ export function CheckoutProvider({ children }: { children: React.ReactNode }) {
       selectedAddressId,
       selectSavedAddress,
       saveCurrentAddress,
+      refreshSavedAddresses,
       subtotalPaise,
       discountPaise,
       totalPaise,
-      shippingFree,
+      shippingPaise,
+      shippingQuoteStatus,
+      shippingQuoteError,
+      refreshShippingQuote,
+      clearShippingQuote,
       couponCode,
       couponInput,
       setCouponInput,
@@ -535,9 +598,15 @@ export function CheckoutProvider({ children }: { children: React.ReactNode }) {
       selectedAddressId,
       selectSavedAddress,
       saveCurrentAddress,
+      refreshSavedAddresses,
       subtotalPaise,
       discountPaise,
       totalPaise,
+      shippingPaise,
+      shippingQuoteStatus,
+      shippingQuoteError,
+      refreshShippingQuote,
+      clearShippingQuote,
       couponCode,
       couponInput,
       couponMessage,
@@ -571,4 +640,9 @@ export function isShippingComplete(s: ShippingDetails): boolean {
     s.city.trim() !== '' &&
     s.postalCode.trim() !== ''
   );
+}
+
+/** True when id is a persisted user_addresses UUID (not a local temp id). */
+export function isDbAddressId(id: string | null | undefined): id is string {
+  return Boolean(id && !id.startsWith('addr-') && /^[0-9a-f-]{36}$/i.test(id));
 }

@@ -44,7 +44,12 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 async function loadProfile(firebaseUser: FirebaseUser): Promise<AppUser> {
   try {
     return await getCurrentUser();
-  } catch {
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : '';
+    if (/suspended/i.test(msg)) {
+      await firebaseLogout();
+      throw err;
+    }
     // Profile missing (first login / backend was down during sync) — create it.
     const synced = await syncUserWithBackend(firebaseUser);
     if (synced) return synced;

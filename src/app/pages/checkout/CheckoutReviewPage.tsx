@@ -1,7 +1,22 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, Link } from 'react-router';
-import { ArrowLeft, ShieldCheck, Truck, MapPin, Plus, Check } from 'lucide-react';
-import { useCheckout, isShippingComplete, type SavedAddress } from '../../lib/checkout';
+import {
+  ArrowLeft,
+  ShieldCheck,
+  Truck,
+  MapPin,
+  Plus,
+  Check,
+  Loader2,
+  AlertCircle,
+} from 'lucide-react';
+import {
+  useCheckout,
+  isShippingComplete,
+  type SavedAddress,
+} from '../../lib/checkout';
+import { checkPincodeServiceability, getExpectedTat } from '../../lib/api';
+import { auth } from '../../lib/firebase';
 import { CheckoutOrderSummary } from '../../components/checkout/CheckoutOrderSummary';
 import { checkoutInput, checkoutLabel } from '../../components/checkout/CheckoutShell';
 
@@ -12,6 +27,12 @@ function formatAddressLine(a: SavedAddress) {
 function formatName(a: SavedAddress) {
   return [a.firstName, a.lastName].filter(Boolean).join(' ');
 }
+
+function normalizePin(input: string) {
+  return input.replace(/\D/g, '').slice(0, 6);
+}
+
+type PinStatus = 'idle' | 'checking' | 'ok' | 'fail';
 
 export default function CheckoutReviewPage() {
   const {
@@ -24,12 +45,28 @@ export default function CheckoutReviewPage() {
     selectedAddressId,
     selectSavedAddress,
     saveCurrentAddress,
+    quantity,
+    refreshShippingQuote,
+    clearShippingQuote,
   } = useCheckout();
   const navigate = useNavigate();
+
   const [mode, setMode] = useState<'pick' | 'form'>(() =>
     savedAddresses.length > 0 ? 'pick' : 'form'
   );
   const [addressLabel, setAddressLabel] = useState('Home');
+  const [editingAddressId, setEditingAddressId] = useState<string | null>(null);
+  const [pinStatus, setPinStatus] = useState<PinStatus>('idle');
+  const [pinMessage, setPinMessage] = useState<string | null>(null);
+  const [tatLabel, setTatLabel] = useState<string | null>(null);
+  const [tatLoading, setTatLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const pinEpochRef = useRef(0);
+  const lastCheckedPinRef = useRef<string | null>(null);
+  const selectedPostalCode =
+    savedAddresses.find((a) => a.id === selectedAddressId)?.postalCode ?? '';
 
   useEffect(() => {
     if (savedAddresses.length === 0) {
@@ -43,6 +80,90 @@ export default function CheckoutReviewPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- init selection when addresses load
   }, [savedAddresses.length]);
 
+  const runPincodeCheck = useCallback(async (postalCode: string) => {
+    const pin = normalizePin(postalCode);
+    if (pin.length !== 6) {
+      lastCheckedPinRef.current = null;
+      setPinStatus('idle');
+      setPinMessage(null);
+      setTatLabel(null);
+      clearShippingQuote();
+      return;
+    }
+
+    if (lastCheckedPinRef.current === pin) return;
+    lastCheckedPinRef.current = pin;
+
+    const epoch = ++pinEpochRef.current;
+    setPinStatus('checking');
+    setPinMessage(null);
+    setTatLabel(null);
+    setTatLoading(false);
+
+    try {
+      const result = await checkPincodeServiceability(pin);
+      if (epoch !== pinEpochRef.current) return;
+
+      if (result.serviceable) {
+        setPinStatus('ok');
+        setPinMessage('Delivery available to this PIN');
+        setTatLoading(true);
+        try {
+          const tat = await getExpectedTat(pin);
+          if (epoch !== pinEpochRef.current) return;
+          setTatLabel(tat.label);
+        } catch {
+          if (epoch !== pinEpochRef.current) return;
+          setTatLabel(null);
+        } finally {
+          if (epoch === pinEpochRef.current) setTatLoading(false);
+        }
+      } else {
+        setPinStatus('fail');
+        setPinMessage(`We don't deliver to PIN ${pin} yet. Please use a different address.`);
+        setTatLabel(null);
+        clearShippingQuote();
+      }
+    } catch (err) {
+      if (epoch !== pinEpochRef.current) return;
+      lastCheckedPinRef.current = null;
+      setPinStatus('fail');
+      setPinMessage(err instanceof Error ? err.message : 'Could not verify PIN code');
+      setTatLabel(null);
+      clearShippingQuote();
+    }
+  }, [clearShippingQuote]);
+
+  // Delhivery check only when the selected address PIN changes — not on every address-list refresh.
+  useEffect(() => {
+    if (mode !== 'pick' || !selectedAddressId) {
+      pinEpochRef.current += 1;
+      lastCheckedPinRef.current = null;
+      setPinStatus('idle');
+      setPinMessage(null);
+      setTatLabel(null);
+      setTatLoading(false);
+      clearShippingQuote();
+      return;
+    }
+
+    const pin = normalizePin(selectedPostalCode);
+    if (pin.length !== 6) return;
+
+    void runPincodeCheck(pin);
+  }, [mode, selectedAddressId, selectedPostalCode, runPincodeCheck]);
+
+  // Delhivery shipping cost after PIN is serviceable.
+  useEffect(() => {
+    if (pinStatus !== 'ok') {
+      clearShippingQuote();
+      return;
+    }
+    const pin = normalizePin(selectedPostalCode);
+    if (pin.length !== 6) return;
+    void refreshShippingQuote(pin);
+  }, [pinStatus, selectedPostalCode, product?.slug, quantity, refreshShippingQuote, clearShippingQuote]);
+
   if (!product) {
     return (
       <div className="text-center py-20">
@@ -54,15 +175,68 @@ export default function CheckoutReviewPage() {
     );
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (mode === 'form') {
-      saveCurrentAddress(addressLabel);
+  const pinVerified = pinStatus === 'ok';
+  const canContinue =
+    mode === 'pick' &&
+    Boolean(selectedAddressId) &&
+    pinVerified &&
+    !submitting;
+
+  const handleSaveAddress = async () => {
+    setSaveError(null);
+
+    if (!isShippingComplete(shipping)) {
+      setSaveError('Fill in all required address fields');
+      return;
     }
-    goToPayment();
+
+    if (!auth.currentUser) {
+      navigate(`/login?redirect=${encodeURIComponent(`/checkout/review${productQuery}`)}`);
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await saveCurrentAddress(addressLabel, editingAddressId);
+      setEditingAddressId(null);
+      setMode('pick');
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Could not save address');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleContinue = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!canContinue || !selectedAddressId) return;
+
+    const selected = savedAddresses.find((a) => a.id === selectedAddressId);
+    if (!selected) return;
+
+    setSubmitting(true);
+    try {
+      const result = await checkPincodeServiceability(normalizePin(selected.postalCode));
+      if (!result.serviceable) {
+        setPinStatus('fail');
+        setPinMessage(`We don't deliver to PIN ${result.pincode} yet. Please use a different address.`);
+        return;
+      }
+      goToPayment();
+    } catch (err) {
+      setPinStatus('fail');
+      setPinMessage(err instanceof Error ? err.message : 'Could not verify PIN code');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const startNewAddress = () => {
+    pinEpochRef.current += 1;
+    setPinStatus('idle');
+    setPinMessage(null);
+    setSaveError(null);
+    setEditingAddressId(null);
     setShipping({
       email: '',
       phone: '',
@@ -78,13 +252,26 @@ export default function CheckoutReviewPage() {
 
   const editSelectedAddress = () => {
     const selected = savedAddresses.find((a) => a.id === selectedAddressId);
-    if (selected) setAddressLabel(selected.label);
+    if (!selected) return;
+    setAddressLabel(selected.label);
+    setEditingAddressId(selected.id);
+    setSaveError(null);
     setMode('form');
   };
 
+  const deliveryLabel =
+    pinStatus === 'ok'
+      ? 'Delivery available'
+      : pinStatus === 'checking'
+        ? 'Checking delivery…'
+        : pinStatus === 'fail'
+          ? 'Not deliverable'
+          : mode === 'pick'
+            ? 'Select an address'
+            : 'Save address first';
+
   return (
     <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-8 py-6 items-start">
-      {/* Shipping form — 2nd on mobile, left column on desktop */}
       <div className="order-2 lg:order-1 lg:col-span-8">
         <div className="bg-white border border-neutral-200 rounded-2xl p-5 md:p-7 shadow-sm">
           <div className="flex items-start justify-between gap-4 mb-6">
@@ -106,8 +293,8 @@ export default function CheckoutReviewPage() {
               </h1>
               <p className="text-sm text-neutral-600">
                 {mode === 'pick'
-                  ? 'Choose a saved address or add a new one.'
-                  : 'Enter where we should deliver your kit.'}
+                  ? 'Choose a saved address — we check delivery when you select one.'
+                  : 'Add your delivery address, then save it to your account.'}
               </p>
             </div>
 
@@ -131,15 +318,19 @@ export default function CheckoutReviewPage() {
             ) : savedAddresses.length > 0 ? (
               <button
                 type="button"
-                onClick={() => setMode('pick')}
+                onClick={() => {
+                  setEditingAddressId(null);
+                  setSaveError(null);
+                  setMode('pick');
+                }}
                 className="shrink-0 text-xs font-bold text-indigo-600 hover:underline whitespace-nowrap pt-1"
               >
-                Change shipping
+                Back to saved addresses
               </button>
             ) : null}
           </div>
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+          <form onSubmit={handleContinue} className="flex flex-col gap-5">
             {mode === 'pick' ? (
               <div className="space-y-3">
                 {savedAddresses.map((addr) => {
@@ -279,10 +470,12 @@ export default function CheckoutReviewPage() {
                     <label className={checkoutLabel}>PIN code</label>
                     <input
                       type="text"
+                      inputMode="numeric"
                       required
                       placeholder="400001"
+                      maxLength={6}
                       value={shipping.postalCode}
-                      onChange={(e) => setShipping({ postalCode: e.target.value })}
+                      onChange={(e) => setShipping({ postalCode: normalizePin(e.target.value) })}
                       className={checkoutInput}
                     />
                   </div>
@@ -293,48 +486,103 @@ export default function CheckoutReviewPage() {
                     </select>
                   </div>
                 </div>
+
+                {saveError && (
+                  <p className="text-sm text-red-600 font-medium">{saveError}</p>
+                )}
+
+                <button
+                  type="button"
+                  onClick={handleSaveAddress}
+                  disabled={saving || !isShippingComplete(shipping)}
+                  className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-neutral-900 text-white font-bold tracking-wide hover:bg-neutral-800 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {saving ? 'Saving…' : editingAddressId ? 'Update address' : 'Save address'}
+                </button>
               </>
             )}
 
+            {mode === 'pick' && selectedAddressId && (
+              <div
+                className={`flex items-start gap-2.5 rounded-xl border px-4 py-3 text-sm ${
+                  pinStatus === 'ok'
+                    ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                    : pinStatus === 'fail'
+                      ? 'border-red-200 bg-red-50 text-red-800'
+                      : 'border-neutral-200 bg-neutral-50 text-neutral-600'
+                }`}
+              >
+                {pinStatus === 'checking' ? (
+                  <Loader2 className="w-4 h-4 shrink-0 mt-0.5 animate-spin" />
+                ) : pinStatus === 'fail' ? (
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                ) : pinStatus === 'ok' ? (
+                  <Check className="w-4 h-4 shrink-0 mt-0.5" strokeWidth={3} />
+                ) : (
+                  <MapPin className="w-4 h-4 shrink-0 mt-0.5" />
+                )}
+                <p className="leading-relaxed">
+                  {pinStatus === 'checking'
+                    ? 'Checking delivery availability with Delhivery…'
+                    : pinMessage ?? 'Select an address to check delivery'}
+                </p>
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-3 py-4 border-y border-neutral-100">
-              <div className="flex items-center gap-2.5 text-xs font-bold text-neutral-600">
+              <div
+                className={`flex items-center gap-2.5 text-xs font-bold ${
+                  pinStatus === 'ok' ? 'text-emerald-700' : 'text-neutral-600'
+                }`}
+              >
                 <Truck className="w-4 h-4 shrink-0" />
-                Free shipping across India
+                {deliveryLabel}
               </div>
-              <div className="flex items-center gap-2.5 text-xs font-bold text-neutral-600">
+              <div
+                className={`flex items-center gap-2.5 text-xs font-bold ${
+                  pinStatus === 'ok' && tatLabel ? 'text-emerald-700' : 'text-neutral-600'
+                }`}
+              >
                 <MapPin className="w-4 h-4 shrink-0" />
-                Delivered in 5–7 business days
+                {tatLoading
+                  ? 'Calculating delivery time…'
+                  : tatLabel ?? (pinStatus === 'ok' ? 'Delivery estimate unavailable' : 'Select an address for delivery time')}
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 pt-1">
-              <button
-                type="button"
-                onClick={() => navigate(`/checkout${productQuery}`)}
-                className="flex items-center justify-center sm:justify-start gap-2 px-4 py-3 rounded-xl border border-neutral-300 text-sm font-bold text-neutral-600 bg-transparent hover:bg-neutral-50 hover:border-neutral-400 transition-colors"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                Back to product
-              </button>
+            {mode === 'pick' && (
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 pt-1">
+                <button
+                  type="button"
+                  onClick={() => navigate(`/checkout${productQuery}`)}
+                  className="flex items-center justify-center sm:justify-start gap-2 px-4 py-3 rounded-xl border border-neutral-300 text-sm font-bold text-neutral-600 bg-transparent hover:bg-neutral-50 hover:border-neutral-400 transition-colors"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Back to product
+                </button>
 
-              <button
-                type="submit"
-                disabled={mode === 'pick' && !isShippingComplete(shipping)}
-                className="px-8 py-3.5 rounded-xl bg-[#f05a13] text-white font-bold tracking-wide hover:bg-[#e0500e] transition-colors shadow-sm text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Continue to payment
-              </button>
-            </div>
+                <button
+                  type="submit"
+                  disabled={!canContinue}
+                  className="px-8 py-3.5 rounded-xl bg-[#f05a13] text-white font-bold tracking-wide hover:bg-[#e0500e] transition-colors shadow-sm text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {submitting
+                    ? 'Verifying…'
+                    : pinStatus === 'checking'
+                      ? 'Checking delivery…'
+                      : 'Continue to payment'}
+                </button>
+              </div>
+            )}
           </form>
 
           <div className="flex items-center justify-center gap-2 mt-5 text-[10px] font-bold text-neutral-400">
             <ShieldCheck className="w-3.5 h-3.5" />
-            <span>Your address is encrypted and never shared</span>
+            <span>Saved addresses are stored securely in your account</span>
           </div>
         </div>
       </div>
 
-      {/* Order summary — 1st on mobile, right column on desktop */}
       <div className="order-1 lg:order-2 lg:col-span-4 lg:sticky lg:top-28">
         <CheckoutOrderSummary />
       </div>

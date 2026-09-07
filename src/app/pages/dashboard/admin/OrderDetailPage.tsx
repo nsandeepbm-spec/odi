@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router';
+import React, { useEffect, useRef, useState } from 'react';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import {
   ArrowLeft,
   Package,
@@ -9,6 +9,7 @@ import {
   Loader2,
   AlertCircle,
   FileDown,
+  Truck,
 } from 'lucide-react';
 import {
   PageHeader,
@@ -18,23 +19,23 @@ import {
   inrFromPaise,
   OrderBadge,
 } from '../../../components/dashboard/shared';
+import { ODILoader } from '../../../components/ODILoader';
 import {
   getAdminOrderDetail,
-  updateAdminOrderStatus,
+  createAdminOrderShipment,
+  getAdminOrderTracking,
   type AdminOrderDetail,
+  type ShipmentTracking,
 } from '../../../lib/api';
 import { getInitials } from '../../../lib/auth';
 import { downloadOrderInvoice } from '../../../lib/invoice';
-
-const STATUSES = [
-  { label: 'Pending', value: 'pending' },
-  { label: 'Paid', value: 'paid' },
-  { label: 'Processing', value: 'processing' },
-  { label: 'Shipped', value: 'shipped' },
-  { label: 'Delivered', value: 'delivered' },
-  { label: 'Cancelled', value: 'cancelled' },
-  { label: 'Refunded', value: 'refunded' },
-];
+import { downloadShippingLabelForOrder } from '../../../lib/shippingLabel';
+import { ShipmentTrackingSummary, ShipmentTrackingDrawer } from '../../../components/dashboard/ShipmentTrackingDrawer';
+import {
+  formatPickupScheduleBlock,
+  formatPickupTimeLabel,
+  resolvePickupSchedule,
+} from '../../../lib/pickupSchedule';
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-IN', {
@@ -57,33 +58,53 @@ function formatDateTime(iso: string) {
 function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
   if (value === null || value === undefined || value === '') return null;
   return (
-    <div className="flex justify-between gap-3 py-2.5 border-b border-white/[0.04] last:border-0">
+    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1 sm:gap-3 py-2.5 border-b border-white/[0.04] last:border-0">
       <span className="text-[11px] font-bold tracking-widest uppercase text-neutral-500 shrink-0 pt-0.5">
         {label}
       </span>
-      <span className="text-sm font-medium text-neutral-200 text-right">{value}</span>
+      <span className="text-sm font-medium text-neutral-200 sm:text-right break-all min-w-0">{value}</span>
     </div>
   );
 }
 
 function SectionTitle({ icon: Icon, children }: { icon: React.ElementType; children: React.ReactNode }) {
   return (
-    <div className="flex items-center gap-2 mb-4">
-      <div className="w-7 h-7 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center">
+    <div className="flex items-center gap-2 mb-4 min-w-0">
+      <div className="w-7 h-7 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center shrink-0">
         <Icon className="w-3.5 h-3.5 text-cyan-400" />
       </div>
-      <span className="text-xs font-black tracking-[0.2em] uppercase text-neutral-400">{children}</span>
+      <span className="text-xs font-black tracking-[0.2em] uppercase text-neutral-400 min-w-0 break-words">
+        {children}
+      </span>
     </div>
   );
 }
 
 export default function OrderDetailPage() {
   const { orderId } = useParams<{ orderId: string }>();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const fulfillmentRef = useRef<HTMLDivElement>(null);
   const [detail, setDetail] = useState<AdminOrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [updating, setUpdating] = useState(false);
+  const [shippingAction, setShippingAction] = useState<'shipment' | null>(null);
+  const [tracking, setTracking] = useState<ShipmentTracking | null>(null);
+  const [trackingLoading, setTrackingLoading] = useState(false);
+  const [trackingError, setTrackingError] = useState<string | null>(null);
+  const [trackingDrawerOpen, setTrackingDrawerOpen] = useState(false);
+
+  const loadTracking = (id: string) => {
+    setTrackingLoading(true);
+    setTrackingError(null);
+    getAdminOrderTracking(id)
+      .then((t) => setTracking(t))
+      .catch((e) => {
+        setTracking(null);
+        setTrackingError(e instanceof Error ? e.message : 'Could not load tracking');
+      })
+      .finally(() => setTrackingLoading(false));
+  };
 
   useEffect(() => {
     if (!orderId) return;
@@ -95,6 +116,7 @@ export default function OrderDetailPage() {
         if (!cancelled) {
           setDetail(d);
           setLoading(false);
+          if (d.order.delhivery_waybill) loadTracking(d.order.id);
         }
       })
       .catch((e) => {
@@ -108,33 +130,34 @@ export default function OrderDetailPage() {
     };
   }, [orderId]);
 
-  const handleStatusChange = async (newStatus: string) => {
+  useEffect(() => {
+    if (!detail || searchParams.get('pickup') !== '1') return;
+    const t = window.setTimeout(() => {
+      fulfillmentRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 120);
+    return () => window.clearTimeout(t);
+  }, [detail, searchParams]);
+
+  const handleRetryShipment = async () => {
     if (!detail) return;
-    setUpdating(true);
+    setShippingAction('shipment');
     try {
-      const updated = await updateAdminOrderStatus(detail.order.id, newStatus);
-      setDetail((d) =>
-        d ? { ...d, order: { ...d.order, status: updated.status } } : d
-      );
+      const updated = await createAdminOrderShipment(detail.order.id);
+      setDetail((d) => (d ? { ...d, order: { ...d.order, ...updated } } : d));
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to update status');
+      alert(err instanceof Error ? err.message : 'Failed to create shipment');
     } finally {
-      setUpdating(false);
+      setShippingAction(null);
     }
   };
 
   if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center py-24 gap-3">
-        <Loader2 className="w-8 h-8 animate-spin text-cyan-400" />
-        <p className="text-sm text-neutral-500 font-medium">Loading order…</p>
-      </div>
-    );
+    return <ODILoader size="md" label="Loading order…" />;
   }
 
   if (error || !detail) {
     return (
-      <div>
+      <div className="min-w-0">
         <PageHeader
           title="Order"
           accent="Detail."
@@ -142,7 +165,7 @@ export default function OrderDetailPage() {
           action={
             <Link
               to="/dashboard/admin/orders"
-              className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold tracking-wide border border-white/[0.1] text-white bg-black/40 hover:bg-white/[0.04] transition-all rounded-xl"
+              className="inline-flex items-center justify-center gap-2 w-full sm:w-auto shrink-0 px-5 py-2.5 text-sm font-bold tracking-wide border border-white/[0.1] text-white bg-black/40 hover:bg-white/[0.04] transition-all rounded-xl"
             >
               <ArrowLeft className="w-4 h-4" /> Back to orders
             </Link>
@@ -169,26 +192,28 @@ export default function OrderDetailPage() {
     user?.full_name ||
     user?.email?.split('@')[0] ||
     'Customer';
+  const pickupSchedule = resolvePickupSchedule(order);
+  const pickupDisplay = formatPickupScheduleBlock(pickupSchedule);
 
   return (
-    <div>
+    <div className="min-w-0">
       <PageHeader
         title={order.order_number}
         accent="Detail."
         subtitle={`Placed ${formatDate(order.created_at)} · ${customerName}`}
         action={
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 w-full sm:w-auto">
             <button
               type="button"
               onClick={() => downloadOrderInvoice(detail)}
-              className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold tracking-wide bg-gradient-to-r from-cyan-400 to-indigo-500 text-white shadow-[0_0_18px_rgba(56,189,248,0.22)] hover:shadow-[0_0_24px_rgba(99,102,241,0.35)] transition-all rounded-xl"
+              className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-5 py-2.5 text-sm font-bold tracking-wide bg-gradient-to-r from-cyan-400 to-indigo-500 text-white shadow-[0_0_18px_rgba(56,189,248,0.22)] hover:shadow-[0_0_24px_rgba(99,102,241,0.35)] transition-all rounded-xl"
             >
               <FileDown className="w-4 h-4" /> Invoice
             </button>
             <button
               type="button"
               onClick={() => navigate('/dashboard/admin/orders')}
-              className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold tracking-wide border border-white/[0.1] text-white bg-black/40 hover:bg-white/[0.04] hover:border-white/[0.2] transition-all rounded-xl"
+              className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-5 py-2.5 text-sm font-bold tracking-wide border border-white/[0.1] text-white bg-black/40 hover:bg-white/[0.04] hover:border-white/[0.2] transition-all rounded-xl"
             >
               <ArrowLeft className="w-4 h-4" /> Back to orders
             </button>
@@ -198,11 +223,11 @@ export default function OrderDetailPage() {
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 relative z-10">
         {/* Main column */}
-        <div className="xl:col-span-8 flex flex-col gap-6">
+        <div className="xl:col-span-8 flex flex-col gap-6 min-w-0">
           {/* Order summary + status */}
           <Card>
-            <div className="px-6 py-5 border-b border-white/[0.04] bg-[#0d0d0d] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div>
+            <div className="px-4 sm:px-6 py-5 border-b border-white/[0.04] bg-[#0d0d0d] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="min-w-0">
                 <SectionTitle icon={Package}>Order</SectionTitle>
                 <div className="flex flex-wrap items-center gap-3 -mt-2">
                   <OrderBadge status={order.status} />
@@ -210,28 +235,13 @@ export default function OrderDetailPage() {
                     {order.paid_at ? `Paid ${formatDateTime(order.paid_at)}` : 'Not paid yet'}
                   </span>
                 </div>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <label className="text-[10px] font-black uppercase tracking-widest text-neutral-500">
-                  Update status
-                </label>
-                <select
-                  value={order.status}
-                  onChange={(e) => void handleStatusChange(e.target.value)}
-                  disabled={updating}
-                  className="appearance-none bg-[#050505] border border-white/[0.1] text-white text-xs rounded-xl focus:ring-1 focus:ring-cyan-500 px-3 py-2 outline-none font-bold uppercase tracking-widest disabled:opacity-50 cursor-pointer hover:border-white/[0.2] transition-colors"
-                >
-                  {STATUSES.map((s) => (
-                    <option key={s.value} value={s.value} className="bg-[#0A0A0A]">
-                      {s.label}
-                    </option>
-                  ))}
-                </select>
-                {updating && <Loader2 className="w-4 h-4 animate-spin text-cyan-400" />}
+                <p className="text-[11px] text-neutral-500 mt-2">
+                  Status updates automatically from payment and Delhivery fulfillment.
+                </p>
               </div>
             </div>
 
-            <div className="p-6">
+            <div className="p-4 sm:p-6">
               <div className="bg-white/[0.02] border border-white/[0.04] rounded-2xl p-4">
                 <DetailRow
                   label="Order #"
@@ -264,6 +274,145 @@ export default function OrderDetailPage() {
             </div>
           </Card>
 
+          {/* Fulfillment */}
+          <Card>
+            <div id="fulfillment" ref={fulfillmentRef} className="p-4 sm:p-6 scroll-mt-24">
+              <SectionTitle icon={Truck}>Fulfillment (Delhivery)</SectionTitle>
+              <div className="bg-white/[0.02] border border-white/[0.04] rounded-2xl p-4 flex flex-col gap-4 min-w-0">
+                <div>
+                  <p className="text-[11px] font-bold tracking-widest uppercase text-neutral-500 mb-1">
+                    Waybill (Tracking)
+                  </p>
+                  {order.delhivery_waybill ? (
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 min-w-0">
+                      <p className="font-black text-cyan-400 font-mono text-base sm:text-lg break-all">
+                        {order.delhivery_waybill}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          void downloadShippingLabelForOrder(order.id, order).catch((err) => {
+                            alert(
+                              err instanceof Error ? err.message : 'Could not download label'
+                            );
+                          });
+                        }}
+                        className="inline-flex items-center justify-center gap-2 w-full sm:w-auto shrink-0 px-4 py-2.5 text-xs font-bold rounded-xl border border-white/10 bg-white/5 text-white hover:bg-white/10"
+                        title="Delhivery 4R (4×6″) shipping label"
+                      >
+                        <FileDown className="w-3.5 h-3.5" />
+                        Download label (4R)
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="text-sm font-medium text-neutral-400">
+                      Shipment is created automatically after payment. Refresh if waybill is still
+                      pending.
+                    </p>
+                  )}
+                </div>
+
+                {order.delhivery_waybill ? (
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-white/[0.04] min-w-0">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[11px] font-bold tracking-widest uppercase text-neutral-500 mb-1">
+                        Pickup
+                      </p>
+                      {order.delhivery_pickup_token ? (
+                        <div className="space-y-3">
+                          <p className="font-black text-emerald-400">Scheduled with Delhivery</p>
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
+                            <div className="rounded-xl bg-emerald-500/5 border border-emerald-500/15 px-3 py-2.5">
+                              <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">
+                                Pickup date
+                              </p>
+                              <p
+                                className={`text-sm font-black mt-0.5 ${
+                                  pickupDisplay.hasSchedule ? 'text-emerald-300' : 'text-amber-400'
+                                }`}
+                              >
+                                {pickupDisplay.dateLabel}
+                              </p>
+                              {pickupSchedule?.date && (
+                                <p className="text-[10px] font-mono text-neutral-500 mt-0.5">
+                                  {pickupSchedule.date}
+                                </p>
+                              )}
+                            </div>
+                            <div className="rounded-xl bg-emerald-500/5 border border-emerald-500/15 px-3 py-2.5">
+                              <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">
+                                Pickup time
+                              </p>
+                              <p className="text-sm font-black text-white mt-0.5">
+                                {pickupSchedule?.time
+                                  ? formatPickupTimeLabel(pickupSchedule.time)
+                                  : pickupDisplay.timeLabel}
+                              </p>
+                              {pickupSchedule?.time && (
+                                <p className="text-[10px] font-mono text-neutral-500 mt-0.5">
+                                  {pickupSchedule.time}
+                                </p>
+                              )}
+                            </div>
+                            <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] px-3 py-2.5">
+                              <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">
+                                Pickup ID
+                              </p>
+                              <p className="text-sm font-mono font-bold text-neutral-200 mt-0.5 break-all">
+                                {order.delhivery_pickup_token}
+                              </p>
+                            </div>
+                          </div>
+                          {!pickupDisplay.hasSchedule && (
+                            <p className="text-xs text-amber-400">
+                              Date/time were not stored for this older pickup. New schedules will
+                              show here automatically.
+                            </p>
+                          )}
+                          <Link
+                            to="/dashboard/admin/pickups"
+                            className="inline-flex text-xs font-bold text-cyan-400 hover:underline"
+                          >
+                            ← All scheduled pickups
+                          </Link>
+                        </div>
+                      ) : (
+                        <p className="text-sm font-medium text-neutral-400">
+                          Manifested — schedule pickup on the Pickups page when the parcel is ready.
+                        </p>
+                      )}
+                    </div>
+                    {!order.delhivery_pickup_token && (
+                      <Link
+                        to="/dashboard/admin/pickups"
+                        className="shrink-0 inline-flex items-center justify-center gap-2 w-full sm:w-auto px-5 py-2.5 text-sm font-bold tracking-wide border border-cyan-500/30 text-cyan-400 bg-cyan-500/10 hover:bg-cyan-500/20 transition-all rounded-xl"
+                      >
+                        <Truck className="w-4 h-4" />
+                        Open Pickups
+                      </Link>
+                    )}
+                  </div>
+                ) : (
+                  <div className="pt-4 border-t border-white/[0.04]">
+                    <button
+                      type="button"
+                      disabled={shippingAction !== null}
+                      onClick={() => void handleRetryShipment()}
+                      className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-5 py-2.5 text-sm font-bold tracking-wide border border-amber-500/30 text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 rounded-xl disabled:opacity-50"
+                    >
+                      {shippingAction === 'shipment' ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Truck className="w-4 h-4" />
+                      )}
+                      Retry Shipment
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </Card>
+
           {/* Products */}
           <Card title={`Products · ${items.length}`}>
             <div className="p-4 sm:p-6 space-y-3">
@@ -273,7 +422,7 @@ export default function OrderDetailPage() {
                 items.map((item) => (
                   <div
                     key={item.id}
-                    className="flex items-center gap-4 bg-white/[0.02] border border-white/[0.04] rounded-2xl p-4"
+                    className="flex items-start sm:items-center gap-3 sm:gap-4 bg-white/[0.02] border border-white/[0.04] rounded-2xl p-3 sm:p-4 min-w-0"
                   >
                     {item.snapshot_image_url ? (
                       <img
@@ -287,12 +436,15 @@ export default function OrderDetailPage() {
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold text-white truncate">{item.snapshot_name}</p>
+                      <p className="text-sm font-bold text-white break-words">{item.snapshot_name}</p>
                       <p className="text-xs text-neutral-500 mt-1">
                         Qty {item.quantity} × {inrFromPaise(item.unit_price_paise)}
                       </p>
+                      <p className="text-sm font-black text-white mt-1 sm:hidden">
+                        {inrFromPaise(item.line_total_paise)}
+                      </p>
                     </div>
-                    <p className="text-sm font-black text-white shrink-0">
+                    <p className="hidden sm:block text-sm font-black text-white shrink-0">
                       {inrFromPaise(item.line_total_paise)}
                     </p>
                   </div>
@@ -310,7 +462,7 @@ export default function OrderDetailPage() {
                     key={pmt.id}
                     className="bg-white/[0.02] border border-white/[0.04] rounded-2xl p-4"
                   >
-                    <div className="flex items-center gap-2 mb-3">
+                    <div className="flex flex-wrap items-center gap-2 mb-3">
                       <CreditCard className="w-4 h-4 text-cyan-400" />
                       <span className="text-xs font-black uppercase tracking-widest text-neutral-400">
                         {pmt.provider}
@@ -343,9 +495,9 @@ export default function OrderDetailPage() {
         </div>
 
         {/* Sidebar */}
-        <div className="xl:col-span-4 flex flex-col gap-6">
+        <div className="xl:col-span-4 flex flex-col gap-6 min-w-0">
           <Card>
-            <div className="p-5 sm:p-6">
+            <div className="p-4 sm:p-6">
               <SectionTitle icon={User}>Customer</SectionTitle>
               {user ? (
                 <div className="flex items-center gap-3 mb-4 pb-4 border-b border-white/[0.04]">
@@ -378,7 +530,7 @@ export default function OrderDetailPage() {
           </Card>
 
           <Card>
-            <div className="p-5 sm:p-6">
+            <div className="p-4 sm:p-6">
               <SectionTitle icon={MapPin}>Shipping</SectionTitle>
               <div className="bg-white/[0.02] border border-white/[0.04] rounded-2xl p-4">
                 <DetailRow label="Name" value={customerName} />
@@ -389,11 +541,11 @@ export default function OrderDetailPage() {
             </div>
           </Card>
 
-          <div className="rounded-2xl border border-white/[0.06] bg-[#0A0A0A] p-5">
+          <div className="rounded-2xl border border-white/[0.06] bg-[#0A0A0A] p-4 sm:p-5 min-w-0">
             <p className="text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-2">
               Order total
             </p>
-            <p className="text-3xl font-black text-white tracking-tight">
+            <p className="text-2xl sm:text-3xl font-black text-white tracking-tight break-all">
               {inrFromPaise(order.total_paise)}
             </p>
             {order.discount_paise > 0 && (
@@ -403,8 +555,36 @@ export default function OrderDetailPage() {
               </p>
             )}
           </div>
+
+          {order.delhivery_waybill && (
+            <ShipmentTrackingSummary
+              tracking={tracking}
+              loading={trackingLoading}
+              error={trackingError}
+              onRefresh={() => loadTracking(order.id)}
+              onViewDetails={() => setTrackingDrawerOpen(true)}
+              order={order}
+            />
+          )}
         </div>
       </div>
+
+      <ShipmentTrackingDrawer
+        open={trackingDrawerOpen}
+        onClose={() => setTrackingDrawerOpen(false)}
+        tracking={tracking}
+        loading={trackingLoading}
+        error={trackingError}
+        onRefresh={() => loadTracking(order.id)}
+        orderNumber={order.order_number}
+        order={order}
+        deliveryAddress={
+          fullAddr
+            ? [customerName, fullAddr].filter(Boolean).join(' · ')
+            : customerName || null
+        }
+        adminView
+      />
     </div>
   );
 }

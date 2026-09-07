@@ -129,7 +129,7 @@ export default function NotificationBell({ inboxPath = '/dashboard/inbox' }: { i
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-[min(100vw-2rem,360px)] rounded-2xl border border-white/[0.08] bg-[#0c0c0e] shadow-2xl shadow-black/60 overflow-hidden z-50">
+        <div className="fixed left-4 right-4 top-[76px] sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-[360px] w-auto max-w-full rounded-2xl border border-white/[0.08] bg-[#0c0c0e] shadow-2xl shadow-black/60 overflow-hidden z-50">
           <div className="px-4 py-3 border-b border-white/[0.06] flex items-center justify-between gap-2">
             <div>
               <p className="text-sm font-bold text-white">Notifications</p>
@@ -142,13 +142,13 @@ export default function NotificationBell({ inboxPath = '/dashboard/inbox' }: { i
                 type="button"
                 disabled={clearing}
                 onClick={() => void onClear()}
-                className="text-[10px] font-bold uppercase tracking-wider text-neutral-400 hover:text-white disabled:opacity-50"
+                className="text-[10px] font-bold uppercase tracking-wider text-neutral-400 hover:text-white disabled:opacity-50 shrink-0"
               >
                 Clear
               </button>
             )}
           </div>
-          <div className="max-h-[320px] overflow-y-auto">
+          <div className="max-h-[calc(100vh-220px)] sm:max-h-[320px] overflow-y-auto">
             {items.length === 0 ? (
               <p className="px-4 py-8 text-center text-xs text-neutral-500">
                 No new notifications. See full history on Inbox.

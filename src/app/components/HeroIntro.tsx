@@ -1,50 +1,23 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import {
-  Play, Pause, X, Check, ArrowRight, MessageSquare, Send,
-  Sparkles, CreditCard, ShoppingBag, ShieldCheck, HeartHandshake, User, RefreshCw
-} from 'lucide-react';
-import { ODILogo } from './ODILogo';
+import React, { useRef, useState } from 'react';
+import { motion } from 'motion/react';
+import { Play, Pause, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router';
 
-interface BillingInfo {
-  name: string;
-  email: string;
-  cardNumber: string;
-  expiry: string;
-  cvc: string;
-}
+const WHATSAPP_NUMBER = '919876907266';
+const WHATSAPP_URL = `https://wa.me/${WHATSAPP_NUMBER}`;
 
-interface ChatMessage {
-  id: string;
-  sender: 'alex' | 'user';
-  text: string;
-  timestamp: Date;
+function WhatsAppIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden>
+      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.435 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+    </svg>
+  );
 }
 
 export function HeroIntro() {
   const navigate = useNavigate();
-  // Video and Playback States
   const [isPlaying, setIsPlaying] = useState(true);
-  const videoRef = useRef<HTMLVideoElement>(null);
-
-
-
-  // Support Chat States
-  const [showChat, setShowChat] = useState(false);
-  const [chatInput, setChatInput] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
-    {
-      id: '1',
-      sender: 'alex',
-      text: "Hi there! I'm Alex from ODI Stereo Labs. Ready to elevate your content into natural stereoscopic 3D?",
-      timestamp: new Date()
-    }
-  ]);
-
-  // Handle Play/Pause of Background Video
-  const togglePlay = () => {
+  const videoRef = useRef<HTMLVideoElement>(null);  const togglePlay = () => {
     if (videoRef.current) {
       if (isPlaying) {
         videoRef.current.pause();
@@ -55,71 +28,7 @@ export function HeroIntro() {
     }
   };
 
-
-
-  // Pre-configured Chat Options
-  const handleChatQuestion = (question: string, answer: string) => {
-    // Add user message
-    const userMsg: ChatMessage = {
-      id: Date.now().toString(),
-      sender: 'user',
-      text: question,
-      timestamp: new Date()
-    };
-    setChatMessages((prev) => [...prev, userMsg]);
-    setIsTyping(true);
-
-    setTimeout(() => {
-      setIsTyping(false);
-      const alexMsg: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        sender: 'alex',
-        text: answer,
-        timestamp: new Date()
-      };
-      setChatMessages((prev) => [...prev, alexMsg]);
-    }, 1500);
-  };
-
-  const handleSendCustomMessage = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!chatInput.trim()) return;
-
-    const userMsg: ChatMessage = {
-      id: Date.now().toString(),
-      sender: 'user',
-      text: chatInput,
-      timestamp: new Date()
-    };
-    setChatMessages((prev) => [...prev, userMsg]);
-    const query = chatInput.toLowerCase();
-    setChatInput('');
-    setIsTyping(true);
-
-    setTimeout(() => {
-      setIsTyping(false);
-      let reply = "That's an interesting question! For detailed integration specs or custom pricing, feel free to start a configurations order, or leave your email and our engineering team will get right back to you.";
-
-      if (query.includes('price') || query.includes('cost') || query.includes('buy')) {
-        reply = "Our Creator tier is $299/mo, and Studio Pro is $999/mo. Click the 'Buy Now' button on our home page to see features and configure your full stack live!";
-      } else if (query.includes('kids') || query.includes('book')) {
-        reply = "We offer stereoscopic 3D Learning books specifically for kids! Check out our dedicated 'ODI Kids' section in the main navbar for details.";
-      } else if (query.includes('ss1') || query.includes('video')) {
-        reply = "ODI_SS1 is our flagship stereoscopic converter engine. It delivers natural 3D depth layers without needing dedicated stereo camera rigs.";
-      }
-
-      const alexMsg: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        sender: 'alex',
-        text: reply,
-        timestamp: new Date()
-      };
-      setChatMessages((prev) => [...prev, alexMsg]);
-    }, 1500);
-  };
-
-  const scrollDown = () => {
-    window.scrollTo({
+  const scrollDown = () => {    window.scrollTo({
       top: window.innerHeight - 80,
       behavior: 'smooth'
     });
@@ -228,145 +137,19 @@ export function HeroIntro() {
         </div>
       </div>
 
-      {/* ==========================================
-          FLOATING CHATBOT SUPPORT ASSISTANT (SAMSUNG STYLE)
-          ========================================== */}
-      {/* Support Badge / Bubble in Bottom Right */}
-      <div className="fixed bottom-6 right-6 z-[100] flex flex-col items-end">
-        <AnimatePresence>
-          {showChat && (
-            <motion.div
-              initial={{ opacity: 0, y: 30, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 30, scale: 0.95 }}
-              className="w-[360px] h-[480px] bg-slate-950/90 border border-white/10 rounded-3xl overflow-hidden shadow-2xl backdrop-blur-2xl flex flex-col mb-4"
-            >
-              {/* Chat Header */}
-              <div className="p-4 bg-gradient-to-r from-cyan-400/20 to-indigo-600/20 border-b border-white/10 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-cyan-400/10 border border-cyan-400/30 flex items-center justify-center text-cyan-400">
-                    <HeartHandshake className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <div className="text-sm font-bold tracking-wide uppercase text-white flex items-center gap-1.5">
-                      Alex
-                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                    </div>
-                    <div className="text-[10px] text-white/50">ODI Customer Support</div>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setShowChat(false)}
-                  className="p-1.5 rounded-full hover:bg-white/10 transition-colors border border-white/10"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              </div>
-
-              {/* Chat Content Messages */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-3.5">
-                {chatMessages.map((msg) => (
-                  <div
-                    key={msg.id}
-                    className={`flex items-start gap-2 max-w-[85%] ${msg.sender === 'user' ? 'ml-auto flex-row-reverse' : ''
-                      }`}
-                  >
-                    <div className={`w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] ${msg.sender === 'user' ? 'bg-cyan-500 text-black' : 'bg-slate-800 text-cyan-400'
-                      }`}>
-                      {msg.sender === 'user' ? <User className="w-3 h-3" /> : <HeartHandshake className="w-3 h-3" />}
-                    </div>
-
-                    <div className={`p-3 rounded-2xl text-xs leading-relaxed ${msg.sender === 'user'
-                      ? 'bg-cyan-400 text-black rounded-tr-none'
-                      : 'bg-white/5 border border-white/5 text-white/90 rounded-tl-none'
-                      }`}>
-                      {msg.text}
-                    </div>
-                  </div>
-                ))}
-
-                {isTyping && (
-                  <div className="flex items-center gap-2 max-w-[85%]">
-                    <div className="w-6 h-6 rounded-full bg-slate-800 flex items-center justify-center text-cyan-400">
-                      <HeartHandshake className="w-3 h-3" />
-                    </div>
-                    <div className="bg-white/5 border border-white/5 p-3 rounded-2xl rounded-tl-none flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-white/40 animate-bounce" />
-                      <span className="w-1.5 h-1.5 rounded-full bg-white/40 animate-bounce delay-150" />
-                      <span className="w-1.5 h-1.5 rounded-full bg-white/40 animate-bounce delay-300" />
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Suggested Questions */}
-              {chatMessages.length === 1 && (
-                <div className="p-3 bg-white/[0.02] border-t border-white/5 space-y-2">
-                  <div className="text-[9px] uppercase tracking-widest text-white/40 px-1 font-bold">Suggested Questions:</div>
-                  <div className="flex flex-col gap-1.5">
-                    <button
-                      onClick={() => handleChatQuestion(
-                        "What is the difference between Creator & Pro?",
-                        "Creator tier ($299/mo) is optimized for shorter contents (social, reels) and individual work. Studio Pro ($999/mo) grants full volumetric rendering pipelines, depth plugins, VR formats, and high-performance encoding support."
-                      )}
-                      className="text-left w-full px-3 py-1.5 rounded-lg border border-white/10 hover:border-cyan-400/50 hover:bg-white/5 text-[11px] text-white/70 hover:text-cyan-400 transition-all uppercase tracking-wide font-sans"
-                    >
-                      Creator vs Pro Suites?
-                    </button>
-                    <button
-                      onClick={() => handleChatQuestion(
-                        "How long does the conversion setup take?",
-                        "Instantly! As soon as your checkout config completes, you'll receive setup keys in your email inbox to activate the software suite immediately."
-                      )}
-                      className="text-left w-full px-3 py-1.5 rounded-lg border border-white/10 hover:border-cyan-400/50 hover:bg-white/5 text-[11px] text-white/70 hover:text-cyan-400 transition-all uppercase tracking-wide font-sans"
-                    >
-                      Software Setup Duration?
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Chat Input Footer */}
-              <form onSubmit={handleSendCustomMessage} className="p-3 border-t border-white/10 flex gap-2">
-                <input
-                  type="text"
-                  value={chatInput}
-                  onChange={e => setChatInput(e.target.value)}
-                  placeholder="Ask Alex a custom question..."
-                  className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs outline-none focus:border-cyan-400 transition-colors"
-                />
-                <button
-                  type="submit"
-                  className="p-2 bg-white text-black hover:bg-cyan-400 rounded-xl transition-colors"
-                >
-                  <Send className="w-3.5 h-3.5" />
-                </button>
-              </form>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Support floating button trigger */}
-        <button
-          onClick={() => setShowChat(!showChat)}
-          className="w-14 h-14 rounded-full bg-gradient-to-r from-cyan-400 to-indigo-600 text-white flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition-all cursor-pointer relative group"
-        >
-          {showChat ? (
-            <X className="w-6 h-6 text-black" />
-          ) : (
-            <MessageSquare className="w-6 h-6 text-black" />
-          )}
-          {/* Subtle notification badge */}
-          {!showChat && (
-            <span className="absolute top-0 right-0 w-3.5 h-3.5 bg-cyan-400 border-2 border-[#020617] rounded-full" />
-          )}
-
-          {/* Tooltip */}
-          <span className="absolute right-16 bg-black/80 backdrop-blur-md border border-white/10 text-[10px] uppercase font-bold tracking-widest text-white px-3 py-1.5 rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">
-            Support Chat
-          </span>
-        </button>
-      </div>
+      {/* WhatsApp click-to-chat */}
+      <a
+        href={WHATSAPP_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Chat on WhatsApp"
+        className="fixed bottom-6 right-6 z-[100] w-14 h-14 rounded-full bg-[#25D366] text-white flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition-all group"
+      >
+        <WhatsAppIcon className="w-7 h-7" />
+        <span className="absolute right-16 bg-black/80 backdrop-blur-md border border-white/10 text-[10px] uppercase font-bold tracking-widest text-white px-3 py-1.5 rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">
+          Chat on WhatsApp
+        </span>
+      </a>
     </section>
   );
 }

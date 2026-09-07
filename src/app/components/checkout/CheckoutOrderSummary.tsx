@@ -3,7 +3,7 @@ import { ShieldCheck } from 'lucide-react';
 import { Link } from 'react-router';
 import { useCartStore } from '../../store/cartStore';
 import { formatInr } from '../../data/products';
-import { useCheckout } from '../../lib/checkout';
+import { useCheckout, type ShippingQuoteStatus } from '../../lib/checkout';
 
 interface SummaryItem {
   id?: string;
@@ -15,9 +15,34 @@ interface SummaryItem {
   tag?: string;
 }
 
+function shippingLine(status: ShippingQuoteStatus, paise: number) {
+  if (status === 'loading') {
+    return { text: 'Calculating…', className: 'text-neutral-400 font-bold' };
+  }
+  if (status === 'idle') {
+    return { text: 'At shipping step', className: 'text-neutral-400 font-bold' };
+  }
+  if (status === 'error') {
+    return { text: 'Unavailable', className: 'text-amber-700 font-bold' };
+  }
+  if (paise > 0) {
+    return { text: formatInr(paise), className: 'font-bold text-neutral-900' };
+  }
+  return { text: formatInr(0), className: 'text-neutral-600 font-bold' };
+}
+
 export function CheckoutOrderSummary({ currentItem }: { currentItem?: SummaryItem }) {
   const { items, getTotal } = useCartStore();
-  const { product, quantity, subtotalPaise, discountPaise, totalPaise, couponCode } = useCheckout();
+  const {
+    product,
+    quantity,
+    subtotalPaise,
+    discountPaise,
+    totalPaise,
+    couponCode,
+    shippingPaise,
+    shippingQuoteStatus,
+  } = useCheckout();
 
   const checkoutItem: SummaryItem | null = product
     ? {
@@ -36,7 +61,6 @@ export function CheckoutOrderSummary({ currentItem }: { currentItem?: SummaryIte
       ? [checkoutItem]
       : items;
 
-  // Prefer live checkout totals (includes coupon) whenever a checkout product is loaded.
   const useCheckoutTotals = !!checkoutItem;
 
   const subtotal = useCheckoutTotals
@@ -53,6 +77,9 @@ export function CheckoutOrderSummary({ currentItem }: { currentItem?: SummaryIte
     : currentItem
       ? currentItem.pricePaise * currentItem.quantity
       : getTotal();
+
+  const shipping = shippingLine(shippingQuoteStatus, shippingPaise);
+  const shippingInTotal = useCheckoutTotals && shippingQuoteStatus === 'ready' && shippingPaise > 0;
 
   return (
     <div className="bg-white border border-neutral-200 rounded-2xl p-6 md:p-7 shadow-sm">
@@ -105,7 +132,7 @@ export function CheckoutOrderSummary({ currentItem }: { currentItem?: SummaryIte
         ) : null}
         <div className="flex justify-between">
           <span>Shipping</span>
-          <span className="text-[#00a680] font-bold">FREE</span>
+          <span className={shipping.className}>{shipping.text}</span>
         </div>
       </div>
 
@@ -118,6 +145,11 @@ export function CheckoutOrderSummary({ currentItem }: { currentItem?: SummaryIte
             <p className="text-xs text-neutral-400 line-through mb-0.5">{formatInr(subtotal)}</p>
           )}
           <span className="font-black text-2xl text-neutral-900">{formatInr(total)}</span>
+          {shippingInTotal && (
+            <p className="text-[11px] font-bold text-neutral-500 mt-0.5">
+              Includes {formatInr(shippingPaise)} shipping
+            </p>
+          )}
           {showCoupon && (
             <p className="text-[11px] font-bold text-emerald-600 mt-0.5">
               Coupon saves {formatInr(discount)}
