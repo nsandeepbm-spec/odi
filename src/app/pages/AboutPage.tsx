@@ -1,263 +1,462 @@
-import { motion } from 'motion/react';
-import { HomeFeatures } from '../components/HomeFeatures';
+import { useState, type ReactNode } from 'react';
+import { motion, type Variants } from 'motion/react';
+import { ArrowLeftRight, ArrowRight, BookOpen, Film } from 'lucide-react';
+import { Link } from 'react-router';
 import { PageCTA } from '../components/PageCTA';
-import { Target, Lightbulb, Clock, Award, ShieldCheck, Zap, ArrowRight } from 'lucide-react';
 
 const ease = [0.25, 0.1, 0.25, 1] as const;
+const view = { once: true, margin: '-80px' as const };
+const shell = 'mx-auto w-full max-w-screen-xl px-6 md:px-12 lg:px-16';
+
+const fadeUp: Variants = {
+  hidden: { opacity: 0, y: 28 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.7, ease } },
+};
+
+const fadeRight: Variants = {
+  hidden: { opacity: 0, x: 36 },
+  show: { opacity: 1, x: 0, transition: { duration: 0.8, ease } },
+};
+
+const fadeLeft: Variants = {
+  hidden: { opacity: 0, x: -36 },
+  show: { opacity: 1, x: 0, transition: { duration: 0.8, ease } },
+};
+
+const stagger: Variants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.1, delayChildren: 0.06 } },
+};
+
+const offerings = [
+  {
+    n: '01',
+    icon: Film,
+    eyebrow: 'Stereo Conversion',
+    title: '2D pictures, rebuilt with natural depth.',
+    description:
+      'We convert features, series, and campaigns into stereoscopic 3D — accurate spatial structure, cleanup, and masters that hold up in a theatre or on a spatial display.',
+    points: ['Feature films', 'OTT libraries', 'Brand films'],
+    image: '/3d conversion hero.png',
+    imageAlt: 'Stereo conversion — depth breaking out of the frame',
+    href: '/services/3d-movie-conversion',
+    cta: 'Explore conversion',
+    contain: false,
+  },
+  {
+    n: '02',
+    icon: BookOpen,
+    eyebrow: 'ODI Kids',
+    title: 'A 3D book you can hold, not a screen.',
+    description:
+      'Space Explorer is a stereoscopic learning kit: thick pages, collectible cards, and glasses. Kids step into the story without an app, a battery, or a tablet.',
+    points: ['Space Explorer', '3D glasses included', 'More volumes coming'],
+    image: '/product-image/5.jpg',
+    imageAlt: 'ODI Kids Space Explorer 3D book',
+    href: '/services/3d-books',
+    cta: 'Explore 3D books',
+    contain: true,
+  },
+];
+
+const steps = [
+  { n: '01', title: 'Share the brief', body: 'Footage or a title, the format, the deadline, and where it needs to live — cinema, stream, campaign, or print.' },
+  { n: '02', title: 'Design the depth', body: 'We plan spatial structure shot by shot, or page by page, so conversion feels natural — never forced on the original picture.' },
+  { n: '03', title: 'Craft & deliver', body: 'Conversion, cleanup, and masters. Or a finished 3D book kit, packed and ready for home and classroom.' },
+];
+
+function Chapter({ n, label }: { n: string; label: string }) {
+  return (
+    <div className="mb-6 flex items-center gap-4">
+      <span className="text-[11px] font-bold tabular-nums tracking-[0.22em] text-neutral-400">{n}</span>
+      <span className="h-px w-10 bg-neutral-300" />
+      <span className="text-[11px] font-bold uppercase tracking-[0.22em] text-neutral-400">{label}</span>
+    </div>
+  );
+}
+
+function Heading({ children, className = '' }: { children: ReactNode; className?: string }) {
+  return (
+    <h2
+      className={`font-black tracking-tight text-neutral-900 ${className}`}
+      style={{ fontSize: 'clamp(1.85rem, 3.6vw, 3rem)', letterSpacing: '-0.035em', lineHeight: 1.12 }}
+    >
+      {children}
+    </h2>
+  );
+}
 
 export default function AboutPage() {
+  const [sliderPos, setSliderPos] = useState(50);
+
   return (
-    <>
-      <div className="bg-white text-neutral-900 font-sans min-h-screen selection:bg-indigo-100 overflow-x-hidden">
+    <div className="min-h-screen bg-white text-neutral-900 font-sans selection:bg-indigo-100 overflow-x-hidden">
 
-        {/* ────────────────────────────────────────────────────────
-            HERO
-        ──────────────────────────────────────────────────────── */}
-        <section className="relative min-h-screen flex items-center border-b border-neutral-100 bg-neutral-50 overflow-hidden pt-24 pb-16">
-          {/* Subtle background gradient */}
-          <div className="pointer-events-none absolute inset-0" style={{ background: 'radial-gradient(ellipse 80% 60% at 80% 50%, rgba(99,102,241,0.06) 0%, transparent 70%)' }} />
+      {/* ── 00 HERO ── */}
+      <section className="relative min-h-svh md:h-svh flex flex-col bg-[#F7F7F5] overflow-x-hidden md:overflow-hidden">
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              'radial-gradient(ellipse 55% 70% at 78% 42%, rgba(99,102,241,0.10) 0%, transparent 62%), radial-gradient(ellipse 40% 50% at 8% 85%, rgba(6,182,212,0.06) 0%, transparent 70%)',
+          }}
+        />
 
-          <div className="max-w-screen-xl w-full mx-auto px-6 md:px-12 lg:px-16">
-            <div className="grid lg:grid-cols-2 gap-16 lg:gap-24 items-center">
-
-              {/* Left: Text */}
-              <motion.div
-                initial={{ opacity: 0, y: 24 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.7, ease }}
-                className="flex flex-col"
+        <div className="relative flex-1 grid md:grid-cols-12 items-center min-h-0 pt-20">
+          <motion.div
+            variants={stagger}
+            initial="hidden"
+            animate="show"
+            className="md:col-span-5 flex flex-col justify-center px-6 md:pl-10 lg:pl-16 xl:pl-20 md:pr-4 py-6 text-center md:text-left items-center md:items-start"
+          >
+            <motion.h1
+              variants={fadeUp}
+              className="mb-5 font-black tracking-tight text-neutral-900"
+              style={{ fontSize: 'clamp(2.6rem, 5vw, 5.25rem)', letterSpacing: '-0.045em', lineHeight: 1.02 }}
+            >
+              Stereo craft for
+              <br />
+              screens and{' '}
+              <span className="bg-gradient-to-r from-cyan-400 via-indigo-500 to-purple-600 bg-clip-text text-transparent">
+                pages.
+              </span>
+            </motion.h1>
+            <motion.p
+              variants={fadeUp}
+              className="text-[15px] md:text-lg text-neutral-500 leading-relaxed mb-7 max-w-[36ch] font-medium"
+            >
+              Since 2011 we’ve converted pictures into natural stereoscopic 3D — and built ODI Kids books that let children step into a story without a screen.
+            </motion.p>
+            <motion.div variants={fadeUp} className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+              <Link
+                to="/contact"
+                className="inline-flex items-center justify-center gap-2 px-7 py-3 rounded-full bg-neutral-900 text-white font-semibold text-sm hover:bg-neutral-800 transition-transform hover:-translate-y-0.5 shadow-xl shadow-neutral-900/15 w-full sm:w-auto"
               >
-                <div className="flex items-center gap-4 mb-6">
-                  <span className="text-indigo-600 font-semibold tracking-widest text-xs uppercase">About ODI Studio</span>
-                  <div className="h-px bg-indigo-200 w-12" />
-                </div>
+                Start a project <ArrowRight className="w-4 h-4" />
+              </Link>
+              <a
+                href="#what-we-do"
+                className="inline-flex items-center justify-center gap-2 px-7 py-3 rounded-full border border-neutral-300/80 bg-white/80 text-neutral-900 font-semibold text-sm hover:border-neutral-900 hover:bg-white transition-colors w-full sm:w-auto"
+              >
+                What we do
+              </a>
+            </motion.div>
+          </motion.div>
 
-                <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold mb-8 tracking-tighter leading-[1.05] text-neutral-900">
-                  The Story<br />Behind The<br />
-                  <span className="bg-gradient-to-r from-cyan-400 via-indigo-500 to-purple-600 bg-clip-text text-transparent">Depth.</span>
-                </h1>
+          <motion.div
+            initial={{ opacity: 0, x: 48, scale: 0.96 }}
+            animate={{ opacity: 1, x: 0, scale: 1 }}
+            transition={{ duration: 1, delay: 0.12, ease }}
+            className="md:col-span-7 relative h-full min-h-[42vh] md:min-h-0 flex items-center justify-center md:justify-end px-4 md:pr-6 lg:pr-10"
+          >
+            <img
+              src="/about-image/hero-about.png"
+              alt="ODI Studio — from a flat frame to spatial depth"
+              className="w-full h-full max-h-full object-contain object-center md:object-right drop-shadow-[0_32px_80px_rgba(15,23,42,0.12)]"
+            />
+          </motion.div>
+        </div>
 
-                <p className="text-xl text-neutral-600 leading-relaxed mb-10 max-w-lg font-medium">
-                  We are a team of spatial engineers and visual storytellers dedicated to redefining how people experience digital media — one frame at a time.
-                </p>
-
-                <div className="flex items-center gap-6">
-                  <div className="text-center">
-                    <div className="text-3xl font-bold text-neutral-900">14+</div>
-                    <div className="text-xs text-neutral-500 font-medium tracking-wide uppercase mt-1">Years</div>
-                  </div>
-                  <div className="w-px h-10 bg-neutral-200" />
-                  <div className="text-center">
-                    <div className="text-3xl font-bold text-neutral-900">200+</div>
-                    <div className="text-xs text-neutral-500 font-medium tracking-wide uppercase mt-1">Projects</div>
-                  </div>
-                  <div className="w-px h-10 bg-neutral-200" />
-                  <div className="text-center">
-                    <div className="text-3xl font-bold text-neutral-900">40+</div>
-                    <div className="text-xs text-neutral-500 font-medium tracking-wide uppercase mt-1">Partners</div>
-                  </div>
-                </div>
+        <motion.div
+          variants={stagger}
+          initial="hidden"
+          animate="show"
+          className="relative shrink-0 border-t border-neutral-200/80 bg-white/55 backdrop-blur-sm"
+        >
+          <div className={`${shell} py-4 md:py-5 grid grid-cols-3 divide-x divide-neutral-200`}>
+            {[
+              ['14+', 'Years in stereo'],
+              ['Cinema', 'Features & OTT'],
+              ['ODI Kids', '3D learning books'],
+            ].map(([value, label]) => (
+              <motion.div key={label} variants={fadeUp} className="px-4 first:pl-0 last:pr-0 md:px-8 first:md:pl-0 last:md:pr-0">
+                <div className="text-lg md:text-2xl font-black text-neutral-900 tracking-tight">{value}</div>
+                <div className="text-[10px] text-neutral-500 font-bold tracking-[0.16em] uppercase mt-0.5">{label}</div>
               </motion.div>
+            ))}
+          </div>
+        </motion.div>
+      </section>
 
-              {/* Right: Hero image */}
+      {/* ── 01 WHY ── */}
+      <section className="py-24 md:py-32 bg-white">
+        <div className={shell}>
+          <div className="grid md:grid-cols-12 gap-12 lg:gap-16 items-center">
+            <motion.div
+              variants={fadeLeft}
+              initial="hidden"
+              whileInView="show"
+              viewport={view}
+              className="md:col-span-6"
+            >
+              <div className="overflow-hidden rounded-[2rem] bg-[#F7F7F5] border border-[#E8E8E8]">
+                <img
+                  src="/about-image/hero 2.png"
+                  alt="ODI Studio mission — spatial storytelling"
+                  className="w-full h-auto object-cover"
+                />
+              </div>
+            </motion.div>
+
+            <motion.div
+              variants={stagger}
+              initial="hidden"
+              whileInView="show"
+              viewport={view}
+              className="md:col-span-6"
+            >
+              <motion.div variants={fadeUp}>
+                <Chapter n="01" label="Why we exist" />
+              </motion.div>
+              <motion.div variants={fadeUp}>
+                <Heading className="mb-6">
+                  The world isn’t flat.
+                  <br />
+                  Content shouldn’t be either.
+                </Heading>
+              </motion.div>
+              <motion.div variants={fadeUp} className="space-y-4 text-neutral-500 text-lg font-medium leading-relaxed">
+                <p>
+                  ODI Studio is a stereoscopic lab. We restore the dimension that a flat screen takes out of a picture — for cinema, streaming, advertising, and print.
+                </p>
+                <p>
+                  Fourteen years in high-end conversion taught us the same rule we use on ODI Kids books: depth is added, never imposed. The story still leads.
+                </p>
+              </motion.div>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── 02 WHAT WE DO ── */}
+      <section id="what-we-do" className="scroll-mt-28 py-24 md:py-32 bg-[#F7F7F5] border-y border-[#E8E8E8]">
+        <div className={shell}>
+          <motion.div
+            variants={stagger}
+            initial="hidden"
+            whileInView="show"
+            viewport={view}
+            className="max-w-2xl mb-16 md:mb-20"
+          >
+            <motion.div variants={fadeUp}>
+              <Chapter n="02" label="What we do" />
+            </motion.div>
+            <motion.div variants={fadeUp}>
+              <Heading>Two practices. One standard of depth.</Heading>
+            </motion.div>
+          </motion.div>
+
+          <div className="space-y-20 md:space-y-28">
+            {offerings.map((service, index) => {
+              const reverse = index % 2 === 1;
+              const Icon = service.icon;
+
+              return (
+                <div
+                  key={service.href}
+                  className={`relative flex flex-col gap-10 md:flex-row md:items-center ${reverse ? 'md:flex-row-reverse' : ''}`}
+                >
+                  <span
+                    className="pointer-events-none absolute -top-8 select-none font-black text-neutral-200/80 leading-none hidden md:block"
+                    style={{
+                      fontSize: 'clamp(5rem, 12vw, 9rem)',
+                      letterSpacing: '-0.06em',
+                      right: reverse ? 'auto' : 0,
+                      left: reverse ? 0 : 'auto',
+                    }}
+                    aria-hidden="true"
+                  >
+                    {service.n}
+                  </span>
+
+                  <motion.div
+                    className="relative z-10 w-full md:w-[56%] shrink-0"
+                    variants={reverse ? fadeRight : fadeLeft}
+                    initial="hidden"
+                    whileInView="show"
+                    viewport={view}
+                  >
+                    <div className={`overflow-hidden rounded-[2rem] border border-[#E8E8E8] ${service.contain ? 'bg-white' : 'bg-white'}`}>
+                      <img
+                        src={service.image}
+                        alt={service.imageAlt}
+                        className={`w-full ${service.contain ? 'max-h-[420px] object-contain p-8' : 'h-auto object-contain'}`}
+                        loading="lazy"
+                      />
+                    </div>
+                  </motion.div>
+
+                  <motion.div
+                    className={`relative z-10 w-full md:w-[44%] flex flex-col ${reverse ? 'md:pr-6' : 'md:pl-6'}`}
+                    variants={stagger}
+                    initial="hidden"
+                    whileInView="show"
+                    viewport={view}
+                  >
+                    <motion.div variants={fadeUp} className="mb-5 flex items-center gap-2.5 text-neutral-400">
+                      <Icon className="h-4 w-4" strokeWidth={1.75} />
+                      <span className="h-px w-8 bg-neutral-300" />
+                      <span className="text-[10px] font-bold uppercase tracking-[0.2em]">{service.eyebrow}</span>
+                    </motion.div>
+                    <motion.h3
+                      variants={fadeUp}
+                      className="mb-5 font-bold tracking-tight text-neutral-900"
+                      style={{ fontSize: 'clamp(1.55rem, 2.6vw, 2.25rem)', letterSpacing: '-0.03em', lineHeight: 1.12 }}
+                    >
+                      {service.title}
+                    </motion.h3>
+                    <motion.p variants={fadeUp} className="mb-7 text-base font-medium leading-relaxed text-neutral-500">
+                      {service.description}
+                    </motion.p>
+                    <motion.ul variants={fadeUp} className="mb-8 flex flex-wrap gap-2">
+                      {service.points.map((point) => (
+                        <li
+                          key={point}
+                          className="px-3 py-1.5 rounded-full bg-white border border-[#E8E8E8] text-[11px] font-bold uppercase tracking-wider text-neutral-600"
+                        >
+                          {point}
+                        </li>
+                      ))}
+                    </motion.ul>
+                    <motion.div variants={fadeUp}>
+                      <Link
+                        to={service.href}
+                        className="group inline-flex items-center gap-2 self-start text-sm font-bold text-neutral-900 hover:text-indigo-600 transition-colors"
+                      >
+                        {service.cta}
+                        <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                      </Link>
+                    </motion.div>
+                  </motion.div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* ── 03 CRAFT ── */}
+      <section className="py-24 md:py-32 bg-white">
+        <div className={shell}>
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-12">
+            <motion.div
+              variants={stagger}
+              initial="hidden"
+              whileInView="show"
+              viewport={view}
+              className="max-w-xl"
+            >
+              <motion.div variants={fadeUp}>
+                <Chapter n="03" label="The craft" />
+              </motion.div>
+              <motion.div variants={fadeUp}>
+                <Heading>One frame. RGB and a depth map.</Heading>
+              </motion.div>
+            </motion.div>
+            <motion.p
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={view}
+              transition={{ duration: 0.5, delay: 0.2, ease }}
+              className="text-neutral-400 font-bold text-[10px] tracking-[0.2em] uppercase pb-1"
+            >
+              Drag to compare
+            </motion.p>
+          </div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 32 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={view}
+            transition={{ duration: 0.75, ease }}
+            className="relative w-full overflow-hidden select-none rounded-[2rem] bg-neutral-950"
+            style={{ height: 'min(56vh, 480px)' }}
+          >
+            <div className="absolute inset-0">
+              <img src="/Rgb.webp" alt="Original RGB frame" className="w-full h-full object-contain" />
+              <span
+                className="absolute top-5 right-6 text-[10px] font-bold uppercase tracking-widest text-white/80 z-10"
+                style={{ opacity: sliderPos > 90 ? 0 : 1 }}
+              >
+                RGB
+              </span>
+            </div>
+            <div className="absolute inset-0" style={{ clipPath: `inset(0 ${100 - sliderPos}% 0 0)` }}>
+              <img src="/Depthmap.jpg" alt="Depth map" className="w-full h-full object-contain" />
+              <span
+                className="absolute top-5 left-6 text-[10px] font-bold uppercase tracking-widest text-indigo-200 z-10"
+                style={{ opacity: sliderPos < 10 ? 0 : 1 }}
+              >
+                Depth map
+              </span>
+            </div>
+            <div className="absolute inset-y-0 w-px bg-white/70" style={{ left: `${sliderPos}%` }} />
+            <div
+              className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-11 h-11 rounded-full bg-white flex items-center justify-center shadow-lg pointer-events-none z-10"
+              style={{ left: `${sliderPos}%` }}
+            >
+              <ArrowLeftRight className="w-4 h-4 text-neutral-800" />
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={sliderPos}
+              onChange={(e) => setSliderPos(Number(e.target.value))}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-ew-resize z-20"
+              aria-label="Compare RGB and depth map"
+            />
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ── 04 PROCESS ── */}
+      <section className="py-24 md:py-32 bg-[#F7F7F5] border-t border-[#E8E8E8]">
+        <div className={shell}>
+          <motion.div
+            variants={stagger}
+            initial="hidden"
+            whileInView="show"
+            viewport={view}
+            className="max-w-2xl mb-16"
+          >
+            <motion.div variants={fadeUp}>
+              <Chapter n="04" label="How we work" />
+            </motion.div>
+            <motion.div variants={fadeUp}>
+              <Heading>A clear path from brief to master.</Heading>
+            </motion.div>
+          </motion.div>
+
+          <div className="relative grid md:grid-cols-3 gap-10 md:gap-12">
+            <div className="pointer-events-none absolute top-[1.35rem] left-[12%] right-[12%] hidden md:block h-px bg-neutral-200" />
+            {steps.map((step, i) => (
               <motion.div
-                initial={{ opacity: 0, x: 40 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.8, delay: 0.1, ease }}
+                key={step.n}
+                initial={{ opacity: 0, y: 24 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={view}
+                transition={{ duration: 0.55, delay: i * 0.12, ease }}
                 className="relative"
               >
-                <div className="aspect-[4/3] rounded-[2rem] overflow-hidden shadow-2xl ring-1 ring-black/5 group">
-                  <img
-                    src="/about-image/hero-about.png"
-                    alt="ODI Studio — Spatial Media"
-                    className="w-full h-full object-cover transition-transform duration-[1.2s] group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-neutral-900/50 via-transparent to-transparent" />
-                  <div className="absolute bottom-6 left-6">
-                    <span className="text-[10px] font-bold uppercase tracking-[0.22em] text-white/70">ODI Studio · Established 2011</span>
-                  </div>
-                </div>
+                <span className="relative z-10 mb-5 inline-flex h-11 w-11 items-center justify-center rounded-full bg-white border border-[#E8E8E8] text-sm font-black tabular-nums text-neutral-900">
+                  {step.n}
+                </span>
+                <h3 className="text-xl font-bold tracking-tight text-neutral-900 mb-3">{step.title}</h3>
+                <p className="text-neutral-500 leading-relaxed font-medium">{step.body}</p>
               </motion.div>
-            </div>
+            ))}
           </div>
-        </section>
+        </div>
+      </section>
 
-        {/* ────────────────────────────────────────────────────────
-            01 — OUR MISSION
-        ──────────────────────────────────────────────────────── */}
-        <section className="py-24 md:py-32 border-b border-neutral-100">
-          <div className="max-w-screen-xl mx-auto px-6 md:px-12 lg:px-16">
-            <div className="grid lg:grid-cols-2 gap-16 lg:gap-24 items-center">
-
-              {/* Image */}
-              <motion.div
-                initial={{ opacity: 0, x: -40 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true, margin: '-100px' }}
-                transition={{ duration: 0.8, ease }}
-              >
-                <div className="aspect-video rounded-[2rem] overflow-hidden shadow-2xl ring-1 ring-black/5 group relative">
-                  <img
-                    src="/about-image/hero 2.png"
-                    alt="Our Mission"
-                    className="w-full h-full object-cover transition-transform duration-[1.2s] group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-neutral-900/70 via-transparent to-transparent" />
-                  <div className="absolute bottom-6 left-6 flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center">
-                      <Target className="w-4 h-4 text-white" />
-                    </div>
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-white">Our Focus</span>
-                  </div>
-                </div>
-              </motion.div>
-
-              {/* Text */}
-              <motion.div
-                initial={{ opacity: 0, x: 40 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true, margin: '-100px' }}
-                transition={{ duration: 0.8, delay: 0.12, ease }}
-              >
-                <div className="flex items-center gap-4 mb-6">
-                  <span className="text-xs font-bold uppercase tracking-[0.22em] text-neutral-400">01</span>
-                  <div className="h-px w-8 bg-neutral-300" />
-                  <span className="text-xs font-bold uppercase tracking-[0.22em] text-neutral-400">Our Mission</span>
-                </div>
-                <h2 className="text-4xl md:text-5xl font-bold mb-8 tracking-tighter text-neutral-900 leading-[1.1]">
-                  Restoring the natural<br />dimension of story.
-                </h2>
-                <div className="space-y-5 text-neutral-600 text-lg font-medium leading-relaxed">
-                  <p>
-                    The mission of <span className="text-neutral-900 font-bold">ODI Studio</span> is to restore the natural dimension that traditional flat screens have stripped away from visual storytelling.
-                  </p>
-                  <p>
-                    With over 14 years of experience in high-end cinema and digital media, we reveal the hidden depth in every frame to create experiences that resonate on a visceral level.
-                  </p>
-                </div>
-                <div className="mt-10 pt-8 border-t border-neutral-100">
-                  <p className="text-indigo-600 font-semibold italic text-xl leading-relaxed">
-                    "The world isn't flat, and content shouldn't be either."
-                  </p>
-                </div>
-              </motion.div>
-            </div>
-          </div>
-        </section>
-
-        {/* ────────────────────────────────────────────────────────
-            02 — CORE DRIVERS
-        ──────────────────────────────────────────────────────── */}
-        <section className="py-24 md:py-32 bg-neutral-50 border-b border-neutral-100">
-          <div className="max-w-screen-xl mx-auto px-6 md:px-12 lg:px-16">
-
-            <motion.div
-              className="mb-16"
-              initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, ease }}
-            >
-              <div className="flex items-center gap-4 mb-6">
-                <span className="text-xs font-bold uppercase tracking-[0.22em] text-neutral-400">02</span>
-                <div className="h-px w-8 bg-neutral-300" />
-                <span className="text-xs font-bold uppercase tracking-[0.22em] text-neutral-400">Core Drivers</span>
-              </div>
-              <h2 className="text-4xl md:text-5xl font-bold tracking-tighter text-neutral-900 leading-[1.1]">
-                What we stand for.
-              </h2>
-            </motion.div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {[
-                { icon: Clock, title: '14 Years Excellence', desc: 'A decade of pioneering depth conversion workflows for cinema and digital media.', image: '/about-image/Card 01.png' },
-                { icon: Award, title: 'Frame Perfect', desc: 'Every individual frame treated with surgical precision and artistry.', image: '/about-image/Card 02.png' },
-                { icon: ShieldCheck, title: 'Trusted Partners', desc: 'Collaborating with leading brands to protect and elevate their creative vision.', image: '/about-image/Card 03.png' },
-                { icon: Zap, title: 'Spatial Ready', desc: 'Leading the industry in content built for immersive spatial displays.', image: '/about-image/Card 04.png' },
-              ].map((item, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, y: 24 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, margin: '-50px' }}
-                  transition={{ delay: i * 0.1, duration: 0.6, ease }}
-                  className="group cursor-pointer relative overflow-hidden aspect-[3/4] rounded-[2rem] shadow-md hover:shadow-2xl hover:-translate-y-2 transition-all duration-500"
-                >
-                  <img src={item.image} alt={item.title} className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-neutral-900/90 via-neutral-900/20 to-transparent" />
-                  <div className="absolute bottom-0 left-0 right-0 p-6">
-                    <div className="w-10 h-10 rounded-full bg-white/15 backdrop-blur-md border border-white/20 flex items-center justify-center mb-4 group-hover:bg-white/25 transition-colors">
-                      <item.icon className="w-4 h-4 text-white" />
-                    </div>
-                    <h3 className="text-sm font-bold tracking-tight mb-2 text-white leading-tight">{item.title}</h3>
-                    <p className="text-xs text-neutral-300 leading-relaxed font-medium">{item.desc}</p>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* ────────────────────────────────────────────────────────
-            03 — OUR VALUES
-        ──────────────────────────────────────────────────────── */}
-        <section className="py-24 md:py-32 border-b border-neutral-100">
-          <div className="max-w-screen-xl mx-auto px-6 md:px-12 lg:px-16">
-            <motion.div
-              initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, ease }}
-              className="mb-16"
-            >
-              <div className="flex items-center gap-4 mb-6">
-                <span className="text-xs font-bold uppercase tracking-[0.22em] text-neutral-400">03</span>
-                <div className="h-px w-8 bg-neutral-300" />
-                <span className="text-xs font-bold uppercase tracking-[0.22em] text-neutral-400">Our Values</span>
-              </div>
-              <h2 className="text-4xl md:text-5xl font-bold tracking-tighter text-neutral-900 leading-[1.1] max-w-xl">
-                Principles that guide every frame.
-              </h2>
-            </motion.div>
-
-            <div className="grid md:grid-cols-3 gap-8">
-              {[
-                { icon: Lightbulb, label: 'Curiosity First', body: 'We begin every project by asking what would make this feel truly alive — not just technically correct.' },
-                { icon: ShieldCheck, label: 'Creative Integrity', body: "We never alter the director's intent. Depth is added, never imposed. The story always comes first." },
-                { icon: Zap, label: 'Craft at Scale', body: 'From a single short to a full library of thousands of titles, our pipeline delivers consistent quality at any volume.' },
-              ].map((v, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: i * 0.12, duration: 0.6, ease }}
-                  className="p-8 rounded-[2rem] border border-neutral-200/60 bg-white hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group"
-                >
-                  <div className="w-12 h-12 rounded-2xl bg-neutral-50 border border-neutral-100 flex items-center justify-center mb-6 group-hover:bg-indigo-50 group-hover:border-indigo-100 transition-colors">
-                    <v.icon className="w-5 h-5 text-neutral-600 group-hover:text-indigo-600 transition-colors" strokeWidth={2} />
-                  </div>
-                  <h3 className="text-xl font-bold mb-3 tracking-tight text-neutral-900">{v.label}</h3>
-                  <p className="text-neutral-500 leading-relaxed font-medium">{v.body}</p>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-      </div>
-
-      {/* HomeFeatures component */}
-      <HomeFeatures />
-
-      {/* CTA */}
       <PageCTA
         heading="Ready to work with us?"
-        subtext="Whether you're converting a feature film, a content library, or a single campaign — we'd love to hear about your project."
+        subtext="A feature, a library, a campaign, or a classroom kit — tell us the format and the deadline."
         showServices={true}
         showOrder={false}
         showContact={true}
       />
-    </>
+    </div>
   );
 }
