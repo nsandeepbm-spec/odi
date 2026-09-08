@@ -12,8 +12,9 @@ src/app/
 ├── lib/
 │   ├── api.ts           # backend fetch + AppUser types
 │   ├── auth.tsx         # AuthProvider, useAuth
-│   └── firebase.ts      # sign-in helpers
-├── data/mock.ts         # TEMP mock data — replace with API as backend grows
+│   ├── firebase.ts      # sign-in helpers
+│   └── seo.ts           # per-route title, description, OG, JSON-LD
+├── data/               # static data and types
 ├── pages/               # route-level screens
 ├── components/          # shared UI (Navbar, Layout, dashboard, checkout)
 └── components/ui/       # shadcn-style primitives — reuse before creating new
@@ -83,6 +84,8 @@ const T = {
 
 When adding routes, register in `routes.tsx` and add nav links only where appropriate (admin vs public).
 
+Public marketing/shop routes also need a row in `src/app/lib/seo.ts` (title + description) and `public/sitemap.xml`. Checkout, login, and dashboard stay `noindex`.
+
 ---
 
 ## Data & API rules
@@ -103,13 +106,9 @@ listAdminCareerApplications() // GET /admin/career-applications
 
 All authenticated calls use `Authorization: Bearer <firebase-id-token>` via `authFetch()`.
 
-### Mock data (replace, do not extend blindly)
+### Mock data
 
-`src/app/data/mock.ts` holds bookings, products, transactions. When backend endpoints exist:
-
-1. Add typed functions to `api.ts`.
-2. Replace mock imports in dashboard pages.
-3. Remove or shrink mock exports — avoid mixed live/mock on the same screen.
+There is no more mock data in the app. All dashboards and storefront pages are wired directly to the live API via `src/app/lib/api.ts`.
 
 ---
 

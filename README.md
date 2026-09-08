@@ -21,7 +21,7 @@ npm run dev    # localhost → local API (from .env)
 npm run build  # live domain → https://api.odi.studio
 ```
 
-Hostinger is Apache: `public/.htaccess` is copied into `dist/` on build so routes like `/products` still load `index.html` on refresh. Redeploy after this file is on `main`.
+Hostinger is Apache/LiteSpeed: `public/.htaccess` is copied into `dist/` on build so routes like `/products` still load `index.html` on refresh. Real files (`robots.txt`, `sitemap.xml`, images) are **not** rewritten. Page titles, descriptions, canonical, and Open Graph tags live in `src/app/lib/seo.ts` (updated on each route). Redeploy after this is on `main`.
 
 ## Checkout flow (frontend)
 

@@ -18,6 +18,7 @@ import {
   discountPercent,
   formatInr,
   getProductBadge,
+  isProductPurchasable,
   type ProductCategory,
   type StoreProduct,
 } from '../data/products';
@@ -104,19 +105,20 @@ function ProductCard({ product }: { product: StoreProduct }) {
   const off = discountPercent(product.price_paise, product.compare_at_paise);
 
   const goToProduct = () => {
-    if (!product.available) return;
+    if (!isProductPurchasable(product)) return;
     persistCheckoutProduct(product.slug, 1);
     navigate(`/checkout?product=${product.slug}`);
   };
 
   const addToCart = () => {
-    if (!product.available) return;
+    if (!isProductPurchasable(product)) return;
     addItem({
       id: product.slug,
       name: product.name,
       pricePaise: product.price_paise,
       quantity: 1,
       imageUrl: product.media?.card?.url ?? product.images?.[0]?.url ?? '',
+      status: product.status,
     });
     toggleDrawer();
   };
@@ -150,9 +152,9 @@ function ProductCard({ product }: { product: StoreProduct }) {
 
   return (
     <article className="bg-white rounded-2xl border border-neutral-200/80 overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-row md:flex-col h-full">
-      <div className="relative w-[38%] max-w-[148px] md:w-full md:max-w-none shrink-0 p-3 md:p-4 md:pb-0">
+      <div className="relative w-[38%] max-w-[148px] md:w-full md:max-w-none shrink-0">
         <span
-          className={`absolute top-4 left-4 md:top-6 md:left-6 z-10 px-2 py-0.5 text-[8px] md:text-[9px] font-black tracking-widest rounded ${badge.className}`}
+          className={`absolute top-3 left-3 z-10 px-2 py-0.5 text-[8px] md:text-[9px] font-black tracking-widest rounded ${badge.className}`}
         >
           {badge.label}
         </span>
@@ -173,7 +175,7 @@ function ProductCard({ product }: { product: StoreProduct }) {
               setWishlistBusy(false);
             }
           }}
-          className="absolute top-3 right-3 md:top-5 md:right-5 z-20 w-8 h-8 rounded-full bg-white/95 border border-neutral-200/80 flex items-center justify-center shadow-sm hover:scale-105 active:scale-95 transition-transform disabled:opacity-60"
+          className="absolute top-3 right-3 z-20 w-8 h-8 rounded-full bg-white/95 border border-neutral-200/80 flex items-center justify-center shadow-sm hover:scale-105 active:scale-95 transition-transform disabled:opacity-60"
           aria-label={liked ? `Remove ${product.name} from wishlist` : `Save ${product.name} to wishlist`}
           aria-pressed={liked}
         >
@@ -187,15 +189,13 @@ function ProductCard({ product }: { product: StoreProduct }) {
           type="button"
           onClick={goToProduct}
           disabled={!product.available}
-          className="w-full h-full min-h-[128px] md:min-h-0 md:aspect-[4/3] bg-neutral-50 rounded-xl overflow-hidden flex items-center justify-center disabled:cursor-default"
+          className="w-full h-full min-h-[128px] md:min-h-0 md:aspect-[4/3] bg-neutral-100 overflow-hidden disabled:cursor-default"
         >
           <img
             src={product.media?.card?.url ?? product.images?.[0]?.url ?? ''}
             alt={product.name}
             loading="lazy"
-            className={`max-h-full max-w-full ${
-              product.slug === 'space-explorer' ? 'object-contain p-2 md:p-4' : 'object-cover w-full h-full'
-            }`}
+            className="w-full h-full object-cover"
           />
         </button>
       </div>
@@ -241,7 +241,7 @@ function ProductCard({ product }: { product: StoreProduct }) {
         {notifyMsg && <p className="text-[10px] text-emerald-600 font-medium mt-2">{notifyMsg}</p>}
 
         <div className="flex gap-2 mt-3">
-          {product.available ? (
+          {isProductPurchasable(product) ? (
             <>
               <button
                 type="button"
@@ -260,7 +260,7 @@ function ProductCard({ product }: { product: StoreProduct }) {
                 <ShoppingBag className="w-4 h-4 text-neutral-600" />
               </button>
             </>
-          ) : (
+          ) : product.status === 'coming_soon' ? (
             <button
               type="button"
               onClick={() => void notifyMe()}
@@ -270,6 +270,8 @@ function ProductCard({ product }: { product: StoreProduct }) {
               <Bell className={`w-3.5 h-3.5 ${subscribed ? 'fill-neutral-600' : ''}`} />
               {subscribed ? 'Subscribed' : 'Notify Me'}
             </button>
+          ) : (
+            <p className="w-full py-2.5 text-center text-xs font-bold text-neutral-500">Out of stock</p>
           )}
         </div>
       </div>
@@ -284,6 +286,7 @@ export default function ProductsPage() {
   const [allProducts, setAllProducts] = useState<StoreProduct[]>(() => peekPublicProductsCache() ?? []);
   const [isLoading, setIsLoading] = useState(() => peekPublicProductsCache() === null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const fetchProducts = useCallback((opts?: { force?: boolean }) => {
     let cancelled = false;
@@ -296,12 +299,14 @@ export default function ProductsPage() {
         .then((res) => {
           if (!cancelled) {
             setAllProducts(res.products);
+            setLoadError(null);
             setIsLoading(false);
             setIsRefreshing(false);
           }
         })
-        .catch(() => {
+        .catch((err) => {
           if (!cancelled) {
+            setLoadError(err instanceof Error ? err.message : 'Could not load products');
             setIsLoading(false);
             setIsRefreshing(false);
           }
@@ -390,7 +395,7 @@ export default function ProductsPage() {
 
   const goToProduct = (slug: string) => {
     const p = allProducts.find((x) => x.slug === slug);
-    if (!p?.available) {
+    if (!isProductPurchasable(p)) {
       scrollToShop();
       return;
     }
@@ -526,7 +531,7 @@ export default function ProductsPage() {
                 key={item.slug}
                 type="button"
                 onClick={() => {
-                  if (item.available) {
+                  if (isProductPurchasable(item)) {
                     goToProduct(item.slug);
                     return;
                   }
@@ -602,7 +607,22 @@ export default function ProductsPage() {
             )}
           </div>
 
-          {!isLoading && products.length === 0 && (
+          {!isLoading && loadError && (
+            <div className="text-center py-16">
+              <p className="font-bold text-sm text-neutral-900 mb-1">Could not load products</p>
+              <p className="text-neutral-500 text-sm mb-3">{loadError}</p>
+              <button
+                type="button"
+                onClick={refreshCatalog}
+                className="text-sm font-bold hover:underline"
+                style={{ color: ACCENT }}
+              >
+                Try again
+              </button>
+            </div>
+          )}
+
+          {!isLoading && !loadError && products.length === 0 && (
             <div className="text-center py-16">
               <p className="text-neutral-500 text-sm mb-3">No products found.</p>
               <button

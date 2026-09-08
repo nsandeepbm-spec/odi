@@ -29,6 +29,14 @@ export const CATEGORY_FILTERS: { key: ProductCategory | 'all'; label: string }[]
   { key: 'art', label: 'Art' },
 ];
 
+/** Live + in stock — the only products that may enter checkout. */
+export function isProductPurchasable(
+  product: Pick<StoreProduct, 'status' | 'available'> | null | undefined
+): boolean {
+  if (!product) return false;
+  return product.status === 'live' && product.available !== false;
+}
+
 export function getProductBadge(product: StoreProduct): { label: string; className: string } {
   if (product.status === 'coming_soon' || !product.available) {
     return { label: 'COMING SOON', className: 'bg-neutral-800 text-white' };

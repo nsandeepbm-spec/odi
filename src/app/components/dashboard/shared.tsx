@@ -1,7 +1,9 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { type LucideIcon } from 'lucide-react';
-import type { BookingStatus, PaymentStatus } from '../../data/mock';
+export type BookingStatus = 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+export type PaymentStatus = 'paid' | 'pending' | 'refunded' | 'failed';
+
 import { ODILoader } from '../ODILoader';
 
 // ─── PAGE HEADER ──────────────────────────────────────────────────────────────

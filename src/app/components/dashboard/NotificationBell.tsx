@@ -47,7 +47,7 @@ export default function NotificationBell({ inboxPath = '/dashboard/inbox' }: { i
 
   useEffect(() => {
     void loadPreview();
-    const id = window.setInterval(() => void loadPreview(), 15000);
+    const id = window.setInterval(() => void loadPreview(), 60000);
     const onFocus = () => void loadPreview();
     const onRefresh = () => void loadPreview();
     window.addEventListener('focus', onFocus);
@@ -112,7 +112,7 @@ export default function NotificationBell({ inboxPath = '/dashboard/inbox' }: { i
   };
 
   return (
-    <div className="relative" ref={rootRef}>
+    <div className="relative shrink-0" ref={rootRef}>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -120,16 +120,16 @@ export default function NotificationBell({ inboxPath = '/dashboard/inbox' }: { i
         aria-label={unread > 0 ? `${unread} unread notifications` : 'Notifications'}
         aria-expanded={open}
       >
-        <Bell className="w-4.5 h-4.5" />
+        <Bell className="w-5 h-5" />
         {unread > 0 && (
-          <span className="absolute top-1 right-1 min-w-[16px] h-4 px-1 rounded-full bg-gradient-to-br from-cyan-400 to-indigo-500 text-[9px] font-black text-white flex items-center justify-center ring-[1.5px] ring-[#050505]">
+          <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-gradient-to-br from-cyan-400 to-indigo-500 text-[9px] font-black text-white flex items-center justify-center leading-none ring-2 ring-[#0a0a0a]">
             {unread > 9 ? '9+' : unread}
           </span>
         )}
       </button>
 
       {open && (
-        <div className="fixed left-4 right-4 top-[76px] sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-[360px] w-auto max-w-full rounded-2xl border border-white/[0.08] bg-[#0c0c0e] shadow-2xl shadow-black/60 overflow-hidden z-50">
+        <div className="fixed z-[80] left-3 right-3 top-16 max-h-[min(28rem,calc(100dvh-5.5rem))] sm:left-auto sm:right-4 sm:w-[360px] sm:max-w-[calc(100vw-1.5rem)] rounded-2xl border border-white/[0.08] bg-[#0c0c0e] shadow-2xl shadow-black/60 overflow-hidden flex flex-col">
           <div className="px-4 py-3 border-b border-white/[0.06] flex items-center justify-between gap-2">
             <div>
               <p className="text-sm font-bold text-white">Notifications</p>
@@ -148,7 +148,7 @@ export default function NotificationBell({ inboxPath = '/dashboard/inbox' }: { i
               </button>
             )}
           </div>
-          <div className="max-h-[calc(100vh-220px)] sm:max-h-[320px] overflow-y-auto">
+          <div className="min-h-0 flex-1 overflow-y-auto">
             {items.length === 0 ? (
               <p className="px-4 py-8 text-center text-xs text-neutral-500">
                 No new notifications. See full history on Inbox.

@@ -82,7 +82,7 @@ export function PageCTA({
 
           {showOrder && (
             <Link
-              to="/checkout?product=space-explorer"
+              to="/products"
               className="group inline-flex items-center gap-2.5 rounded-full border border-indigo-500/40 bg-indigo-600/20 px-7 py-3.5 text-sm font-semibold text-indigo-300 backdrop-blur-sm transition-all hover:border-indigo-400/60 hover:bg-indigo-600/30 hover:text-white"
             >
               <ShoppingBag className="h-4 w-4" />

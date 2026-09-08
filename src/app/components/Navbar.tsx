@@ -68,7 +68,7 @@ export function Navbar() {
   const avatarUrl = user?.avatar_url || firebaseUser?.photoURL || null;
 
   // Dark glass + white nav text over dark product hero; light chrome for white storefront pages
-  const isLight =
+  const isLightRoute =
     location.pathname.startsWith('/checkout') ||
     location.pathname.startsWith('/services') ||
     location.pathname === '/learn-more' ||
@@ -77,6 +77,9 @@ export function Navbar() {
     location.pathname === '/privacy' ||
     location.pathname === '/terms' ||
     location.pathname === '/cookies';
+
+  // Force dark mode (white text) when mobile menu is open, because the menu overlay is dark
+  const isLight = isLightRoute && !mobileMenuOpen;
 
  useEffect(() => {
  const handleScroll = () => setIsScrolled(window.scrollY > 20);
@@ -134,7 +137,7 @@ export function Navbar() {
  <nav className="fixed top-0 left-0 right-0 z-[100] pointer-events-none transition-all duration-500">
   <div className="max-w-[1400px] mx-auto px-6 md:px-10 lg:px-16 pt-2 pb-4 md:pt-4 md:pb-6">
         <div 
-          className={`pointer-events-auto relative flex items-center px-6 py-3 rounded-full transition-all duration-500 border ${
+          className={`pointer-events-auto relative z-[110] flex items-center px-6 py-3 rounded-full transition-all duration-500 border ${
             isLight
               ? 'bg-white/80 backdrop-blur-xl border-neutral-200 shadow-md'
               : 'bg-[#020617]/80 backdrop-blur-xl border-transparent shadow-2xl'
@@ -339,42 +342,44 @@ export function Navbar() {
  transition={{ type: 'spring', damping: 25, stiffness: 200 }}
  className="fixed inset-0 z-[105] bg-[#020617] lg:hidden flex flex-col p-8 pt-32 overflow-y-auto pointer-events-auto"
  >
- <div className="space-y-8">
+ <div className="space-y-2">
  {navLinks.map((link, idx) => (
  <motion.div
  key={link.name}
- initial={{ opacity: 0, x: 20 }}
- animate={{ opacity: 1, x: 0 }}
+ initial={{ opacity: 0, y: 10 }}
+ animate={{ opacity: 1, y: 0 }}
  transition={{ delay: idx * 0.05 }}
  >
- <div className="text-[10px] font-black tracking-[0.3em] text-white/30 uppercase mb-4">
- {link.name}
- </div>
  {link.dropdown ? (
- <div className="grid grid-cols-1 gap-4 pl-4 border-l border-white/5">
- {link.dropdown.map((sub) => (
- <button
- key={sub.name}
- onClick={() => navigate(sub.path)}
- className="text-xl font-bold text-white/70 hover:text-cyan-400 text-left"
- >
- {sub.name}
- </button>
- ))}
- </div>
+   <div className="py-2">
+     <div className="text-[11px] font-black tracking-[0.2em] text-white/40 uppercase mb-3 px-4">
+       {link.name}
+     </div>
+     <div className="flex flex-col gap-1">
+       {link.dropdown.map((sub) => (
+         <button
+           key={sub.name}
+           onClick={() => { setMobileMenuOpen(false); navigate(sub.path); }}
+           className="text-lg font-bold text-white/80 hover:text-cyan-400 hover:bg-white/5 text-left px-4 py-3 rounded-2xl transition-colors"
+         >
+           {sub.name}
+         </button>
+       ))}
+     </div>
+   </div>
  ) : (
- <button
- onClick={() => navigate(link.path)}
- className="text-4xl font-black tracking-tighter text-white hover:text-cyan-400 text-left uppercase"
- >
- {link.name}
- </button>
+   <button
+     onClick={() => { setMobileMenuOpen(false); navigate(link.path); }}
+     className="text-2xl font-black tracking-wide text-white hover:text-cyan-400 hover:bg-white/5 text-left uppercase block w-full px-4 py-4 rounded-2xl transition-colors"
+   >
+     {link.name}
+   </button>
  )}
  </motion.div>
  ))}
  </div>
 
- <div className="mt-auto pt-12 pb-8 flex flex-col gap-3">
+ <div className="mt-auto pt-12 pb-24 flex flex-col gap-3 px-2">
  {loading ? (
    <div className="w-full h-14 rounded-2xl animate-pulse bg-white/10" />
  ) : isLoggedIn ? (

@@ -10,7 +10,7 @@ import {
   getShippingQuote,
 } from './api';
 import type { UserAddress } from './api';
-import type { StoreProduct } from '../data/products';
+import { isProductPurchasable, type StoreProduct } from '../data/products';
 import { auth } from './firebase';
 import { useCartStore } from '../store/cartStore';
 
@@ -194,12 +194,16 @@ export function CheckoutProvider({ children }: { children: React.ReactNode }) {
   const productFromUrl = searchParams.get('product');
 
   const persisted = loadPersisted();
-  const slug = productFromUrl ?? persisted.productSlug ?? 'space-explorer';
+  const slug = productFromUrl || persisted.productSlug || null;
 
   // Seed synchronously from cache when available — no flicker when the user
   // arrived via the /products page that already fetched all products.
-  const [product, setProduct] = useState<StoreProduct | null>(() => peekPublicProductCache(slug));
-  const [isLoadingProduct, setIsLoadingProduct] = useState(() => peekPublicProductCache(slug) === null);
+  const [product, setProduct] = useState<StoreProduct | null>(() =>
+    slug ? peekPublicProductCache(slug) : null
+  );
+  const [isLoadingProduct, setIsLoadingProduct] = useState(() =>
+    Boolean(slug) && peekPublicProductCache(slug) === null
+  );
 
   const [quantity, setQuantityState] = useState(persisted.quantity ?? 1);
   const [shipping, setShippingState] = useState<ShippingDetails>({
@@ -260,10 +264,31 @@ export function CheckoutProvider({ children }: { children: React.ReactNode }) {
   }, [productFromUrl]);
 
   useEffect(() => {
-    if (!productFromUrl && slug && location.pathname === '/checkout') {
-      navigate(`/checkout?product=${slug}`, { replace: true });
+    if (location.pathname.includes('/success')) return;
+    if (!slug) {
+      navigate('/products', { replace: true });
+      return;
+    }
+    if (!productFromUrl && location.pathname.startsWith('/checkout')) {
+      navigate(`${location.pathname}?product=${slug}`, { replace: true });
     }
   }, [productFromUrl, slug, navigate, location.pathname]);
+
+  useEffect(() => {
+    if (isLoadingProduct || location.pathname.includes('/success')) return;
+    if (product && !isProductPurchasable(product)) {
+      const p = loadPersisted();
+      savePersisted({
+        productSlug: '',
+        quantity: 1,
+        shipping: { ...EMPTY_SHIPPING, ...p.shipping },
+        selectedAddressId: p.selectedAddressId,
+        couponCode: p.couponCode ?? null,
+        couponDiscountPaise: p.couponDiscountPaise ?? 0,
+      });
+      navigate('/products', { replace: true });
+    }
+  }, [product, isLoadingProduct, navigate, location.pathname]);
 
   useEffect(() => {
     const p = loadPersisted();
@@ -526,13 +551,14 @@ export function CheckoutProvider({ children }: { children: React.ReactNode }) {
   const productQuery = product ? `?product=${product.slug}` : '';
 
   const goToReview = useCallback(() => {
-    if (!product?.available) return;
+    if (!isProductPurchasable(product)) return;
     navigate(`/checkout/review${productQuery}`);
   }, [navigate, product, productQuery]);
 
   const goToPayment = useCallback(() => {
+    if (!isProductPurchasable(product)) return;
     navigate(`/checkout/payment${productQuery}`);
-  }, [navigate, productQuery]);
+  }, [navigate, product, productQuery]);
 
   const completeOrder = useCallback((realOrderNumber: string) => {
     setLastOrderId(realOrderNumber);

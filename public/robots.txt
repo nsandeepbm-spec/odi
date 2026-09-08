@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+
+Disallow: /dashboard
+Disallow: /dashboard/
+Disallow: /checkout
+Disallow: /checkout/
+Disallow: /login
+Disallow: /register
+
+Sitemap: https://odi.studio/sitemap.xml

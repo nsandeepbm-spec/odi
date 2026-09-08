@@ -115,7 +115,7 @@ export default function SpaceExplorerPage() {
             className="flex items-center gap-6"
           >
             <button
-              onClick={() => navigate('/checkout?product=space-explorer')}
+              onClick={() => navigate('/products')}
               className="px-8 py-4 bg-neutral-900 text-white font-black uppercase tracking-widest text-xs rounded-full hover:bg-neutral-800 hover:scale-[1.02] active:scale-98 transition-all shadow-md cursor-pointer"
             >
               Buy Now
@@ -809,13 +809,13 @@ export default function SpaceExplorerPage() {
 
           <div className="flex items-center justify-center gap-6">
             <button
-              onClick={() => navigate('/checkout?product=space-explorer')}
+              onClick={() => navigate('/products')}
               className="px-8 py-4 bg-neutral-900 text-white font-black uppercase tracking-widest text-xs rounded-full hover:bg-neutral-800 hover:scale-[1.02] active:scale-98 transition-all shadow-md cursor-pointer"
             >
               Buy Now
             </button>
             <button
-              onClick={() => navigate('/checkout?product=space-explorer')}
+              onClick={() => navigate('/products')}
               className="px-8 py-4 border border-neutral-200 text-neutral-800 font-black uppercase tracking-widest text-xs rounded-full hover:bg-neutral-50 transition-all cursor-pointer"
             >
               Add to Cart
