@@ -79,7 +79,7 @@ const LearnMorePage: React.FC = () => {
             </FadeUp>
             <FadeUp delay={0.22}>
               <div className="flex flex-wrap gap-3 mb-12">
-                <button onClick={() => navigate('/checkout?product=space-explorer')}
+                <button onClick={() => navigate('/products')}
                   className="px-7 py-3.5 text-sm font-semibold tracking-wide transition-transform hover:-translate-y-0.5"
                   style={{ background: T.text, color: T.bg }}>Buy Now</button>
                 <button className="px-7 py-3.5 text-sm font-semibold tracking-wide border transition-transform hover:-translate-y-0.5"
@@ -506,7 +506,7 @@ const LearnMorePage: React.FC = () => {
               <span className="text-sm" style={{ color: T.sub }}>+ Free shipping</span>
             </div>
             <div className="flex gap-3 mb-10">
-              <button onClick={() => navigate('/checkout?product=space-explorer')}
+              <button onClick={() => navigate('/products')}
                 className="flex-1 py-4 text-sm font-semibold tracking-wide transition-transform hover:-translate-y-0.5"
                 style={{ background: T.text, color: T.bg }}>Buy Now</button>
               <button className="flex-1 py-4 text-sm font-semibold tracking-wide border transition-transform hover:-translate-y-0.5"

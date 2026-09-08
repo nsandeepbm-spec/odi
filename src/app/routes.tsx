@@ -3,6 +3,7 @@ import MainPage from "./pages/MainPage";
 import { ODIKidsPage } from "./pages/ODIKidsPage";
 import { ErrorPage } from "./pages/ErrorPage";
 import { Layout } from "./components/Layout";
+import { SeoRoot } from "./components/Seo";
 import ServicesPage from "./pages/ServicesPage";
 import ProductsPage from "./pages/ProductsPage";
 import AboutPage from "./pages/AboutPage";
@@ -14,76 +15,79 @@ import TermsOfServicePage from "./pages/legal/TermsOfServicePage";
 import CookiesPolicyPage from "./pages/legal/CookiesPolicyPage";
 import IndustriesPage from "./pages/industriesPage";
 import Service3DMovieConversion from "./pages/Service3DMovieConversion";
-import Service3DShortFilms from "./pages/Service3DShortFilms";
-import Service3DReelsVertical from "./pages/Service3DReelsVertical";
-import ServiceImmersiveAdvertising from "./pages/ServiceImmersiveAdvertising";
-import ServiceDepthCompositing from "./pages/ServiceDepthCompositing";
-import ServiceVRVisionPro from "./pages/ServiceVRVisionPro";
 import SpaceExplorerPage from "./pages/SpaceExplorerPage.tsx";
 import Service3DBook from "./pages/Service3DBook.tsx";
 
+const lazyRoute = (importFn: () => Promise<any>) => async () => {
+  const m = await importFn();
+  return { Component: m.default };
+};
+
 // --- Auth ---
-import LoginPage from "./pages/auth/LoginPage";
-import RegisterPage from "./pages/auth/RegisterPage";
+const LoginPage = lazyRoute(() => import('./pages/auth/LoginPage'));
+const RegisterPage = lazyRoute(() => import('./pages/auth/RegisterPage'));
 
 // --- Checkout ---
-import CheckoutLayout from "./components/checkout/CheckoutLayout";
-import CheckoutPage from "./pages/CheckoutPage"; // Serves as Checkout Details
-import CheckoutReviewPage from "./pages/checkout/CheckoutReviewPage";
-import CheckoutPaymentPage from "./pages/checkout/CheckoutPaymentPage";
-import CheckoutSuccessPage from "./pages/checkout/CheckoutSuccessPage";
+const CheckoutLayout = lazyRoute(() => import('./components/checkout/CheckoutLayout'));
+const CheckoutPage = lazyRoute(() => import('./pages/CheckoutPage'));
+const CheckoutReviewPage = lazyRoute(() => import('./pages/checkout/CheckoutReviewPage'));
+const CheckoutPaymentPage = lazyRoute(() => import('./pages/checkout/CheckoutPaymentPage'));
+const CheckoutSuccessPage = lazyRoute(() => import('./pages/checkout/CheckoutSuccessPage'));
 
 // --- Auth guard ---
 import { RequireAuth, RequireAdmin } from "./components/auth/RequireAuth";
 
 // --- Dashboard: User ---
-import UserLayout from "./components/dashboard/UserLayout";
-import UserOverviewPage from "./pages/dashboard/user/OverviewPage";
-import UserBookingsPage from "./pages/dashboard/user/BookingsPage";
-import UserOrdersPage from "./pages/dashboard/user/OrdersPage";
-import UserOrderDetailPage from "./pages/dashboard/user/OrderDetailPage";
-import UserReviewsPage from "./pages/dashboard/user/ReviewsPage";
-import UserPaymentsPage from "./pages/dashboard/user/PaymentsPage";
-import UserSettingsPage from "./pages/dashboard/user/SettingsPage";
-import UserInboxPage from "./pages/dashboard/user/InboxPage";
+const UserLayout = lazyRoute(() => import('./components/dashboard/UserLayout'));
+const UserOverviewPage = lazyRoute(() => import('./pages/dashboard/user/OverviewPage'));
+const UserBookingsPage = lazyRoute(() => import('./pages/dashboard/user/BookingsPage'));
+const UserOrdersPage = lazyRoute(() => import('./pages/dashboard/user/OrdersPage'));
+const UserOrderDetailPage = lazyRoute(() => import('./pages/dashboard/user/OrderDetailPage'));
+const UserReviewsPage = lazyRoute(() => import('./pages/dashboard/user/ReviewsPage'));
+const UserPaymentsPage = lazyRoute(() => import('./pages/dashboard/user/PaymentsPage'));
+const UserSettingsPage = lazyRoute(() => import('./pages/dashboard/user/SettingsPage'));
+const UserInboxPage = lazyRoute(() => import('./pages/dashboard/user/InboxPage'));
 
 // --- Dashboard: Admin ---
-import AdminLayout from "./components/dashboard/AdminLayout";
-import AdminOverviewPage from "./pages/dashboard/admin/OverviewPage";
-import AdminOrdersPage from "./pages/dashboard/admin/OrdersPage";
-import AdminOrderDetailPage from "./pages/dashboard/admin/OrderDetailPage";
-import AdminShipmentsPage from "./pages/dashboard/admin/ShipmentsPage";
-import AdminPickupsPage from "./pages/dashboard/admin/PickupsPage";
-import AdminProductsPage from "./pages/dashboard/admin/ProductsPage";
-import ProductEditorPage from "./pages/dashboard/admin/ProductEditorPage";
-import AdminCustomersPage from "./pages/dashboard/admin/CustomersPage";
-import AdminPaymentsPage from "./pages/dashboard/admin/PaymentsPage";
-import AdminPaymentDetailPage from "./pages/dashboard/admin/PaymentDetailPage";
-import AdminCouponsPage from "./pages/dashboard/admin/CouponsPage";
-import AdminSettingsPage from "./pages/dashboard/admin/SettingsPage";
-import AdminInboxPage from "./pages/dashboard/admin/InboxPage";
-import AdminContactInquiriesPage from "./pages/dashboard/admin/ContactInquiriesPage";
-import AdminCareerApplicationsPage from "./pages/dashboard/admin/CareerApplicationsPage";
-import AdminLegalPagesPage from "./pages/dashboard/admin/LegalPagesPage";
-import AdminCancelManagementPage from "./pages/dashboard/admin/CancelManagementPage";
-import AdminRefundManagementPage from "./pages/dashboard/admin/RefundManagementPage";
-import AdminRefundDetailPage from "./pages/dashboard/admin/RefundDetailPage";
+const AdminLayout = lazyRoute(() => import('./components/dashboard/AdminLayout'));
+const AdminOverviewPage = lazyRoute(() => import('./pages/dashboard/admin/OverviewPage'));
+const AdminOrdersPage = lazyRoute(() => import('./pages/dashboard/admin/OrdersPage'));
+const AdminOrderDetailPage = lazyRoute(() => import('./pages/dashboard/admin/OrderDetailPage'));
+const AdminShipmentsPage = lazyRoute(() => import('./pages/dashboard/admin/ShipmentsPage'));
+const AdminPickupsPage = lazyRoute(() => import('./pages/dashboard/admin/PickupsPage'));
+const AdminProductsPage = lazyRoute(() => import('./pages/dashboard/admin/ProductsPage'));
+const ProductEditorPage = lazyRoute(() => import('./pages/dashboard/admin/ProductEditorPage'));
+const AdminCustomersPage = lazyRoute(() => import('./pages/dashboard/admin/CustomersPage'));
+const AdminPaymentsPage = lazyRoute(() => import('./pages/dashboard/admin/PaymentsPage'));
+const AdminPaymentDetailPage = lazyRoute(() => import('./pages/dashboard/admin/PaymentDetailPage'));
+const AdminCouponsPage = lazyRoute(() => import('./pages/dashboard/admin/CouponsPage'));
+const AdminSettingsPage = lazyRoute(() => import('./pages/dashboard/admin/SettingsPage'));
+const AdminInboxPage = lazyRoute(() => import('./pages/dashboard/admin/InboxPage'));
+const AdminContactInquiriesPage = lazyRoute(() => import('./pages/dashboard/admin/ContactInquiriesPage'));
+const AdminCareerApplicationsPage = lazyRoute(() => import('./pages/dashboard/admin/CareerApplicationsPage'));
+const AdminLegalPagesPage = lazyRoute(() => import('./pages/dashboard/admin/LegalPagesPage'));
+const AdminCancelManagementPage = lazyRoute(() => import('./pages/dashboard/admin/CancelManagementPage'));
+const AdminRefundManagementPage = lazyRoute(() => import('./pages/dashboard/admin/RefundManagementPage'));
+const AdminRefundDetailPage = lazyRoute(() => import('./pages/dashboard/admin/RefundDetailPage'));
 
 export const router = createBrowserRouter([
+  {
+    Component: SeoRoot,
+    children: [
   // Standalone Auth Routes
-  { path: "/login", Component: LoginPage },
-  { path: "/register", Component: RegisterPage },
+  { path: "/login", lazy: LoginPage },
+  { path: "/register", lazy: RegisterPage },
 
   // Checkout Flow
   {
     path: "/checkout",
-    Component: CheckoutLayout,
+    lazy: CheckoutLayout,
     ErrorBoundary: ErrorPage,
     children: [
-      { index: true, Component: CheckoutPage },
-      { path: "review", Component: CheckoutReviewPage },
-      { path: "payment", Component: CheckoutPaymentPage },
-      { path: "success", Component: CheckoutSuccessPage },
+      { index: true, lazy: CheckoutPage },
+      { path: "review", lazy: CheckoutReviewPage },
+      { path: "payment", lazy: CheckoutPaymentPage },
+      { path: "success", lazy: CheckoutSuccessPage },
     ]
   },
 
@@ -94,28 +98,28 @@ export const router = createBrowserRouter([
     ErrorBoundary: ErrorPage,
     children: [
       {
-        Component: AdminLayout,
+        lazy: AdminLayout,
         children: [
-          { index: true, Component: AdminOverviewPage },
-          { path: "inbox", Component: AdminInboxPage },
-          { path: "contact-inquiries", Component: AdminContactInquiriesPage },
-          { path: "career-applications", Component: AdminCareerApplicationsPage },
-          { path: "legal", Component: AdminLegalPagesPage },
-          { path: "orders", Component: AdminOrdersPage },
-          { path: "orders/:orderId", Component: AdminOrderDetailPage },
-          { path: "shipments", Component: AdminShipmentsPage },
-          { path: "pickups", Component: AdminPickupsPage },
-          { path: "cancels", Component: AdminCancelManagementPage },
-          { path: "refunds", Component: AdminRefundManagementPage },
-          { path: "refunds/:refundId", Component: AdminRefundDetailPage },
-          { path: "products", Component: AdminProductsPage },
-          { path: "products/new", Component: ProductEditorPage },
-          { path: "products/:id", Component: ProductEditorPage },
-          { path: "coupons", Component: AdminCouponsPage },
-          { path: "customers", Component: AdminCustomersPage },
-          { path: "payments", Component: AdminPaymentsPage },
-          { path: "payments/:paymentId", Component: AdminPaymentDetailPage },
-          { path: "settings", Component: AdminSettingsPage },
+          { index: true, lazy: AdminOverviewPage },
+          { path: "inbox", lazy: AdminInboxPage },
+          { path: "contact-inquiries", lazy: AdminContactInquiriesPage },
+          { path: "career-applications", lazy: AdminCareerApplicationsPage },
+          { path: "legal", lazy: AdminLegalPagesPage },
+          { path: "orders", lazy: AdminOrdersPage },
+          { path: "orders/:orderId", lazy: AdminOrderDetailPage },
+          { path: "shipments", lazy: AdminShipmentsPage },
+          { path: "pickups", lazy: AdminPickupsPage },
+          { path: "cancels", lazy: AdminCancelManagementPage },
+          { path: "refunds", lazy: AdminRefundManagementPage },
+          { path: "refunds/:refundId", lazy: AdminRefundDetailPage },
+          { path: "products", lazy: AdminProductsPage },
+          { path: "products/new", lazy: ProductEditorPage },
+          { path: "products/:id", lazy: ProductEditorPage },
+          { path: "coupons", lazy: AdminCouponsPage },
+          { path: "customers", lazy: AdminCustomersPage },
+          { path: "payments", lazy: AdminPaymentsPage },
+          { path: "payments/:paymentId", lazy: AdminPaymentDetailPage },
+          { path: "settings", lazy: AdminSettingsPage },
         ],
       },
     ],
@@ -128,16 +132,16 @@ export const router = createBrowserRouter([
     ErrorBoundary: ErrorPage,
     children: [
       {
-        Component: UserLayout,
+        lazy: UserLayout,
         children: [
-          { index: true, Component: UserOverviewPage },
-          { path: "inbox", Component: UserInboxPage },
-          { path: "bookings", Component: UserBookingsPage },
-          { path: "orders", Component: UserOrdersPage },
-          { path: "orders/:orderId", Component: UserOrderDetailPage },
-          { path: "reviews", Component: UserReviewsPage },
-          { path: "payments", Component: UserPaymentsPage },
-          { path: "settings", Component: UserSettingsPage },
+          { index: true, lazy: UserOverviewPage },
+          { path: "inbox", lazy: UserInboxPage },
+          { path: "bookings", lazy: UserBookingsPage },
+          { path: "orders", lazy: UserOrdersPage },
+          { path: "orders/:orderId", lazy: UserOrderDetailPage },
+          { path: "reviews", lazy: UserReviewsPage },
+          { path: "payments", lazy: UserPaymentsPage },
+          { path: "settings", lazy: UserSettingsPage },
         ],
       },
     ],
@@ -157,11 +161,6 @@ export const router = createBrowserRouter([
       { path: "industries", Component: IndustriesPage },
       { path: "services/3d-movie-conversion", Component: Service3DMovieConversion },
       { path: "services/3d-books", Component: Service3DBook },
-      { path: "services/3d-short-films", Component: Service3DShortFilms },
-      { path: "services/3d-reels-vertical", Component: Service3DReelsVertical },
-      { path: "services/immersive-advertising", Component: ServiceImmersiveAdvertising },
-      { path: "services/depth-compositing", Component: ServiceDepthCompositing },
-      { path: "services/vr-vision-pro", Component: ServiceVRVisionPro },
       { path: "products", Component: ProductsPage },
       { path: "products/space-explorer", Component: SpaceExplorerPage },
       { path: "careers", Component: CareersPage },
@@ -170,6 +169,8 @@ export const router = createBrowserRouter([
       { path: "privacy", Component: PrivacyPolicyPage },
       { path: "terms", Component: TermsOfServicePage },
       { path: "cookies", Component: CookiesPolicyPage },
+    ],
+  },
     ],
   },
 ]);

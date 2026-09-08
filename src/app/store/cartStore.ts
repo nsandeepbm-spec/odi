@@ -1,11 +1,13 @@
 import { create } from 'zustand';
+import type { AdminProductStatus } from '../lib/api';
 
 export interface CartItem {
-  id: string; // product id
+  id: string; // product slug
   name: string;
   pricePaise: number;
   quantity: number;
   imageUrl: string;
+  status?: AdminProductStatus;
 }
 
 interface CartState {
@@ -20,34 +22,39 @@ interface CartState {
   closeDrawer: () => void;
 }
 
+function isLive(item: CartItem) {
+  return !item.status || item.status === 'live';
+}
+
 export const useCartStore = create<CartState>((set, get) => ({
   items: [],
   addItem: (newItem) => set((state) => {
-    const existingItem = state.items.find(item => item.id === newItem.id);
+    if (!isLive(newItem)) return state;
+    const existingItem = state.items.find((item) => item.id === newItem.id);
     if (existingItem) {
       return {
-        items: state.items.map(item =>
+        items: state.items.map((item) =>
           item.id === newItem.id
             ? { ...item, quantity: item.quantity + newItem.quantity }
             : item
-        )
+        ),
       };
     }
     return { items: [...state.items, newItem] };
   }),
   removeItem: (id) => set((state) => ({
-    items: state.items.filter(item => item.id !== id)
+    items: state.items.filter((item) => item.id !== id),
   })),
   updateQuantity: (id, quantity) => set((state) => ({
-    items: state.items.map(item =>
+    items: state.items.map((item) =>
       item.id === id ? { ...item, quantity: Math.max(1, quantity) } : item
-    )
+    ),
   })),
   clearCart: () => set({ items: [] }),
   getTotal: () => {
-    return get().items.reduce((total, item) => total + (item.pricePaise * item.quantity), 0);
+    return get().items.reduce((total, item) => total + item.pricePaise * item.quantity, 0);
   },
   isDrawerOpen: false,
   toggleDrawer: () => set((state) => ({ isDrawerOpen: !state.isDrawerOpen })),
-  closeDrawer: () => set({ isDrawerOpen: false })
+  closeDrawer: () => set({ isDrawerOpen: false }),
 }));

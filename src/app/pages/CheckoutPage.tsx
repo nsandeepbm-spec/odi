@@ -19,7 +19,7 @@ import {
   Sticker,
 } from 'lucide-react';
 import { useCheckout } from '../lib/checkout';
-import { discountPercent, formatInr, type KitItem } from '../data/products';
+import { discountPercent, formatInr, isProductPurchasable, type KitItem } from '../data/products';
 import { getPublicProductReviews, type PublicReview } from '../lib/api';
 import { motion, AnimatePresence } from 'motion/react';
 import { useCartStore } from '../store/cartStore';
@@ -122,6 +122,7 @@ export default function CheckoutPage() {
   }
 
   const off = discountPercent(product.price_paise, product.compare_at_paise);
+  const canBuy = isProductPurchasable(product);
 
   const productImages = product.media?.gallery?.map((g) => g.url) ?? [];
   if (product.media?.card?.url && !productImages.includes(product.media.card.url)) {
@@ -140,6 +141,7 @@ export default function CheckoutPage() {
     pricePaise: product.price_paise,
     quantity,
     imageUrl: productImages[0] ?? '',
+    status: product.status,
   };
 
   const scrollToReviews = () => {
@@ -193,17 +195,22 @@ export default function CheckoutPage() {
             <div className="flex flex-col gap-3 sm:gap-3.5 lg:flex-row lg:items-center lg:gap-4">
               {/* Row 1 on mobile / left cluster on desktop: Buy now + price */}
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 min-w-0">
+                {canBuy ? (
                 <button
                   type="button"
-                  disabled={!product.available}
                   onClick={() => {
                     addItem(cartPayload);
                     goToReview();
                   }}
-                  className="w-full sm:w-auto shrink-0 px-5 py-3 sm:py-2.5 rounded-xl bg-[#f05a13] text-white text-sm font-bold tracking-wide hover:bg-[#e0500e] active:scale-[0.99] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full sm:w-auto shrink-0 px-5 py-3 sm:py-2.5 rounded-xl bg-[#f05a13] text-white text-sm font-bold tracking-wide hover:bg-[#e0500e] active:scale-[0.99] transition-colors"
                 >
-                  {product.available ? 'BUY NOW' : 'COMING SOON'}
+                  BUY NOW
                 </button>
+                ) : (
+                <span className="w-full sm:w-auto shrink-0 px-5 py-3 sm:py-2.5 rounded-xl bg-neutral-800 text-white text-sm font-bold tracking-wide text-center">
+                  COMING SOON
+                </span>
+                )}
 
                 <div className="hidden sm:block w-px h-10 bg-neutral-100 shrink-0" />
 
@@ -613,27 +620,34 @@ export default function CheckoutPage() {
           </div>
 
           <div className="flex flex-col gap-2.5 mb-4">
-            <button
-              type="button"
-              onClick={() => {
-                addItem(cartPayload);
-                toggleDrawer();
-              }}
-              className="w-full py-3 rounded-xl border-2 border-neutral-900 text-neutral-900 font-bold tracking-wide hover:bg-neutral-50 transition-colors text-sm"
-            >
-              ADD TO CART
-            </button>
-            <button
-              type="button"
-              disabled={!product.available}
-              onClick={() => {
-                addItem(cartPayload);
-                goToReview();
-              }}
-              className="w-full py-3 rounded-xl bg-[#f05a13] text-white font-bold tracking-wide hover:bg-[#e0500e] transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {product.available ? 'BUY NOW' : 'COMING SOON'}
-            </button>
+            {canBuy ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    addItem(cartPayload);
+                    toggleDrawer();
+                  }}
+                  className="w-full py-3 rounded-xl border-2 border-neutral-900 text-neutral-900 font-bold tracking-wide hover:bg-neutral-50 transition-colors text-sm"
+                >
+                  ADD TO CART
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    addItem(cartPayload);
+                    goToReview();
+                  }}
+                  className="w-full py-3 rounded-xl bg-[#f05a13] text-white font-bold tracking-wide hover:bg-[#e0500e] transition-colors text-sm"
+                >
+                  BUY NOW
+                </button>
+              </>
+            ) : (
+              <p className="text-sm text-neutral-500 font-medium text-center py-3">
+                This kit is coming soon. Add to cart and checkout will be available when it goes live.
+              </p>
+            )}
           </div>
 
           <div className="grid grid-cols-3 gap-2 py-4 border-y border-neutral-100 mb-3">

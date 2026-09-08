@@ -1,22 +1,53 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Minus, Plus, ShoppingBag } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { useCartStore } from '../../store/cartStore';
-import { formatInr } from '../../data/products';
+import { formatInr, isProductPurchasable } from '../../data/products';
 import { persistCheckoutProduct } from '../../lib/checkout';
+import { getPublicProduct } from '../../lib/api';
 
 export function CartDrawer() {
   const { items, isDrawerOpen, closeDrawer, updateQuantity, removeItem, getTotal } = useCartStore();
   const navigate = useNavigate();
+  const [busy, setBusy] = useState(false);
+  const [cartError, setCartError] = useState<string | null>(null);
 
-  const handleCheckout = () => {
+  useEffect(() => {
+    if (isDrawerOpen) {
+      window.history.pushState({ cartOpen: true }, '');
+      const handlePopState = () => closeDrawer();
+      window.addEventListener('popstate', handlePopState);
+      return () => {
+        window.removeEventListener('popstate', handlePopState);
+        if (window.history.state?.cartOpen) {
+          window.history.back();
+        }
+      };
+    }
+  }, [isDrawerOpen, closeDrawer]);
+
+  const handleCheckout = async () => {
     if (items.length === 0) return;
-
     const item = items[0];
-    persistCheckoutProduct(item.id, item.quantity);
-    closeDrawer();
-    navigate(`/checkout/review?product=${item.id}`);
+    setBusy(true);
+    setCartError(null);
+    try {
+      const product = await getPublicProduct(item.id);
+      if (!isProductPurchasable(product)) {
+        removeItem(item.id);
+        setCartError('This kit is coming soon and can’t be checked out yet.');
+        return;
+      }
+      persistCheckoutProduct(item.id, item.quantity);
+      closeDrawer();
+      navigate(`/checkout/review?product=${item.id}`);
+    } catch {
+      removeItem(item.id);
+      setCartError('This kit is not available for purchase.');
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -125,11 +156,15 @@ export function CartDrawer() {
                 <p className="text-xs text-neutral-500 text-center mb-4">
                   Shipping and taxes calculated at checkout.
                 </p>
+                {cartError && (
+                  <p className="text-xs text-amber-700 font-medium text-center mb-3">{cartError}</p>
+                )}
                 <button
-                  onClick={handleCheckout}
-                  className="w-full py-4 rounded-xl bg-black text-white font-bold tracking-wide hover:bg-neutral-800 transition-colors shadow-lg"
+                  onClick={() => void handleCheckout()}
+                  disabled={busy}
+                  className="w-full py-4 rounded-xl bg-black text-white font-bold tracking-wide hover:bg-neutral-800 transition-colors shadow-lg disabled:opacity-60"
                 >
-                  Proceed to Checkout
+                  {busy ? 'Checking…' : 'Proceed to Checkout'}
                 </button>
               </div>
             )}

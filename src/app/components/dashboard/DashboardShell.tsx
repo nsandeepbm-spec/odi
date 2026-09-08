@@ -112,14 +112,14 @@ export default function DashboardShell({ portal, groups, switchTo }: DashboardSh
     return (
       <>
         <div
-          className={`h-[72px] shrink-0 ${collapsed ? 'px-2 flex flex-col items-center justify-center gap-0' : 'px-5 flex items-center justify-between gap-3'}`}
+          className={`h-16 shrink-0 ${collapsed ? 'px-2 flex flex-col items-center justify-center gap-0' : 'px-4 flex items-center justify-between gap-3'}`}
           style={{ borderBottom: `1px solid ${T.border}` }}
         >
           <Link
             to="/"
             onClick={() => setSidebarOpen(false)}
             aria-label="ODI home"
-            className={`block shrink-0 hover:opacity-90 transition-opacity ${collapsed ? 'hidden' : 'w-[108px]'}`}
+            className={`block shrink-0 hover:opacity-90 transition-opacity ${collapsed ? 'hidden' : 'w-[100px]'}`}
           >
             <ODILogo color="#ffffff" />
           </Link>
@@ -135,15 +135,17 @@ export default function DashboardShell({ portal, groups, switchTo }: DashboardSh
           )}
         </div>
 
-        <nav className={`flex-1 min-h-0 overflow-y-auto pt-5 pb-6 space-y-6 ${collapsed ? 'px-2.5' : 'px-4'}`}>
+        <nav
+          className={`flex-1 min-h-0 ${isMobile ? 'overflow-y-auto' : 'overflow-hidden'} py-3.5 space-y-4 ${collapsed ? 'px-2.5' : 'px-3.5'}`}
+        >
           {groups.map((group) => (
             <div key={group.label}>
               {!collapsed && (
-                <div className="px-3 mb-2.5 text-[10px] font-bold tracking-[0.2em] uppercase" style={{ color: T.sub }}>
+                <div className="px-3 mb-1.5 text-[10px] font-bold tracking-[0.2em] uppercase" style={{ color: T.sub }}>
                   {group.label}
                 </div>
               )}
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 {group.items.map((item) => {
                   const active = isActive(item);
                   const Icon = item.icon;
@@ -153,7 +155,7 @@ export default function DashboardShell({ portal, groups, switchTo }: DashboardSh
                       to={item.path}
                       title={collapsed ? item.name : undefined}
                       onClick={() => setSidebarOpen(false)}
-                      className={`group relative flex items-center ${collapsed ? 'justify-center p-2.5' : 'gap-3 px-3.5 py-2.5'} rounded-xl text-sm font-semibold transition-all duration-300 ${
+                      className={`group relative flex items-center ${collapsed ? 'justify-center p-2.5' : 'gap-3 px-3 py-2'} rounded-xl text-sm font-semibold transition-all duration-300 ${
                         active
                           ? 'bg-white/10 text-white shadow-[0_0_20px_rgba(255,255,255,0.03)] border border-white/5'
                           : 'text-neutral-400 hover:bg-white/5 hover:text-neutral-200 border border-transparent'
@@ -227,11 +229,10 @@ export default function DashboardShell({ portal, groups, switchTo }: DashboardSh
         <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] pointer-events-none mix-blend-overlay" />
 
         <header
-          className="sticky top-0 z-20 flex items-center gap-4 px-5 md:px-8 h-[72px] shrink-0"
+          className="sticky top-0 z-30 flex items-center gap-3 px-4 md:px-6 h-16 shrink-0 overflow-visible"
           style={{
             background: T.bgAlt,
             borderBottom: `1px solid ${T.border}`,
-            boxShadow: `0 -8px 0 0 ${T.bgAlt}`,
           }}
         >
           <button
@@ -260,7 +261,7 @@ export default function DashboardShell({ portal, groups, switchTo }: DashboardSh
             </Link>
           )}
 
-          <div className="hidden sm:flex items-center gap-2 flex-1 max-w-md px-3.5 py-2 rounded-full border border-white/[0.07] bg-white/[0.03] focus-within:bg-white/[0.05] focus-within:border-white/[0.14] focus-within:ring-1 focus-within:ring-cyan-500/20 transition-all">
+          <div className="hidden lg:flex items-center gap-2 flex-1 max-w-md px-3.5 py-2 rounded-full border border-white/[0.07] bg-white/[0.03] focus-within:bg-white/[0.05] focus-within:border-white/[0.14] focus-within:ring-1 focus-within:ring-cyan-500/20 transition-all">
             <Search className="w-3.5 h-3.5 shrink-0 text-neutral-500 flex-none" />
             <input
               type="search"
@@ -275,7 +276,7 @@ export default function DashboardShell({ portal, groups, switchTo }: DashboardSh
 
           <div className="flex-1 sm:hidden" />
 
-          <div className="flex items-center gap-2 ml-auto">
+          <div className="flex items-center gap-1.5 sm:gap-2 ml-auto shrink-0 relative z-40">
             <NotificationBell
               inboxPath={portal === 'Admin' ? '/dashboard/admin/inbox' : '/dashboard/inbox'}
             />
@@ -294,7 +295,7 @@ export default function DashboardShell({ portal, groups, switchTo }: DashboardSh
                 aria-haspopup="menu"
               >
                 <Avatar size="sm" />
-                <div className="hidden md:block min-w-0 text-left">
+                <div className="hidden lg:block min-w-0 text-left">
                   <p className="text-[13px] font-bold text-white leading-tight truncate max-w-[140px]">{name}</p>
                   <p className="text-[10px] font-medium text-neutral-500 leading-tight truncate max-w-[140px] mt-0.5">
                     {portal} Portal
