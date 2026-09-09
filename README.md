@@ -23,6 +23,14 @@ npm run build  # live domain → https://api.odi.studio
 
 Hostinger is Apache/LiteSpeed: `public/.htaccess` is copied into `dist/` on build so routes like `/products` still load `index.html` on refresh. Real files (`robots.txt`, `sitemap.xml`, images) are **not** rewritten. Page titles, descriptions, canonical, and Open Graph tags live in `src/app/lib/seo.ts` (updated on each route). Redeploy after this is on `main`.
 
+SEO in `index.html` (always in the document head):
+
+- Google Ads tag `AW-16846459966` (`gtag.js`)
+- Search Console verification (`google-site-verification`)
+- JSON-LD: Organization, WebSite (with product search), and BreadcrumbList (updated per route in `Seo.tsx`)
+
+Product sitelink search uses `/products?q={search_term_string}`.
+
 ## Checkout flow (frontend)
 
 Multi-step checkout at `/checkout` (standalone layout — no main site navbar):

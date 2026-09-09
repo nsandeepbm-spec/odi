@@ -11,6 +11,7 @@
       content="ODI Studio creates stereoscopic 3D conversion, VR, and immersive advertising — plus ODI Kids 3D learning books for children in India."
     />
     <meta name="robots" content="index, follow" />
+    <meta name="google-site-verification" content="Q_-59qz_Hef3gdAwMqnqtg12vSdO_3XAaAwLqq7DMfU" />
     <link rel="canonical" href="https://odi.studio/" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="ODI Studio" />
@@ -29,21 +30,56 @@
       content="ODI Studio creates stereoscopic 3D conversion, VR, and immersive advertising — plus ODI Kids 3D learning books for children in India."
     />
     <meta name="twitter:image" content="https://odi.studio/product-image/5.jpg" />
-    <script type="application/ld+json">
+    <!-- Google tag (gtag.js) — Google Ads -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=AW-16846459966"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'AW-16846459966');
+    </script>
+    <script type="application/ld+json" id="odi-jsonld-organization">
       {
         "@context": "https://schema.org",
-        "@graph": [
-          {
-            "@type": "Organization",
-            "name": "ODI Studio",
-            "url": "https://odi.studio",
-            "logo": "https://odi.studio/Logo.svg"
+        "@type": "Organization",
+        "name": "ODI Studio",
+        "alternateName": "ODI.STUDIO",
+        "url": "https://odi.studio/",
+        "logo": "https://odi.studio/Logo.svg"
+      }
+    </script>
+    <script type="application/ld+json" id="odi-jsonld-website">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "ODI.STUDIO",
+        "url": "https://odi.studio/",
+        "publisher": {
+          "@type": "Organization",
+          "name": "ODI Studio",
+          "url": "https://odi.studio/"
+        },
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": {
+            "@type": "EntryPoint",
+            "urlTemplate": "https://odi.studio/products?q={search_term_string}"
           },
-          {
-            "@type": "WebSite",
-            "name": "ODI Studio",
-            "url": "https://odi.studio"
-          }
+          "query-input": "required name=search_term_string"
+        }
+      }
+    </script>
+    <script type="application/ld+json" id="odi-jsonld-breadcrumb">
+      {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://odi.studio/" },
+          { "@type": "ListItem", "position": 2, "name": "Products", "item": "https://odi.studio/products" },
+          { "@type": "ListItem", "position": 3, "name": "About", "item": "https://odi.studio/about" },
+          { "@type": "ListItem", "position": 4, "name": "Services", "item": "https://odi.studio/services" },
+          { "@type": "ListItem", "position": 5, "name": "Industries", "item": "https://odi.studio/industries" },
+          { "@type": "ListItem", "position": 6, "name": "Careers", "item": "https://odi.studio/careers" }
         ]
       }
     </script>
