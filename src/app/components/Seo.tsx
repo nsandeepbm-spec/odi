@@ -60,6 +60,7 @@ function Seo() {
     upsertMeta('name', 'twitter:description', seo.description);
     upsertMeta('name', 'twitter:image', seo.image);
     upsertJsonLd('odi-jsonld', seo.jsonLd);
+    upsertJsonLd('odi-jsonld-breadcrumb', seo.breadcrumb);
   }, [pathname]);
 
   return null;
