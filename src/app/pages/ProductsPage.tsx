@@ -12,7 +12,7 @@ import {
   Star,
   X,
 } from 'lucide-react';
-import { Link, useNavigate } from 'react-router';
+import { Link, useNavigate, useSearchParams } from 'react-router';
 import {
   CATEGORY_FILTERS,
   discountPercent,
@@ -281,6 +281,7 @@ function ProductCard({ product }: { product: StoreProduct }) {
 
 export default function ProductsPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const shopRef = useRef<HTMLElement>(null);
   // Seed from the module-level cache so re-visits show data instantly (no skeleton flash).
   const [allProducts, setAllProducts] = useState<StoreProduct[]>(() => peekPublicProductsCache() ?? []);
@@ -337,11 +338,16 @@ export default function ProductsPage() {
   }, []);
 
   const [category, setCategory] = useState<ProductCategory | 'all'>('all');
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(() => searchParams.get('q') ?? '');
   const [sort, setSort] = useState<'default' | 'price-asc' | 'rating'>('default');
   const [openFaq, setOpenFaq] = useState<number | null>(0);
 
   const debouncedSearch = useDebouncedValue(search);
+
+  useEffect(() => {
+    const q = searchParams.get('q');
+    if (q !== null) setSearch(q);
+  }, [searchParams]);
 
   // Featured Immersive Series: admin toggles `is_featured` on Product Editor (Publish panel).
   // Only live / coming_soon products with the flag appear — pick up to 3 kits.

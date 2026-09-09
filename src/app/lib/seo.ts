@@ -12,6 +12,8 @@ export type SeoPage = {
   jsonLd?: Record<string, unknown> | null;
 };
 
+type Crumb = { name: string; item: string };
+
 type ResolvedSeo = {
   title: string;
   description: string;
@@ -20,6 +22,7 @@ type ResolvedSeo = {
   image: string;
   ogType: string;
   jsonLd: Record<string, unknown> | null;
+  breadcrumb: Record<string, unknown> | null;
 };
 
 const DEFAULT_DESCRIPTION =
@@ -29,22 +32,6 @@ const PAGES: Record<string, SeoPage> = {
   '/': {
     title: 'ODI Studio | Stereoscopic 3D, VR & Immersive Media',
     description: DEFAULT_DESCRIPTION,
-    jsonLd: {
-      '@context': 'https://schema.org',
-      '@graph': [
-        {
-          '@type': 'Organization',
-          name: 'ODI Studio',
-          url: SITE_ORIGIN,
-          logo: `${SITE_ORIGIN}/Logo.svg`,
-        },
-        {
-          '@type': 'WebSite',
-          name: 'ODI Studio',
-          url: SITE_ORIGIN,
-        },
-      ],
-    },
   },
   '/products': {
     title: '3D Learning Books for Kids | ODI Kids Shop',
@@ -172,6 +159,89 @@ function isPrivatePath(path: string): boolean {
   );
 }
 
+/** Trail for the current URL (Home → page). Used as JSON-LD BreadcrumbList. */
+const BREADCRUMB_TRAILS: Record<string, Crumb[]> = {
+  '/': [{ name: 'Home', item: `${SITE_ORIGIN}/` }],
+  '/products': [
+    { name: 'Home', item: `${SITE_ORIGIN}/` },
+    { name: 'Products', item: `${SITE_ORIGIN}/products` },
+  ],
+  '/products/space-explorer': [
+    { name: 'Home', item: `${SITE_ORIGIN}/` },
+    { name: 'Products', item: `${SITE_ORIGIN}/products` },
+    { name: 'Space Explorer', item: `${SITE_ORIGIN}/products/space-explorer` },
+  ],
+  '/about': [
+    { name: 'Home', item: `${SITE_ORIGIN}/` },
+    { name: 'About', item: `${SITE_ORIGIN}/about` },
+  ],
+  '/services': [
+    { name: 'Home', item: `${SITE_ORIGIN}/` },
+    { name: 'Services', item: `${SITE_ORIGIN}/services` },
+  ],
+  '/services/3d-movie-conversion': [
+    { name: 'Home', item: `${SITE_ORIGIN}/` },
+    { name: 'Services', item: `${SITE_ORIGIN}/services` },
+    { name: 'Stereo Conversion', item: `${SITE_ORIGIN}/services/3d-movie-conversion` },
+  ],
+  '/services/3d-books': [
+    { name: 'Home', item: `${SITE_ORIGIN}/` },
+    { name: 'Services', item: `${SITE_ORIGIN}/services` },
+    { name: '3D Books', item: `${SITE_ORIGIN}/services/3d-books` },
+  ],
+  '/industries': [
+    { name: 'Home', item: `${SITE_ORIGIN}/` },
+    { name: 'Industries', item: `${SITE_ORIGIN}/industries` },
+  ],
+  '/careers': [
+    { name: 'Home', item: `${SITE_ORIGIN}/` },
+    { name: 'Careers', item: `${SITE_ORIGIN}/careers` },
+  ],
+  '/contact': [
+    { name: 'Home', item: `${SITE_ORIGIN}/` },
+    { name: 'Contact', item: `${SITE_ORIGIN}/contact` },
+  ],
+  '/learn-more': [
+    { name: 'Home', item: `${SITE_ORIGIN}/` },
+    { name: 'Learn More', item: `${SITE_ORIGIN}/learn-more` },
+  ],
+  '/odi-kids': [
+    { name: 'Home', item: `${SITE_ORIGIN}/` },
+    { name: 'ODI Kids', item: `${SITE_ORIGIN}/odi-kids` },
+  ],
+  '/kids': [
+    { name: 'Home', item: `${SITE_ORIGIN}/` },
+    { name: 'ODI Kids', item: `${SITE_ORIGIN}/kids` },
+  ],
+  '/privacy': [
+    { name: 'Home', item: `${SITE_ORIGIN}/` },
+    { name: 'Privacy Policy', item: `${SITE_ORIGIN}/privacy` },
+  ],
+  '/terms': [
+    { name: 'Home', item: `${SITE_ORIGIN}/` },
+    { name: 'Terms & Conditions', item: `${SITE_ORIGIN}/terms` },
+  ],
+  '/cookies': [
+    { name: 'Home', item: `${SITE_ORIGIN}/` },
+    { name: 'Cookie Policy', item: `${SITE_ORIGIN}/cookies` },
+  ],
+};
+
+function breadcrumbJsonLd(path: string): Record<string, unknown> | null {
+  const trail = BREADCRUMB_TRAILS[path];
+  if (!trail?.length) return null;
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: trail.map((crumb, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      name: crumb.name,
+      item: crumb.item,
+    })),
+  };
+}
+
 export function getSeoForPath(pathname: string): ResolvedSeo {
   const path = normalizePath(pathname);
 
@@ -191,6 +261,7 @@ export function getSeoForPath(pathname: string): ResolvedSeo {
       image: DEFAULT_OG_IMAGE,
       ogType: 'website',
       jsonLd: null,
+      breadcrumb: null,
     };
   }
 
@@ -203,5 +274,6 @@ export function getSeoForPath(pathname: string): ResolvedSeo {
     image: page?.image ?? DEFAULT_OG_IMAGE,
     ogType: page?.ogType ?? 'website',
     jsonLd: page?.jsonLd ?? null,
+    breadcrumb: breadcrumbJsonLd(path),
   };
 }
