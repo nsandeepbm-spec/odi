@@ -25,7 +25,7 @@ Hostinger is Apache/LiteSpeed: `public/.htaccess` is copied into `dist/` on buil
 
 SEO in `index.html` (always in the document head):
 
-- Google Ads tag `AW-16846459966` (`gtag.js`)
+- Google Analytics tag `G-GTNJHWWM7P` (`gtag.js`)
 - Search Console verification (`google-site-verification`)
 - JSON-LD: Organization, WebSite (with product search), and BreadcrumbList (updated per route in `Seo.tsx`)
 

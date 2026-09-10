@@ -86,7 +86,7 @@ When adding routes, register in `routes.tsx` and add nav links only where approp
 
 Public marketing/shop routes also need a row in `src/app/lib/seo.ts` (title + description) and `public/sitemap.xml`. Checkout, login, and dashboard stay `noindex`.
 
-Site-wide Google Ads (`gtag.js`), Search Console verification, and Organization / WebSite JSON-LD live in `index.html`. Per-route breadcrumbs are written from `seo.ts` via `Seo.tsx`.
+Site-wide Google Analytics (`gtag.js` `G-GTNJHWWM7P`), Search Console verification, and Organization / WebSite JSON-LD live in `index.html`. Per-route breadcrumbs are written from `seo.ts` via `Seo.tsx`.
 
 ---
 
