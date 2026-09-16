@@ -1344,6 +1344,7 @@ export interface AdminOrderDetail {
     amount_paise: number;
     status: string;
     created_at: string;
+    method?: string | null;
   }>;
   user: {
     id: string;
@@ -1819,6 +1820,8 @@ export interface UserOrderPayment {
   amount_paise: number;
   status: UserPaymentStatus;
   created_at: string;
+  /** Razorpay instrument when known: upi, card, netbanking, wallet, emi. `cod` for cash on delivery. */
+  method?: string | null;
 }
 
 export interface UserOrder {
