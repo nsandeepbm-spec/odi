@@ -1,7 +1,11 @@
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { LEGAL_COMPANY } from '../data/legalCompany';
 import { getAdminStoreSettings } from './adminSettings';
 import type { AdminOrderDetail } from './api';
+
+const GST_RATE = 18;
+const GST_LABEL = 'IGST';
 
 function pdfMoney(paise: number): string {
   const rupees = (Number(paise) || 0) / 100;
@@ -19,36 +23,36 @@ function formatDate(iso: string) {
   });
 }
 
-function humanPaymentMethod(provider: string): string {
+function placeOfSupply(addr?: { state?: string; country?: string } | null) {
+  const state = addr?.state?.trim();
+  let country = (addr?.country || 'India').trim();
+  if (/^in$/i.test(country)) country = 'India';
+  return state ? `${state}, ${country}` : country;
+}
+
+function gstInclusivePaise(totalPaise: number) {
+  return Math.round(((Number(totalPaise) || 0) * GST_RATE) / (100 + GST_RATE));
+}
+
+function humanPaymentMethod(provider: string, method?: string | null) {
   const p = (provider ?? '').toLowerCase();
-  if (p === 'razorpay') return 'Online Payment (UPI / Card / Net Banking)';
-  if (p === 'cod') return 'Cash on Delivery';
-  if (p === 'stripe') return 'Online Payment (Card)';
-  return provider || 'Online Payment';
-}
+  const m = (method ?? '').toLowerCase();
+  const isCod = p === 'cod' || m === 'cod';
+  // Keep labels short so they fit one line in the payment column (no bad wrap).
+  if (isCod) return { lines: ['Cash on Delivery'], mode: 'COD', isCod: true };
 
-function humanPaymentStatus(status: string, isCod?: boolean): string {
-  const s = (status ?? '').toLowerCase();
-  if (isCod && (s === 'created' || s === 'pending' || !s)) return 'Pay on delivery';
-  if (s === 'captured' || s === 'paid' || s === 'authorized') return 'Payment confirmed';
-  if (s === 'created' || s === 'pending') return 'Awaiting payment';
-  if (s === 'refunded') return 'Refunded';
-  if (s === 'failed') return 'Payment failed';
-  return status;
-}
-
-function humanOrderStatus(status: string, isCod?: boolean): string {
-  if (status === 'pending' && isCod) return 'Order placed — cash on delivery';
-  const map: Record<string, string> = {
-    pending: 'Order placed — awaiting payment',
-    paid: 'Paid',
-    processing: 'Processing your order',
-    shipped: 'Shipped',
-    delivered: 'Delivered',
-    cancelled: 'Cancelled',
-    refunded: 'Refunded',
+  const instruments: Record<string, string> = {
+    upi: 'UPI',
+    card: 'Card',
+    netbanking: 'Net Banking',
+    wallet: 'Wallet',
+    emi: 'EMI',
+    cardless_emi: 'EMI',
+    paylater: 'Pay Later',
   };
-  return map[status] ?? status.replace(/_/g, ' ');
+  if (m && instruments[m]) return { lines: [instruments[m]], mode: 'Prepaid', isCod: false };
+  if (p === 'stripe') return { lines: ['Card'], mode: 'Prepaid', isCod: false };
+  return { lines: ['Online'], mode: 'Prepaid', isCod: false };
 }
 
 export type InvoiceDetail = {
@@ -71,6 +75,7 @@ export type InvoiceDetail = {
       state?: string;
       postal_code?: string;
       country?: string;
+      gstin?: string;
     } | null;
   };
   items: Array<{
@@ -83,6 +88,8 @@ export type InvoiceDetail = {
     provider: string;
     status: string;
     provider_payment_id?: string | null;
+    provider_order_id?: string | null;
+    method?: string | null;
   }>;
   user?: {
     full_name?: string | null;
@@ -91,150 +98,379 @@ export type InvoiceDetail = {
   } | null;
 };
 
-export function downloadOrderInvoice(detail: InvoiceDetail | AdminOrderDetail) {
+function drawCard(doc: jsPDF, x: number, y: number, w: number, h: number) {
+  doc.setFillColor(255, 255, 255);
+  doc.setDrawColor(226, 232, 240);
+  doc.setLineWidth(0.75);
+  doc.roundedRect(x, y, w, h, 8, 8, 'FD');
+}
+
+function drawVLine(doc: jsPDF, x: number, y1: number, y2: number) {
+  doc.setDrawColor(241, 245, 249);
+  doc.setLineWidth(0.7);
+  doc.line(x, y1, x, y2);
+}
+
+/** Official ODI mark in Supabase product-images/brand (same asset as email). */
+const INVOICE_LOGO_URL =
+  'https://joiezvghtlyeyhuyvnwl.supabase.co/storage/v1/object/public/product-images/brand/odi-email-logo.png';
+
+let invoiceLogoPngCache: string | null | undefined;
+
+/**
+ * Load the storage logo and invert it: black ODI on white (no black box).
+ */
+async function getInvoiceLogoPng(): Promise<string | null> {
+  if (invoiceLogoPngCache !== undefined) return invoiceLogoPngCache;
+  try {
+    const res = await fetch(INVOICE_LOGO_URL, { mode: 'cors' });
+    if (!res.ok) throw new Error(`logo ${res.status}`);
+    const blob = await res.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    const png = await new Promise<string | null>((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const w = img.naturalWidth || 320;
+        const h = img.naturalHeight || 120;
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          URL.revokeObjectURL(objectUrl);
+          resolve(null);
+          return;
+        }
+        ctx.drawImage(img, 0, 0, w, h);
+        const image = ctx.getImageData(0, 0, w, h);
+        const d = image.data;
+        // Invert RGB so white ODI on black → black ODI on white
+        for (let i = 0; i < d.length; i += 4) {
+          d[i] = 255 - d[i];
+          d[i + 1] = 255 - d[i + 1];
+          d[i + 2] = 255 - d[i + 2];
+        }
+        ctx.putImageData(image, 0, 0);
+        URL.revokeObjectURL(objectUrl);
+        resolve(canvas.toDataURL('image/png'));
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        resolve(null);
+      };
+      img.src = objectUrl;
+    });
+    invoiceLogoPngCache = png;
+    return png;
+  } catch {
+    invoiceLogoPngCache = null;
+    return null;
+  }
+}
+
+function drawOdiMarkFallback(doc: jsPDF, x: number, y: number, w: number, h: number) {
+  doc.setFillColor(255, 255, 255);
+  doc.setDrawColor(226, 232, 240);
+  doc.setLineWidth(0.7);
+  doc.roundedRect(x, y, w, h, 6, 6, 'FD');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(Math.min(13, h * 0.55));
+  doc.setTextColor(17, 17, 17);
+  doc.text('ODI', x + w / 2, y + h / 2 + h * 0.18, { align: 'center' });
+}
+
+export async function downloadOrderInvoice(detail: InvoiceDetail | AdminOrderDetail) {
   const settings = getAdminStoreSettings();
-  const supportEmail = settings.supportEmail || 'odistudio24@gmail.com';
-  const storeName    = settings.storeName    || 'ODI Kids Store';
+  const supportEmail =
+    settings.supportEmail && settings.supportEmail !== 'support@odi.com'
+      ? settings.supportEmail
+      : LEGAL_COMPANY.email;
+  const website = LEGAL_COMPANY.websiteLabel;
 
   const { order, items, payments, user } = detail;
   const addr = order.shipping_address;
 
   const customerName =
     [addr?.first_name, addr?.last_name].filter(Boolean).join(' ') ||
-    user?.full_name || user?.email || 'Customer';
+    user?.full_name ||
+    user?.email ||
+    'Customer';
   const customerEmail = addr?.email || user?.email || '';
   const customerPhone = addr?.phone || (user?.phone ? String(user.phone) : '') || '';
-  const addrLine = [addr?.street, addr?.city, addr?.state, addr?.postal_code, addr?.country]
-    .filter(Boolean).join(', ');
+  const shipCountry = !addr?.country || /^in$/i.test(addr.country) ? 'India' : addr.country;
+  const shipParts = [
+    addr?.street,
+    addr?.city && addr?.state && addr.city.trim().toLowerCase() === addr.state.trim().toLowerCase()
+      ? null
+      : addr?.city,
+    addr?.state,
+    addr?.postal_code,
+    shipCountry,
+  ];
+  const shipLine = shipParts.filter(Boolean).join(', ');
+  const buyerGstin = (addr as { gstin?: string } | null | undefined)?.gstin?.trim() || '';
 
-  const payment = payments[0];
-  const isCod = (payment?.provider || '').toLowerCase() === 'cod';
-  const isPaid  = ['captured', 'paid', 'authorized'].includes((payment?.status || '').toLowerCase())
-    || ['paid', 'delivered', 'shipped', 'processing'].includes(order.status);
+  const payment =
+    payments.find((row) =>
+      ['captured', 'paid', 'authorized'].includes((row.status || '').toLowerCase()),
+    ) || payments[0];
+  const payKind = humanPaymentMethod(payment?.provider || '', payment?.method);
+  const isCod = payKind.isCod;
+  const payStatus = (payment?.status || '').toLowerCase();
+  const isPaid = isCod
+    ? ['captured', 'paid'].includes(payStatus) || order.status === 'delivered'
+    : ['captured', 'paid', 'authorized'].includes(payStatus) ||
+      ['paid', 'delivered', 'shipped', 'processing'].includes(order.status);
 
-  const doc   = new jsPDF({ unit: 'pt', format: 'a4' });
+  const txnId = payment?.provider_payment_id || payment?.provider_order_id || '—';
+  const displayTxn = txnId.length > 24 ? `${txnId.slice(0, 11)}…${txnId.slice(-8)}` : txnId;
+
+  const gstPaise = gstInclusivePaise(order.total_paise);
+  const shippingPaise = order.shipping_paise ?? 0;
+
+  const doc = new jsPDF({ unit: 'pt', format: 'a4' });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
-  const mX    = 52;
+  const mX = 40;
   const contentW = pageW - mX * 2;
+  const GAP = 18;
+  const FOOTER_RESERVE = 46;
 
-  // ─── TOP HEADER BAND ────────────────────────────────────────────────────
-  doc.setFillColor(10, 10, 10);
-  doc.rect(0, 0, pageW, 96, 'F');
+  // ── Header: Supabase brand logo (black on white) LEFT + TAX INVOICE RIGHT
+  const headerTop = 34;
+  const logoW = 64;
+  const logoH = 28;
+  const logoPng = await getInvoiceLogoPng();
+  if (logoPng) {
+    doc.addImage(logoPng, 'PNG', mX, headerTop, logoW, logoH);
+  } else {
+    drawOdiMarkFallback(doc, mX, headerTop, logoW, logoH);
+  }
 
-  // Cyan–indigo stripe
-  doc.setFillColor(8, 145, 178);
-  doc.rect(0, 96, pageW * 0.5, 5, 'F');
-  doc.setFillColor(79, 70, 229);
-  doc.rect(pageW * 0.5, 96, pageW * 0.5, 5, 'F');
-
-  // Brand name
+  const brandX = mX + logoW + 10;
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(28);
-  doc.setTextColor(255, 255, 255);
-  doc.text('ODI', mX, 44);
-
+  doc.setFontSize(12);
+  doc.setTextColor(17, 24, 39);
+  doc.text('ODI STUDIO KIDS STORE', brandX, headerTop + 11);
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
-  doc.setTextColor(165, 243, 252);
-  doc.text(storeName.toUpperCase(), mX, 60);
-
-  doc.setTextColor(180, 180, 180);
   doc.setFontSize(8);
-  doc.text(supportEmail, mX, 76);
+  doc.setTextColor(100, 116, 139);
+  doc.text('Spatial Media & Kids Learning Kits', brandX, headerTop + 23);
 
-  // Invoice label + number
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(9);
-  doc.setTextColor(163, 163, 163);
-  doc.text('INVOICE', pageW - mX, 34, { align: 'right' });
+  doc.setFontSize(22);
+  doc.setTextColor(17, 24, 39);
+  doc.text('TAX INVOICE', pageW - mX, headerTop + 18, { align: 'right' });
 
-  doc.setFontSize(14);
-  doc.setTextColor(34, 211, 238);
-  doc.text(order.order_number, pageW - mX, 52, { align: 'right' });
+  // ── Sold by (left) + invoice meta (right) ───────────────────────────────
+  const metaColW = 210;
+  const soldW = contentW - metaColW - 16;
+  let y = headerTop + logoH + 18;
 
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
-  doc.setTextColor(180, 180, 180);
-  doc.text(formatDate(order.created_at), pageW - mX, 68, { align: 'right' });
+  doc.setFontSize(8);
+  doc.setTextColor(71, 85, 105);
+  const soldAddress = LEGAL_COMPANY.address.replace(/^ODI Studio,\s*/i, '');
+  const soldBy = doc.splitTextToSize(
+    `Sold By: ODI Studio Kids Store, ${soldAddress}`,
+    soldW,
+  ) as string[];
+  doc.text(soldBy, mX, y);
 
-  // ─── STATUS BADGE ───────────────────────────────────────────────────────
-  const badgeText = humanOrderStatus(order.status, isCod).toUpperCase();
-  const badgeW    = doc.getStringUnitWidth(badgeText) * 9 + 24;
-  const badgeX    = pageW - mX - badgeW;
+  const metaRows: Array<[string, string]> = [
+    ['Invoice Number', `#${order.order_number}`],
+    ['Invoice Date', formatDate(order.created_at)],
+    ['Place of Supply', placeOfSupply(addr)],
+  ];
+  let metaY = y;
+  for (const [label, value] of metaRows) {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(100, 116, 139);
+    doc.text(`${label}:`, pageW - mX - metaColW, metaY);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8.5);
+    doc.setTextColor(17, 24, 39);
+    const lines = doc.splitTextToSize(value, metaColW - 88) as string[];
+    doc.text(lines, pageW - mX, metaY, { align: 'right' });
+    metaY += Math.max(13, lines.length * 11);
+  }
 
-  doc.setFillColor(isPaid ? 16 : 120, isPaid ? 185 : 100, isPaid ? 129 : 60, isPaid ? 0.15 : 0.15);
-  doc.roundedRect(badgeX, 75, badgeW, 16, 4, 4, 'F');
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(7.5);
-  doc.setTextColor(isPaid ? 34 : 180, isPaid ? 197 : 140, isPaid ? 94 : 60);
-  doc.text(badgeText, badgeX + 12, 86);
-
-  // ─── BILL TO / PAYMENT CARDS ────────────────────────────────────────────
-  let y = 120;
-  const colW = (contentW - 20) / 2;
-
-  // Card backgrounds
-  doc.setFillColor(250, 250, 250);
-  doc.setDrawColor(226, 232, 240);
-  doc.setLineWidth(0.6);
-  doc.roundedRect(mX,          y, colW, 110, 7, 7, 'FD');
-  doc.roundedRect(mX + colW + 20, y, colW, 110, 7, 7, 'FD');
-
-  // Bill to
-  doc.setFont('helvetica', 'bold');
+  y = Math.max(y + soldBy.length * 10.5, metaY) + 10;
+  doc.setFont('helvetica', 'normal');
   doc.setFontSize(7.5);
   doc.setTextColor(100, 116, 139);
-  doc.text('BILL TO', mX + 14, y + 20);
+  doc.text(
+    `Seller GSTIN: ${LEGAL_COMPANY.gstin}   ·   State: Punjab   ·   Support: ${supportEmail}   ·   ${website}`,
+    mX,
+    y,
+  );
+
+  y += 14;
+  doc.setDrawColor(226, 232, 240);
+  doc.setLineWidth(0.8);
+  doc.line(mX, y, pageW - mX, y);
+  y += GAP + 4;
+
+  // ── Customer & shipping ─────────────────────────────────────────────────
+  const leftPad = 16;
+  const midX = mX + contentW / 2;
+  const rightPad = midX + 16;
+  const nameMaxW = contentW / 2 - 36;
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(12);
-  doc.setTextColor(15, 23, 42);
-  doc.text(customerName, mX + 14, y + 38);
-
+  const nameLines = doc.splitTextToSize(customerName, nameMaxW) as string[];
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
-  doc.setTextColor(71, 85, 105);
-  let cy = y + 54;
-  if (customerEmail) { doc.text(customerEmail, mX + 14, cy); cy += 14; }
-  if (customerPhone) { doc.text(String(customerPhone), mX + 14, cy); cy += 14; }
-  if (addrLine) {
-    const wrapped = doc.splitTextToSize(addrLine, colW - 28);
-    doc.text(wrapped, mX + 14, cy);
-  }
+  doc.setFontSize(8.5);
+  const shipLines = doc.splitTextToSize(shipLine || '—', nameMaxW) as string[];
 
-  // Payment details — human-readable only
-  const rx = mX + colW + 20;
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(7.5);
-  doc.setTextColor(100, 116, 139);
-  doc.text('PAYMENT DETAILS', rx + 14, y + 20);
+  const leftBodyH =
+    18 + // BILLED TO
+    nameLines.length * 14 +
+    (customerEmail ? 12 : 0) +
+    (customerPhone ? 12 : 0) +
+    (buyerGstin ? 16 : 0) +
+    8;
+  const rightBodyH = 18 + nameLines.length * 14 + shipLines.length * 11 + 8;
+  const custH = Math.max(108, 34 + Math.max(leftBodyH, rightBodyH));
+
+  drawCard(doc, mX, y, contentW, custH);
+
+  // soft header strip
+  doc.setFillColor(248, 250, 252);
+  doc.roundedRect(mX + 0.5, y + 0.5, contentW - 1, 26, 8, 8, 'F');
+  doc.setFillColor(248, 250, 252);
+  doc.rect(mX + 0.5, y + 12, contentW - 1, 14, 'F');
 
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(11);
-  doc.setTextColor(15, 23, 42);
+  doc.setFontSize(7);
+  doc.setTextColor(148, 163, 184);
+  doc.text('CUSTOMER & SHIPPING DETAILS', mX + leftPad, y + 17);
   doc.text(
-    payment ? humanPaymentMethod(payment.provider) : 'Online Payment',
-    rx + 14, y + 38
+    buyerGstin ? 'B2B / Registered' : 'B2C / Unregistered',
+    pageW - mX - leftPad,
+    y + 17,
+    { align: 'right' },
   );
 
+  drawVLine(doc, midX, y + 32, y + custH - 10);
+
+  // Billed to
+  let cy = y + 40;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(6.5);
+  doc.setTextColor(148, 163, 184);
+  doc.text('BILLED TO', mX + leftPad, cy);
+  cy += 14;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(12);
+  doc.setTextColor(17, 24, 39);
+  doc.text(nameLines, mX + leftPad, cy);
+  cy += nameLines.length * 14;
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
-  const statusLabel = humanPaymentStatus(payment?.status || '', isCod);
-  doc.setTextColor(isPaid ? 16 : 100, isPaid ? 185 : 100, isPaid ? 129 : 100);
-  doc.text(statusLabel, rx + 14, y + 54);
+  doc.setFontSize(8.5);
+  doc.setTextColor(71, 85, 105);
+  if (customerEmail) {
+    doc.text(customerEmail, mX + leftPad, cy);
+    cy += 12;
+  }
+  if (customerPhone) {
+    doc.text(
+      customerPhone.startsWith('+') ? customerPhone : `+91 ${customerPhone}`,
+      mX + leftPad,
+      cy,
+    );
+    cy += 12;
+  }
+  if (buyerGstin) {
+    cy += 4;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7.5);
+    doc.setTextColor(17, 24, 39);
+    doc.text(`BUYER GSTIN: ${buyerGstin}`, mX + leftPad, cy);
+  }
 
-  doc.setTextColor(100, 116, 139);
-  doc.text(`Mode: ${isCod ? 'Cash on Delivery' : isPaid ? 'Prepaid' : 'Pending'}`, rx + 14, y + 70);
+  // Shipping
+  let sy = y + 40;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(6.5);
+  doc.setTextColor(148, 163, 184);
+  doc.text('DELIVERY / SHIPPING ADDRESS', rightPad, sy);
 
-  y += 130;
+  doc.setFillColor(255, 255, 255);
+  doc.setDrawColor(226, 232, 240);
+  doc.roundedRect(pageW - mX - 108, y + 32, 92, 15, 4, 4, 'FD');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(6.5);
+  doc.setTextColor(71, 85, 105);
+  doc.text('Standard Delivery', pageW - mX - 62, y + 42, { align: 'center' });
 
-  // ─── ITEMS TABLE ────────────────────────────────────────────────────────
-  const tableRows = items.map((item) => {
+  sy += 14;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(12);
+  doc.setTextColor(17, 24, 39);
+  doc.text(nameLines, rightPad, sy);
+  sy += nameLines.length * 14;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8.5);
+  doc.setTextColor(71, 85, 105);
+  doc.text(shipLines, rightPad, sy);
+
+  y += custH + GAP;
+
+  // ── Payment details ─────────────────────────────────────────────────────
+  const payH = 64;
+  drawCard(doc, mX, y, contentW, payH);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7);
+  doc.setTextColor(148, 163, 184);
+  doc.text('PAYMENT DETAILS', mX + leftPad, y + 15);
+
+  const payCols = [
+    { label: 'PAYMENT METHOD', lines: payKind.lines, color: [17, 24, 39] as const },
+    { label: 'PAYMENT MODE', lines: [payKind.mode], color: [17, 24, 39] as const },
+    {
+      label: 'PAYMENT STATUS',
+      lines: [isPaid ? 'Paid in Full' : isCod ? 'Pay on delivery' : 'Awaiting payment'],
+      color: (isPaid
+        ? [16, 185, 129]
+        : isCod
+          ? [217, 119, 6]
+          : [100, 116, 139]) as [number, number, number],
+    },
+    { label: 'TRANSACTION ID', lines: [displayTxn], color: [17, 24, 39] as const },
+  ];
+  const colW = contentW / 4;
+  payCols.forEach((col, i) => {
+    const cx = mX + colW * i + 14;
+    if (i > 0) drawVLine(doc, mX + colW * i, y + 24, y + payH - 10);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(6.5);
+    doc.setTextColor(148, 163, 184);
+    doc.text(col.label, cx, y + 34);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.setTextColor(col.color[0], col.color[1], col.color[2]);
+    // Single-line values only — never wrap mid-phrase in the payment row
+    const line = col.lines[0] || '—';
+    const fitted =
+      doc.getTextWidth(line) <= colW - 22
+        ? line
+        : `${line.slice(0, Math.max(8, Math.floor((colW - 22) / 5)))}…`;
+    doc.text(fitted, cx, y + 50);
+  });
+
+  y += payH + GAP;
+
+  // ── Items table ─────────────────────────────────────────────────────────
+  const tablePad = 6;
+  const tableTop = y + tablePad;
+  const tableRows = items.map((item, i) => {
     const lineTotal = item.line_total_paise ?? item.unit_price_paise * item.quantity;
     return [
+      String(i + 1).padStart(2, '0'),
       item.snapshot_name,
-      '1 kit',
       String(item.quantity),
       pdfMoney(item.unit_price_paise),
       pdfMoney(lineTotal),
@@ -242,113 +478,187 @@ export function downloadOrderInvoice(detail: InvoiceDetail | AdminOrderDetail) {
   });
 
   autoTable(doc, {
-    startY: y,
-    head: [['Description', 'Type', 'Qty', 'Unit Price', 'Amount']],
-    body: tableRows.length ? tableRows : [['No items', '', '', '', '']],
-    theme: 'grid',
-    margin: { left: mX, right: mX },
+    startY: tableTop,
+    head: [['#', 'ITEM DESCRIPTION', 'QTY', 'RATE (INCL. GST)', 'AMOUNT (INR)']],
+    body: tableRows.length ? tableRows : [['—', 'No items', '0', pdfMoney(0), pdfMoney(0)]],
+    theme: 'plain',
+    margin: { left: mX + 4, right: mX + 4 },
     styles: {
       font: 'helvetica',
       fontSize: 9,
-      textColor: [23, 23, 23],
-      cellPadding: { top: 10, bottom: 10, left: 10, right: 10 },
-      lineColor: [226, 232, 240],
-      lineWidth: 0.5,
+      textColor: [17, 24, 39],
+      cellPadding: { top: 10, bottom: 16, left: 8, right: 8 },
       valign: 'middle',
     },
     headStyles: {
-      fillColor: [15, 23, 42],
-      textColor: [255, 255, 255],
+      fillColor: [248, 250, 252],
+      textColor: [148, 163, 184],
       fontStyle: 'bold',
-      fontSize: 8,
-      cellPadding: { top: 11, bottom: 11, left: 10, right: 10 },
+      fontSize: 7,
+      cellPadding: { top: 10, bottom: 10, left: 8, right: 8 },
     },
-    alternateRowStyles: { fillColor: [248, 250, 252] },
     columnStyles: {
-      0: { cellWidth: 'auto', fontStyle: 'bold' },
-      1: { cellWidth: 70, textColor: [100, 116, 139] },
-      2: { halign: 'center', cellWidth: 40 },
-      3: { halign: 'right', cellWidth: 90 },
-      4: { halign: 'right', cellWidth: 90, fontStyle: 'bold' },
+      0: { cellWidth: 32, textColor: [148, 163, 184], fontStyle: 'bold' },
+      1: { cellWidth: 'auto', fontStyle: 'bold', fontSize: 10 },
+      2: { halign: 'center', cellWidth: 48, fontStyle: 'bold' },
+      3: { halign: 'right', cellWidth: 112, fontStyle: 'bold', fontSize: 9 },
+      4: { halign: 'right', cellWidth: 100, fontStyle: 'bold' },
+    },
+    didDrawCell: (data) => {
+      if (data.section === 'body' && data.column.index === 3) {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(6.5);
+        doc.setTextColor(148, 163, 184);
+        doc.text(
+          `(Incl. ${GST_RATE}% ${GST_LABEL})`,
+          data.cell.x + data.cell.width - 8,
+          data.cell.y + data.cell.height - 6,
+          { align: 'right' },
+        );
+      }
     },
   });
 
-  // ─── TOTALS BOX ─────────────────────────────────────────────────────────
-  type TotalLine = { label: string; value: string; highlight?: boolean; deduct?: boolean };
-  const finalY =
-    (doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? y + 40;
+  const tableBottom =
+    (doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? tableTop + 48;
+  const itemsCardH = Math.max(tableBottom - y + tablePad, 64);
+  doc.setDrawColor(226, 232, 240);
+  doc.setLineWidth(0.75);
+  doc.roundedRect(mX, y, contentW, itemsCardH, 8, 8, 'S');
 
-  const totalLines: TotalLine[] = [
-    { label: 'Subtotal', value: pdfMoney(order.subtotal_paise) },
+  // ── Notes + totals (anchored above footer when space allows) ────────────
+  type TotalRow = {
+    label: string;
+    value: string;
+    kind: 'muted' | 'green' | 'total' | 'paid' | 'gst';
+  };
+  const totalRows: TotalRow[] = [
+    { label: 'Subtotal (MRP)', value: pdfMoney(order.subtotal_paise), kind: 'muted' },
   ];
   if (order.discount_paise > 0) {
-    totalLines.push({
-      label: order.coupon_code ? `Promo discount (${order.coupon_code})` : 'Discount',
-      value: pdfMoney(order.discount_paise),
-      deduct: true,
+    totalRows.push({
+      label: order.coupon_code ? `Discount (${order.coupon_code})` : 'Discount',
+      value: `- ${pdfMoney(order.discount_paise)}`,
+      kind: 'muted',
     });
   }
-  totalLines.push({
-    label: 'Shipping',
-    value: (order.shipping_paise ?? 0) > 0 ? pdfMoney(order.shipping_paise ?? 0) : 'FREE',
+  totalRows.push({
+    label: 'Shipping & Handling',
+    value: shippingPaise > 0 ? pdfMoney(shippingPaise) : 'Free',
+    kind: shippingPaise > 0 ? 'muted' : 'green',
   });
-  totalLines.push({ label: 'Total Amount Paid', value: pdfMoney(order.total_paise), highlight: true });
-
-  const boxW = 240;
-  const boxX = pageW - mX - boxW;
-  let boxY   = finalY + 24;
-  const rowH = 24;
-  const boxH = totalLines.length * rowH + 20;
-
-  doc.setFillColor(250, 250, 250);
-  doc.setDrawColor(226, 232, 240);
-  doc.roundedRect(boxX, boxY, boxW, boxH, 7, 7, 'FD');
-
-  let rowY = boxY + 20;
-  for (const line of totalLines) {
-    if (line.highlight) {
-      doc.setFillColor(15, 23, 42);
-      doc.roundedRect(boxX + 8, rowY - 14, boxW - 16, 26, 5, 5, 'F');
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(11);
-      doc.setTextColor(255, 255, 255);
-      doc.text(line.label, boxX + 18, rowY + 4);
-      doc.setTextColor(34, 211, 238);
-      doc.text(line.value, boxX + boxW - 18, rowY + 4, { align: 'right' });
-    } else {
-      doc.setFont('helvetica', line.deduct ? 'italic' : 'normal');
-      doc.setFontSize(9);
-      doc.setTextColor(71, 85, 105);
-      doc.text(line.label, boxX + 18, rowY);
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(line.deduct ? 22 : 15, line.deduct ? 163 : 23, line.deduct ? 74 : 42);
-      doc.text(line.deduct ? `- ${line.value}` : line.value, boxX + boxW - 18, rowY, { align: 'right' });
-    }
-    rowY += rowH;
+  totalRows.push({
+    label: `Included ${GST_LABEL} (${GST_RATE}%)`,
+    value: pdfMoney(gstPaise),
+    kind: 'gst',
+  });
+  totalRows.push({
+    label: 'TOTAL INVOICE AMOUNT',
+    value: pdfMoney(order.total_paise),
+    kind: 'total',
+  });
+  if (isPaid) {
+    totalRows.push({
+      label: 'Total Paid (Full Settlement)',
+      value: pdfMoney(order.total_paise),
+      kind: 'paid',
+    });
   }
 
-  // ─── NOTE UNDER TOTALS ──────────────────────────────────────────────────
-  const noteY = boxY + boxH + 14;
-  doc.setFont('helvetica', 'italic');
-  doc.setFontSize(8);
+  const bottomH = Math.max(100, 22 + totalRows.length * 18 + 14);
+  let blockY = y + itemsCardH + GAP;
+  // Keep original mock spacing: sit near the footer when the page has room,
+  // but do not leave a huge empty gap in the middle.
+  const preferredY = pageH - FOOTER_RESERVE - bottomH;
+  if (preferredY - blockY > 40 && preferredY - blockY < 160) {
+    blockY = preferredY;
+  }
+  if (blockY + bottomH > pageH - FOOTER_RESERVE) {
+    doc.addPage();
+    blockY = 40;
+  }
+
+  const gapMid = 16;
+  const notesW = contentW * 0.44;
+  const totalsX = mX + notesW + gapMid;
+
+  drawCard(doc, mX, blockY, notesW, bottomH);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7);
   doc.setTextColor(148, 163, 184);
-  doc.text('This is a computer-generated invoice and does not require a signature.', mX, noteY);
+  doc.text('TERMS & NOTES', mX + 14, blockY + 20);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(71, 85, 105);
+  const thanks = doc.splitTextToSize(
+    'Thank you for shopping with ODI Studio Kids Store!',
+    notesW - 28,
+  ) as string[];
+  doc.text(thanks, mX + 14, blockY + 38);
 
-  // ─── FOOTER ─────────────────────────────────────────────────────────────
-  const footerY = pageH - 44;
+  // Totals — right-aligned like the original PDF
+  let ty = blockY + 20;
+  const labelX = totalsX + 8;
+  const valueX = pageW - mX;
+  for (const row of totalRows) {
+    if (row.kind === 'total') {
+      doc.setDrawColor(226, 232, 240);
+      doc.setLineWidth(0.7);
+      doc.line(labelX, ty - 8, valueX, ty - 8);
+      ty += 4;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.setTextColor(17, 24, 39);
+      doc.text(row.label, labelX, ty);
+      doc.setFontSize(13);
+      doc.text(row.value, valueX, ty, { align: 'right' });
+      ty += 22;
+    } else if (row.kind === 'paid') {
+      doc.setFillColor(16, 185, 129);
+      doc.circle(labelX + 3.5, ty - 2.5, 3.2, 'F');
+      doc.setDrawColor(255, 255, 255);
+      doc.setLineWidth(1.05);
+      doc.line(labelX + 2, ty - 2.5, labelX + 3.2, ty - 1.1);
+      doc.line(labelX + 3.2, ty - 1.1, labelX + 5.6, ty - 3.8);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8.5);
+      doc.setTextColor(16, 185, 129);
+      doc.text(row.label, labelX + 12, ty);
+      doc.setFontSize(10.5);
+      doc.text(row.value, valueX, ty, { align: 'right' });
+      ty += 17;
+    } else {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(100, 116, 139);
+      doc.text(row.label, labelX, ty);
+      if (row.kind === 'green') {
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(16, 185, 129);
+      } else if (row.kind === 'gst') {
+        doc.setTextColor(148, 163, 184);
+      } else {
+        doc.setTextColor(17, 24, 39);
+      }
+      doc.text(row.value, valueX, ty, { align: 'right' });
+      ty += 17;
+    }
+  }
+
+  // ── Footer ──────────────────────────────────────────────────────────────
+  const footerY = pageH - 24;
   doc.setDrawColor(226, 232, 240);
-  doc.setLineWidth(0.6);
-  doc.line(mX, footerY - 16, pageW - mX, footerY - 16);
-
+  doc.setLineWidth(0.75);
+  doc.line(mX, footerY - 12, pageW - mX, footerY - 12);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
   doc.setTextColor(100, 116, 139);
   doc.text(
-    `Questions about your order? Contact us at ${supportEmail}`,
-    mX, footerY
+    `ODI Studio Kids Store   ·   ${supportEmail}   ·   ${website}`,
+    pageW / 2,
+    footerY,
+    { align: 'center' },
   );
-  doc.setTextColor(8, 145, 178);
-  doc.text('ODI - Spatial Media & Kids Learning Kits', pageW - mX, footerY, { align: 'right' });
 
   const safeName = order.order_number.replace(/[^\w.-]+/g, '_');
   doc.save(`ODI-Invoice-${safeName}.pdf`);

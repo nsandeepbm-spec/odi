@@ -434,7 +434,7 @@ export default function UserOrderDetailPage() {
             <button
               type="button"
               onClick={() =>
-                downloadOrderInvoice({
+                void downloadOrderInvoice({
                   order,
                   items,
                   payments,

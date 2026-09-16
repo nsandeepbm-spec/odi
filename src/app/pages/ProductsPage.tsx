@@ -63,8 +63,8 @@ const FAQS = [
     a: 'Our kits are designed for ages 6–14 depending on the volume. Space Explorer is ideal for ages 6–12.',
   },
   {
-    q: 'Do you offer Cash on Delivery?',
-    a: 'Yes — pay when your kit arrives. Free shipping is included on all orders across India.',
+  q: 'How can I pay for my order?',
+  a: 'You can pay securely using UPI, credit card, online payment, or net banking.'
   },
 ];
 
@@ -648,7 +648,7 @@ export default function ProductsPage() {
       </section>
 
       {/* Interest tiles */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 py-10 sm:py-12">
+      {/* <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 py-10 sm:py-12">
         <h2 className="text-xl font-black mb-6">Discover by Interest</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 auto-rows-[130px] sm:auto-rows-[150px]">
           {INTEREST_TILES.map((tile) =>
@@ -708,7 +708,7 @@ export default function ProductsPage() {
             )
           )}
         </div>
-      </section>
+      </section> */}
 
       {/* FAQ */}
       <section className="relative overflow-hidden bg-[#f7f8fa]">

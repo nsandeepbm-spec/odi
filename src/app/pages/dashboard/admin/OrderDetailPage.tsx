@@ -205,7 +205,7 @@ export default function OrderDetailPage() {
           <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 w-full sm:w-auto">
             <button
               type="button"
-              onClick={() => downloadOrderInvoice(detail)}
+              onClick={() => void downloadOrderInvoice(detail)}
               className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-5 py-2.5 text-sm font-bold tracking-wide bg-gradient-to-r from-cyan-400 to-indigo-500 text-white shadow-[0_0_18px_rgba(56,189,248,0.22)] hover:shadow-[0_0_24px_rgba(99,102,241,0.35)] transition-all rounded-xl"
             >
               <FileDown className="w-4 h-4" /> Invoice
