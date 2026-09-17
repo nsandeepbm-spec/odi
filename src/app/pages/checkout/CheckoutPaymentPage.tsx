@@ -7,9 +7,6 @@ import {
   Banknote,
   Smartphone,
   Building2,
-  Check,
-  RefreshCw,
-  Truck,
   MapPin,
 } from 'lucide-react';
 import { useCheckout, isShippingComplete, isDbAddressId } from '../../lib/checkout';
@@ -214,6 +211,15 @@ export default function CheckoutPaymentPage() {
             });
           }
         },
+        modal: {
+          ondismiss: () => {
+            setFeedback({
+              tone: 'error',
+              title: 'Payment not completed',
+              message: 'You were not charged. Your order was not placed. You can try again when ready.',
+            });
+          },
+        },
         prefill: {
           name: customerName,
           email: shipping.email,
@@ -226,8 +232,10 @@ export default function CheckoutPaymentPage() {
       rzp.on('payment.failed', (response) => {
         setFeedback({
           tone: 'error',
-          title: 'Payment failed',
-          message: response.error.description || 'The payment was not completed.',
+          title: 'Payment not completed',
+          message:
+            response.error.description ||
+            'You were not charged. Your order was not placed. You can try again.',
         });
       });
       rzp.open();
@@ -419,21 +427,6 @@ export default function CheckoutPaymentPage() {
               )}
             </div>
 
-            <div className="grid grid-cols-3 gap-2 py-3 border-y border-neutral-100 mb-4">
-              <div className="flex flex-col items-center text-center gap-1 px-1">
-                <ShieldCheck className="w-4 h-4 text-neutral-700" />
-                <span className="text-[10px] font-bold text-neutral-700">Secure</span>
-              </div>
-              <div className="flex flex-col items-center text-center gap-1 px-1 border-x border-neutral-100">
-                <RefreshCw className="w-4 h-4 text-neutral-700" />
-                <span className="text-[10px] font-bold text-neutral-700">7 Day Return</span>
-              </div>
-              <div className="flex flex-col items-center text-center gap-1 px-1">
-                <Truck className="w-4 h-4 text-neutral-700" />
-                <span className="text-[10px] font-bold text-neutral-700">Free Ship</span>
-              </div>
-            </div>
-
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
               <button
                 type="button"
@@ -450,19 +443,6 @@ export default function CheckoutPaymentPage() {
               >
                 {loading ? 'Processing…' : payLabel}
               </button>
-            </div>
-
-            <div className="flex flex-col items-center gap-1.5 mt-4">
-              <div className="flex items-center gap-2 text-[10px] font-bold text-neutral-400">
-                <Check className="w-3.5 h-3.5" />
-                <span>Safe and Secure Payments</span>
-              </div>
-              {activeMethod !== 'cod' && (
-                <p className="text-[10px] text-neutral-400">
-                  Payments powered by{' '}
-                  <span className="font-black text-[#3395FF]">Razorpay</span>
-                </p>
-              )}
             </div>
           </form>
           </div>

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Minus, Plus, ShoppingBag } from 'lucide-react';
 import { useNavigate } from 'react-router';
-import { useCartStore } from '../../store/cartStore';
+import { useCartStore, CART_MAX_QTY } from '../../store/cartStore';
 import { formatInr, isProductPurchasable } from '../../data/products';
 import { persistCheckoutProduct } from '../../lib/checkout';
 import { getPublicProduct } from '../../lib/api';
@@ -29,21 +29,29 @@ export function CartDrawer() {
 
   const handleCheckout = async () => {
     if (items.length === 0) return;
-    const item = items[0];
+    const slug = items[0].id;
     setBusy(true);
     setCartError(null);
     try {
-      const product = await getPublicProduct(item.id);
+      const product = await getPublicProduct(slug);
       if (!isProductPurchasable(product)) {
-        removeItem(item.id);
+        removeItem(slug);
         setCartError('This kit is coming soon and can’t be checked out yet.');
         return;
       }
-      persistCheckoutProduct(item.id, item.quantity);
+      // Re-read cart after await so quantity matches the latest drawer −/+ edits.
+      const latest = useCartStore.getState().items.find((i) => i.id === slug);
+      if (!latest) {
+        setCartError('Your cart is empty.');
+        return;
+      }
+      const qty = persistCheckoutProduct(latest.id, latest.quantity);
       closeDrawer();
-      navigate(`/checkout/review?product=${item.id}`);
+      navigate(`/checkout/review?product=${latest.id}`, {
+        state: { checkoutQuantity: qty },
+      });
     } catch {
-      removeItem(item.id);
+      removeItem(slug);
       setCartError('This kit is not available for purchase.');
     } finally {
       setBusy(false);
@@ -130,7 +138,7 @@ export function CartDrawer() {
                           </div>
                           <button
                             onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                            disabled={item.quantity >= 10}
+                            disabled={item.quantity >= CART_MAX_QTY}
                             className="w-7 h-7 flex items-center justify-center hover:bg-neutral-50 disabled:opacity-40 text-neutral-600"
                           >
                             <Plus className="w-3 h-3" />
