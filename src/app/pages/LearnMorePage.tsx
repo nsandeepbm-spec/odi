@@ -79,11 +79,22 @@ const LearnMorePage: React.FC = () => {
             </FadeUp>
             <FadeUp delay={0.22}>
               <div className="flex flex-wrap gap-3 mb-12">
-                <button onClick={() => navigate('/products')}
+                <button
+                  type="button"
+                  onClick={() => navigate('/products')}
                   className="px-7 py-3.5 text-sm font-semibold tracking-wide transition-transform hover:-translate-y-0.5"
-                  style={{ background: T.text, color: T.bg }}>Buy Now</button>
-                <button className="px-7 py-3.5 text-sm font-semibold tracking-wide border transition-transform hover:-translate-y-0.5"
-                  style={{ background: 'transparent', color: T.text, borderColor: T.border }}>Watch Preview</button>
+                  style={{ background: T.text, color: T.bg }}
+                >
+                  Buy Now
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate('/contact')}
+                  className="px-7 py-3.5 text-sm font-semibold tracking-wide border transition-transform hover:-translate-y-0.5"
+                  style={{ background: 'transparent', color: T.text, borderColor: T.border }}
+                >
+                  Contact Us
+                </button>
               </div>
             </FadeUp>
             <FadeUp delay={0.26}>

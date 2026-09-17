@@ -9,7 +9,6 @@ import {
   ArrowLeft,
   Check,
   Tag,
-  RefreshCw,
   Banknote,
   Truck,
   Star,
@@ -97,7 +96,7 @@ export default function CheckoutPage() {
   const [currentImg, setCurrentImg] = useState(0);
   const [detailTab, setDetailTab] = useState<DetailTab>('description');
   const [reviews, setReviews] = useState<PublicReview[]>([]);
-  const { addItem, toggleDrawer } = useCartStore();
+  const { addItem, upsertItem, toggleDrawer } = useCartStore();
 
   useEffect(() => {
     if (!product?.slug) return;
@@ -199,7 +198,7 @@ export default function CheckoutPage() {
                 <button
                   type="button"
                   onClick={() => {
-                    addItem(cartPayload);
+                    upsertItem(cartPayload);
                     goToReview();
                   }}
                   className="w-full sm:w-auto shrink-0 px-5 py-3 sm:py-2.5 rounded-xl bg-[#f05a13] text-white text-sm font-bold tracking-wide hover:bg-[#e0500e] active:scale-[0.99] transition-colors"
@@ -635,7 +634,7 @@ export default function CheckoutPage() {
                 <button
                   type="button"
                   onClick={() => {
-                    addItem(cartPayload);
+                    upsertItem(cartPayload);
                     goToReview();
                   }}
                   className="w-full py-3 rounded-xl bg-[#f05a13] text-white font-bold tracking-wide hover:bg-[#e0500e] transition-colors text-sm"
@@ -650,12 +649,8 @@ export default function CheckoutPage() {
             )}
           </div>
 
-          <div className="grid grid-cols-3 gap-2 py-4 border-y border-neutral-100 mb-3">
-            <div className="flex flex-col items-center text-center gap-1.5 px-1">
-              <RefreshCw className="w-4 h-4 text-neutral-700" />
-              <span className="text-[10px] font-bold text-neutral-700 leading-tight">7 Day Replacement</span>
-            </div>
-            <div className="flex flex-col items-center text-center gap-1.5 px-1 border-x border-neutral-100">
+          <div className="grid grid-cols-2 gap-2 py-4 border-y border-neutral-100 mb-3">
+            <div className="flex flex-col items-center text-center gap-1.5 px-1 border-r border-neutral-100">
               <Banknote className="w-4 h-4 text-neutral-700" />
               <span className="text-[10px] font-bold text-neutral-700 leading-tight">Cash on Delivery</span>
             </div>

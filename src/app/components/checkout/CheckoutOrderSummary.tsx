@@ -1,6 +1,5 @@
 import React from 'react';
 import { ShieldCheck } from 'lucide-react';
-import { Link } from 'react-router';
 import { useCartStore } from '../../store/cartStore';
 import { formatInr } from '../../data/products';
 import { useCheckout, type ShippingQuoteStatus } from '../../lib/checkout';
@@ -167,16 +166,6 @@ export function CheckoutOrderSummary({ currentItem }: { currentItem?: SummaryIte
           <br />
           Encryption
         </p>
-      </div>
-
-      <div className="flex items-center justify-center gap-4 text-[10px] font-bold text-neutral-500 mt-6">
-        <Link to="/contact" className="hover:text-neutral-900">
-          Need Help?
-        </Link>
-        <span>•</span>
-        <Link to="/shipping-policy" className="hover:text-neutral-900">
-          Shipping Policy
-        </Link>
       </div>
     </div>
   );

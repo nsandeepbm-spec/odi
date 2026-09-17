@@ -175,16 +175,33 @@ function savePersisted(data: PersistedCheckout) {
   sessionStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
 
-/** Sync checkout session from cart before navigating to review/payment. */
+function clampCheckoutQty(quantity: number) {
+  if (!Number.isFinite(quantity)) return 1;
+  return Math.min(10, Math.max(1, Math.floor(quantity)));
+}
+
+/** Passed via react-router navigate state so same-URL Proceed still refreshes qty. */
+export type CheckoutLocationState = {
+  checkoutQuantity?: number;
+};
+
+/**
+ * Write checkout product + quantity to sessionStorage (survives remount / reload).
+ * Call before navigating into review/payment from cart or Buy Now.
+ */
 export function persistCheckoutProduct(slug: string, quantity: number) {
+  const qty = clampCheckoutQty(quantity);
   const persisted = loadPersisted();
   savePersisted({
     productSlug: slug,
-    quantity,
+    quantity: qty,
     shipping: { ...EMPTY_SHIPPING, ...persisted.shipping },
+    selectedAddressId: persisted.selectedAddressId,
+    ikeySlug: persisted.ikeySlug,
     couponCode: persisted.couponCode ?? null,
     couponDiscountPaise: persisted.couponDiscountPaise ?? 0,
   });
+  return qty;
 }
 
 export function CheckoutProvider({ children }: { children: React.ReactNode }) {
@@ -290,12 +307,44 @@ export function CheckoutProvider({ children }: { children: React.ReactNode }) {
     }
   }, [product, isLoadingProduct, navigate, location.pathname]);
 
+  // Prefer navigate state (Proceed / Buy Now), else sessionStorage.
+  // location.key changes on every navigate — including same-path Proceed.
   useEffect(() => {
+    const navState = location.state as CheckoutLocationState | null | undefined;
+    if (typeof navState?.checkoutQuantity === 'number') {
+      setQuantityState(clampCheckoutQty(navState.checkoutQuantity));
+      return;
+    }
     const p = loadPersisted();
     if (p.productSlug === slug && p.quantity != null) {
-      setQuantityState(Math.min(10, Math.max(1, p.quantity)));
+      setQuantityState(clampCheckoutQty(p.quantity));
     }
-  }, [slug, location.pathname]);
+  }, [slug, location.pathname, location.key, location.state]);
+
+  // While on checkout, drawer −/+ for this product updates Order Summary live.
+  useEffect(() => {
+    if (!slug) return;
+    let lastQty = useCartStore.getState().items.find((i) => i.id === slug)?.quantity;
+    return useCartStore.subscribe((state) => {
+      const nextQty = state.items.find((i) => i.id === slug)?.quantity;
+      if (nextQty == null || nextQty === lastQty) return;
+      lastQty = nextQty;
+      const clamped = clampCheckoutQty(nextQty);
+      setQuantityState((current) => (current === clamped ? current : clamped));
+      const p = loadPersisted();
+      if (p.productSlug === slug) {
+        savePersisted({
+          productSlug: slug,
+          quantity: clamped,
+          shipping: { ...EMPTY_SHIPPING, ...p.shipping },
+          selectedAddressId: p.selectedAddressId,
+          ikeySlug: p.ikeySlug,
+          couponCode: p.couponCode ?? null,
+          couponDiscountPaise: p.couponDiscountPaise ?? 0,
+        });
+      }
+    });
+  }, [slug]);
 
   useEffect(() => {
     let cancelled = false;
@@ -421,8 +470,16 @@ export function CheckoutProvider({ children }: { children: React.ReactNode }) {
   }, [quantity, product?.id, couponCode]);
 
   const setQuantity = useCallback((qty: number) => {
-    setQuantityState(Math.min(10, Math.max(1, qty)));
-  }, []);
+    const next = clampCheckoutQty(qty);
+    setQuantityState(next);
+    // Keep cart line aligned when the user edits qty on the product step.
+    if (!slug) return;
+    const cart = useCartStore.getState();
+    const line = cart.items.find((i) => i.id === slug);
+    if (line && line.quantity !== next) {
+      cart.updateQuantity(slug, next);
+    }
+  }, [slug]);
 
   const setShipping = useCallback((patch: Partial<ShippingDetails>) => {
     setShippingState((prev) => ({ ...prev, ...patch }));
@@ -551,14 +608,20 @@ export function CheckoutProvider({ children }: { children: React.ReactNode }) {
   const productQuery = product ? `?product=${product.slug}` : '';
 
   const goToReview = useCallback(() => {
-    if (!isProductPurchasable(product)) return;
-    navigate(`/checkout/review${productQuery}`);
-  }, [navigate, product, productQuery]);
+    if (!product || !isProductPurchasable(product)) return;
+    const qty = persistCheckoutProduct(product.slug, quantity);
+    navigate(`/checkout/review?product=${product.slug}`, {
+      state: { checkoutQuantity: qty } satisfies CheckoutLocationState,
+    });
+  }, [navigate, product, quantity]);
 
   const goToPayment = useCallback(() => {
-    if (!isProductPurchasable(product)) return;
-    navigate(`/checkout/payment${productQuery}`);
-  }, [navigate, product, productQuery]);
+    if (!product || !isProductPurchasable(product)) return;
+    const qty = persistCheckoutProduct(product.slug, quantity);
+    navigate(`/checkout/payment?product=${product.slug}`, {
+      state: { checkoutQuantity: qty } satisfies CheckoutLocationState,
+    });
+  }, [navigate, product, quantity]);
 
   const completeOrder = useCallback((realOrderNumber: string) => {
     setLastOrderId(realOrderNumber);

@@ -9,12 +9,15 @@ import {
   inrFromPaise,
   TableSkeleton,
   OrderBadge,
+  adminOrderStatusDisplay,
 } from '../../../components/dashboard/shared';
 import { listAdminOrders, type AdminOrder } from '../../../lib/api';
 import { downloadCsv, inDateRange } from '../../../lib/csv';
 
 const FILTERS: { label: string; value: string }[] = [
   { label: 'All', value: 'all' },
+  { label: 'Incomplete pay', value: 'incomplete_payment' },
+  { label: 'Abandoned pay', value: 'abandoned_payment' },
   { label: 'Pending', value: 'pending' },
   { label: 'Paid', value: 'paid' },
   { label: 'Processing', value: 'processing' },
@@ -55,7 +58,15 @@ export default function OrdersPage() {
       setLoading(true);
       setError(null);
       try {
-        const result = await listAdminOrders(1, 100);
+        const statusParam =
+          filter === 'all' || filter === 'incomplete_payment' || filter === 'abandoned_payment'
+            ? undefined
+            : filter;
+        // Fetch a wide page; incomplete/abandoned filters applied client-side when needed,
+        // or via status query for lifecycle filters.
+        const apiStatus =
+          filter === 'incomplete_payment' || filter === 'abandoned_payment' ? filter : statusParam;
+        const result = await listAdminOrders(1, 100, apiStatus === 'all' ? undefined : apiStatus);
         if (!cancelled) {
           setOrders(result.orders);
           setTotal(result.meta.total);
@@ -73,12 +84,11 @@ export default function OrdersPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [filter]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return orders.filter((o) => {
-      if (filter !== 'all' && o.status !== filter) return false;
       if (!inDateRange(o.created_at, dateFrom, dateTo)) return false;
       if (!q) return true;
       const customer = [o.shipping_address?.first_name, o.shipping_address?.last_name].join(' ').toLowerCase();
@@ -258,7 +268,10 @@ export default function OrdersPage() {
                           {formatDate(o.created_at)}
                         </span>
                         <div className="flex items-center gap-1.5 shrink-0">
-                          <OrderBadge status={o.status} />
+                          <OrderBadge
+                            status={adminOrderStatusDisplay(o).badgeStatus}
+                            label={adminOrderStatusDisplay(o).label}
+                          />
                           <PaymentBadge status={badgeStatus(payment?.status || 'pending')} />
                         </div>
                       </div>
@@ -316,7 +329,10 @@ export default function OrdersPage() {
                         </td>
                         <td className="px-4 lg:px-6 py-4 font-black text-white">{item?.quantity || '—'}</td>
                         <td className="px-4 lg:px-6 py-4">
-                          <OrderBadge status={o.status} />
+                          <OrderBadge
+                            status={adminOrderStatusDisplay(o).badgeStatus}
+                            label={adminOrderStatusDisplay(o).label}
+                          />
                         </td>
                         <td className="px-4 lg:px-6 py-4">
                           <PaymentBadge status={badgeStatus(payment?.status || 'pending')} />

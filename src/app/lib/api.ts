@@ -1315,6 +1315,10 @@ export interface AdminOrder {
   user_id: string;
   created_at: string;
   paid_at?: string | null;
+  razorpay_order_id?: string | null;
+  payment_close_reason?: string | null;
+  /** Present on admin list/detail — incomplete vs abandoned online checkout. */
+  payment_lifecycle?: 'incomplete_payment' | 'abandoned_payment' | null;
   delhivery_waybill?: string | null;
   delhivery_status?: string | null;
   delhivery_pickup_token?: string | null;

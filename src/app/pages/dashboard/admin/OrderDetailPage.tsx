@@ -18,6 +18,7 @@ import {
   EmptyState,
   inrFromPaise,
   OrderBadge,
+  adminOrderStatusDisplay,
 } from '../../../components/dashboard/shared';
 import { ODILoader } from '../../../components/ODILoader';
 import {
@@ -230,10 +231,23 @@ export default function OrderDetailPage() {
               <div className="min-w-0">
                 <SectionTitle icon={Package}>Order</SectionTitle>
                 <div className="flex flex-wrap items-center gap-3 -mt-2">
-                  <OrderBadge status={order.status} />
-                  <span className="text-xs text-neutral-500 font-medium">
-                    {order.paid_at ? `Paid ${formatDateTime(order.paid_at)}` : 'Not paid yet'}
-                  </span>
+                  {(() => {
+                    const display = adminOrderStatusDisplay(order);
+                    return (
+                      <>
+                        <OrderBadge status={display.badgeStatus} label={display.label} />
+                        <span className="text-xs text-neutral-500 font-medium">
+                          {order.paid_at
+                            ? `Paid ${formatDateTime(order.paid_at)}`
+                            : display.label === 'Incomplete payment'
+                              ? 'Waiting for online payment'
+                              : display.label === 'Abandoned payment'
+                                ? 'Checkout abandoned — not a customer cancel'
+                                : 'Not paid yet'}
+                        </span>
+                      </>
+                    );
+                  })()}
                 </div>
                 <p className="text-[11px] text-neutral-500 mt-2">
                   Status updates automatically from payment and Delhivery fulfillment.

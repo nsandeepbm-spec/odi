@@ -161,8 +161,36 @@ export function userOrderStatusDisplay(order: {
   if (order.status === 'pending' && !order.razorpay_order_id) {
     return { badgeStatus: 'pending', label: 'Cash on delivery' };
   }
+  // Unpaid online attempts are hidden from My Orders; keep a safe fallback label.
   if (order.status === 'pending' && order.razorpay_order_id) {
-    return { badgeStatus: 'pending', label: 'Awaiting payment' };
+    return { badgeStatus: 'pending', label: 'Payment incomplete' };
+  }
+  return { badgeStatus: order.status, label: order.status.replace(/_/g, ' ') };
+}
+
+/** Admin labels — incomplete / abandoned must not look like customer cancels. */
+export function adminOrderStatusDisplay(order: {
+  status: string;
+  razorpay_order_id?: string | null;
+  payment_close_reason?: string | null;
+  payment_lifecycle?: 'incomplete_payment' | 'abandoned_payment' | null;
+}): { badgeStatus: OrderStatus | string; label: string } {
+  const lifecycle =
+    order.payment_lifecycle ??
+    (order.payment_close_reason === 'payment_abandoned'
+      ? 'abandoned_payment'
+      : order.status === 'pending' && order.razorpay_order_id
+        ? 'incomplete_payment'
+        : null);
+
+  if (lifecycle === 'incomplete_payment') {
+    return { badgeStatus: 'pending', label: 'Incomplete payment' };
+  }
+  if (lifecycle === 'abandoned_payment') {
+    return { badgeStatus: 'cancelled', label: 'Abandoned payment' };
+  }
+  if (order.status === 'pending' && !order.razorpay_order_id) {
+    return { badgeStatus: 'pending', label: 'Cash on delivery' };
   }
   return { badgeStatus: order.status, label: order.status.replace(/_/g, ' ') };
 }
