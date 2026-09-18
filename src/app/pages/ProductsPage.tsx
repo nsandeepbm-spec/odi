@@ -412,39 +412,43 @@ export default function ProductsPage() {
   return (
     <main className="min-h-screen bg-white text-neutral-900">
       {/* Hero — full-bleed banner */}
-      <section className="relative flex items-end overflow-hidden min-h-[520px] sm:min-h-[560px] lg:min-h-[640px]">
+      <section className="relative flex items-end overflow-hidden min-h-[265px] sm:min-h-[286px] lg:min-h-[326px]">
         <img
           src="/shop-banner.png"
           alt="Kids exploring an immersive 3D learning book"
           className="absolute inset-0 w-full h-full object-cover object-center"
           fetchPriority="high"
         />
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 pt-28 sm:pt-32 pb-14 sm:pb-16 w-full">
+        <div
+          aria-hidden
+          className="absolute inset-0 bg-gradient-to-r from-black/55 via-black/25 to-transparent"
+        />
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 pt-14 sm:pt-16 pb-6 sm:pb-8 w-full">
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            className="max-w-lg text-white [text-shadow:0_2px_12px_rgba(0,0,0,0.55)]"
+            className="max-w-xl text-white [text-shadow:0_2px_12px_rgba(0,0,0,0.55)]"
           >
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black leading-tight tracking-tight mb-3 text-white">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black leading-tight tracking-tight text-white">
               Learning Beyond the Page
             </h1>
-            <p className="text-sm sm:text-base text-white/90 leading-relaxed mb-6 max-w-md">
+            <p className="mt-2 sm:mt-2.5 text-sm sm:text-[15px] text-white/90 leading-relaxed max-w-md">
               Immersive 3D books, explorer cards, and glasses for curious kids.
             </p>
-            <div className="flex flex-wrap gap-3">
+            <div className="mt-4 sm:mt-5 flex flex-wrap items-center gap-2.5 sm:gap-3">
               <button
                 type="button"
                 onClick={scrollToShop}
-                className="px-6 py-2.5 rounded-lg text-sm font-bold text-white shadow-none [text-shadow:none]"
+                className="inline-flex items-center justify-center px-5 sm:px-6 py-2.5 rounded-lg text-sm font-bold text-white shadow-none [text-shadow:none]"
                 style={{ background: CTA }}
               >
                 Shop All Kits
               </button>
               <Link
                 to="/learn-more"
-                className="px-6 py-2.5 rounded-lg border border-white/70 text-white text-sm font-bold hover:bg-white/10 flex items-center gap-2 [text-shadow:none]"
+                className="inline-flex items-center justify-center gap-2 px-5 sm:px-6 py-2.5 rounded-lg border border-white/80 text-white text-sm font-bold hover:bg-white/10 [text-shadow:none]"
               >
-                <Play className="w-4 h-4" />
+                <Play className="w-3.5 h-3.5" />
                 Learn More
               </Link>
             </div>
@@ -455,14 +459,15 @@ export default function ProductsPage() {
       {/* Sticky search + filters — stays under navbar while scrolling */}
       <div className="sticky top-[4.75rem] sm:top-[5.25rem] z-[90] bg-white/95 backdrop-blur-md border-b border-neutral-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 py-3 flex items-center gap-2 sm:gap-3">
-          <div className="relative flex-1 min-w-0 max-w-xs sm:max-w-sm">
+          {/* Mobile: search only · Desktop: search + filters */}
+          <div className="relative flex-1 min-w-0 md:max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 pointer-events-none" />
             <input
               type="search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search kits…"
-              className="w-full pl-9 pr-8 py-2 rounded-full border border-neutral-200 bg-neutral-50 text-sm outline-none focus:border-neutral-900 focus:bg-white transition-colors"
+              className="w-full pl-9 pr-8 py-2.5 md:py-2 rounded-full border border-neutral-200 bg-neutral-50 text-sm outline-none focus:border-neutral-900 focus:bg-white transition-colors"
               aria-label="Search products"
             />
             {search && (
@@ -480,7 +485,7 @@ export default function ProductsPage() {
           <select
             value={sort}
             onChange={(e) => setSort(e.target.value as typeof sort)}
-            className="shrink-0 px-3 py-2 rounded-full border border-neutral-200 bg-neutral-50 text-xs font-bold text-neutral-700 outline-none focus:border-neutral-900"
+            className="hidden md:block shrink-0 px-3 py-2 rounded-full border border-neutral-200 bg-neutral-50 text-xs font-bold text-neutral-700 outline-none focus:border-neutral-900"
             aria-label="Sort products"
           >
             <option value="default">Available</option>
@@ -488,7 +493,7 @@ export default function ProductsPage() {
             <option value="rating">Top rated</option>
           </select>
 
-          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide min-w-0 flex-1">
+          <div className="hidden md:flex items-center gap-1.5 overflow-x-auto scrollbar-hide min-w-0 flex-1">
             {CATEGORY_FILTERS.map((cat) => (
               <button
                 key={cat.key}
@@ -511,7 +516,7 @@ export default function ProductsPage() {
             disabled={isRefreshing || isLoading}
             title="Refresh catalog"
             aria-label="Refresh catalog"
-            className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-full border border-neutral-200 bg-neutral-50 text-xs font-bold text-neutral-700 hover:bg-neutral-100 hover:border-neutral-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="hidden md:inline-flex shrink-0 items-center gap-1.5 px-3 py-2 rounded-full border border-neutral-200 bg-neutral-50 text-xs font-bold text-neutral-700 hover:bg-neutral-100 hover:border-neutral-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
             Refresh
@@ -519,7 +524,7 @@ export default function ProductsPage() {
         </div>
       </div>
 
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 py-10 sm:py-12">
+      {/* <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 py-10 sm:py-12">
         <h2 className="text-xl font-black mb-6">Featured Immersive Series</h2>
         {isLoading ? (
           <ODILoader size="sm" label="Loading…" className="py-16" />
@@ -584,7 +589,7 @@ export default function ProductsPage() {
             })}
           </div>
         )}
-      </section>
+      </section> */}
 
       {/* Shop grid */}
       <section
