@@ -144,7 +144,7 @@ interface CheckoutContextValue {
   setCouponInput: (value: string) => void;
   couponMessage: string | null;
   couponApplying: boolean;
-  applyCoupon: () => Promise<void>;
+  applyCoupon: (code?: string) => Promise<boolean>;
   clearCoupon: () => void;
   productQuery: string;
   goToReview: () => void;
@@ -395,30 +395,31 @@ export function CheckoutProvider({ children }: { children: React.ReactNode }) {
     setCouponApplying(false);
   }, []);
 
-  const applyCoupon = useCallback(async () => {
-    const code = couponInput.trim().toUpperCase();
+  const applyCoupon = useCallback(async (overrideCode?: string): Promise<boolean> => {
+    const code = (overrideCode ?? couponInput).trim().toUpperCase();
     if (!code) {
       setCouponMessage('Enter a coupon code');
-      return;
+      return false;
     }
     if (!product?.id) {
       setCouponMessage('Product not loaded yet');
-      return;
+      return false;
     }
     if (!auth.currentUser) {
       setCouponMessage('Sign in to apply a coupon offer');
-      return;
+      return false;
     }
 
     const epoch = couponEpochRef.current;
     setCouponApplying(true);
     setCouponMessage(null);
+    setCouponInput(code);
     try {
       const result = await validateCoupon({
         code,
         items: [{ productId: product.id, quantity }],
       });
-      if (epoch !== couponEpochRef.current) return;
+      if (epoch !== couponEpochRef.current) return false;
       setCouponCode(result.code);
       setCouponDiscountPaise(result.discount_paise);
       setCouponInput(result.code);
@@ -427,11 +428,13 @@ export function CheckoutProvider({ children }: { children: React.ReactNode }) {
           ? `Offer ${result.code} applied — you save ₹${(result.discount_paise / 100).toFixed(0)}`
           : `Offer ${result.code} applied`
       );
+      return true;
     } catch (err) {
-      if (epoch !== couponEpochRef.current) return;
+      if (epoch !== couponEpochRef.current) return false;
       setCouponCode(null);
       setCouponDiscountPaise(0);
       setCouponMessage(err instanceof Error ? err.message : 'Invalid or expired coupon');
+      return false;
     } finally {
       if (epoch === couponEpochRef.current) setCouponApplying(false);
     }

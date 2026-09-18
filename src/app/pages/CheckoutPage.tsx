@@ -23,6 +23,7 @@ import { getPublicProductReviews, type PublicReview } from '../lib/api';
 import { motion, AnimatePresence } from 'motion/react';
 import { useCartStore } from '../store/cartStore';
 import { CheckoutOrderSummary } from '../components/checkout/CheckoutOrderSummary';
+import { CouponOffersModal } from '../components/checkout/CouponOffersModal';
 import { ODILoader } from '../components/ODILoader';
 
 type DetailTab = 'description' | 'publisher' | 'author';
@@ -84,8 +85,6 @@ export default function CheckoutPage() {
     quantity,
     setQuantity,
     goToReview,
-    couponInput,
-    setCouponInput,
     couponMessage,
     couponApplying,
     couponCode,
@@ -96,6 +95,7 @@ export default function CheckoutPage() {
   const [currentImg, setCurrentImg] = useState(0);
   const [detailTab, setDetailTab] = useState<DetailTab>('description');
   const [reviews, setReviews] = useState<PublicReview[]>([]);
+  const [offersOpen, setOffersOpen] = useState(false);
   const { addItem, upsertItem, toggleDrawer } = useCartStore();
 
   useEffect(() => {
@@ -530,56 +530,65 @@ export default function CheckoutPage() {
               <Tag className="w-3 h-3" />
               Coupon offer
             </label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={couponInput}
-                onChange={(e) => {
-                  setCouponInput(e.target.value);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    void applyCoupon();
-                  }
-                }}
-                placeholder="Enter code here"
-                disabled={!!couponCode}
-                className="flex-1 px-3 py-2.5 rounded-xl border border-neutral-200 text-sm outline-none focus:border-neutral-900 bg-white placeholder:text-neutral-400 uppercase disabled:bg-neutral-50"
-              />
-              {couponCode ? (
+            <div className="flex flex-col gap-3 rounded-xl border border-neutral-200 bg-white px-3.5 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+              <div className="min-w-0 flex-1">
+                {couponCode ? (
+                  <>
+                    <p className="text-sm font-bold text-neutral-900 font-mono tracking-wide truncate">
+                      {couponCode}
+                    </p>
+                    {discountPaise > 0 ? (
+                      <p className="text-xs font-medium text-emerald-700 mt-0.5">
+                        Saving {formatInr(discountPaise)}
+                      </p>
+                    ) : (
+                      <p className="text-xs text-neutral-500 mt-0.5">Applied</p>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-sm text-neutral-500">
+                    View available offers or enter a code
+                  </p>
+                )}
+              </div>
+              <div className="flex items-center gap-2 w-full sm:w-auto sm:shrink-0">
+                {couponCode ? (
+                  <button
+                    type="button"
+                    onClick={clearCoupon}
+                    className="flex-1 sm:flex-none px-3 py-2.5 rounded-lg border border-neutral-200 text-neutral-700 text-xs font-bold hover:bg-neutral-50 transition-colors"
+                  >
+                    Remove
+                  </button>
+                ) : null}
                 <button
                   type="button"
-                  onClick={clearCoupon}
-                  className="px-4 py-2.5 rounded-xl border border-neutral-200 text-neutral-700 text-sm font-bold hover:bg-neutral-50 transition-colors shrink-0"
+                  onClick={() => setOffersOpen(true)}
+                  className="flex-1 sm:flex-none px-3.5 py-2.5 rounded-lg bg-neutral-900 text-white text-xs font-bold hover:bg-neutral-800 transition-colors"
                 >
-                  Remove
+                  {couponCode ? 'Change' : 'View offers'}
                 </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => void applyCoupon()}
-                  disabled={couponApplying}
-                  className="px-4 py-2.5 rounded-xl bg-neutral-900 text-white text-sm font-bold hover:bg-neutral-800 transition-colors shrink-0 disabled:opacity-50"
-                >
-                  {couponApplying ? '…' : 'Apply'}
-                </button>
-              )}
+              </div>
             </div>
             {couponMessage && (
               <p
-                className={`text-xs mt-1.5 font-medium ${
+                className={`text-xs mt-1.5 font-medium break-words ${
                   couponCode ? 'text-emerald-600' : 'text-red-500'
                 }`}
               >
                 {couponMessage}
               </p>
             )}
-            {couponCode && discountPaise > 0 && (
-              <p className="text-xs mt-1 font-bold text-emerald-700">
-                Saving {formatInr(discountPaise)} on this order
-              </p>
-            )}
+            <CouponOffersModal
+              open={offersOpen}
+              onOpenChange={setOffersOpen}
+              productId={product.id}
+              quantity={quantity}
+              appliedCode={couponCode}
+              applying={couponApplying}
+              onApply={applyCoupon}
+              onClear={clearCoupon}
+            />
           </div>
 
           <div className="mb-4">

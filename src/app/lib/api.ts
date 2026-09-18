@@ -45,6 +45,7 @@ export const API = {
   },
   coupons: {
     validate: '/coupons/validate',
+    offers: '/coupons/offers',
   },
   payments: {
     verify: '/payments/verify',
@@ -449,6 +450,37 @@ export async function validateCoupon(input: {
     method: 'POST',
     body: JSON.stringify(input),
   });
+  return body.data;
+}
+
+export interface CouponOffer {
+  id: string;
+  code: string;
+  title: string;
+  description: string | null;
+  type: 'percent' | 'fixed_paise';
+  value: number;
+  min_subtotal_paise: number;
+  max_discount_paise: number | null;
+  ends_at: string | null;
+  eligible: boolean;
+  reason: string | null;
+  discount_preview_paise: number;
+}
+
+/** GET /coupons/offers — public checkout offers for a product (auth). */
+export async function listCouponOffers(opts: {
+  productId?: string;
+  slug?: string;
+  quantity?: number;
+}): Promise<{ offers: CouponOffer[]; subtotal_paise: number; currency: string }> {
+  const qs = new URLSearchParams();
+  if (opts.productId) qs.set('productId', opts.productId);
+  if (opts.slug) qs.set('slug', opts.slug);
+  if (opts.quantity != null) qs.set('quantity', String(opts.quantity));
+  const body = await authFetch<
+    ApiSuccess<{ offers: CouponOffer[]; subtotal_paise: number; currency: string }>
+  >(`${API.coupons.offers}?${qs}`);
   return body.data;
 }
 
@@ -1763,8 +1795,16 @@ export interface AdminCoupon {
   starts_at: string | null;
   ends_at: string | null;
   active: boolean;
+  is_public?: boolean;
+  title?: string | null;
+  description?: string | null;
+  product_ids?: string[];
   created_at: string;
 }
+
+export type AdminCouponInput = Partial<AdminCoupon> & {
+  productIds?: string[];
+};
 
 export async function listAdminCoupons(page = 1, perPage = 20) {
   const qs = new URLSearchParams({ page: String(page), perPage: String(perPage) });
@@ -1774,7 +1814,7 @@ export async function listAdminCoupons(page = 1, perPage = 20) {
   return body.data;
 }
 
-export async function createAdminCoupon(input: Partial<AdminCoupon>) {
+export async function createAdminCoupon(input: AdminCouponInput) {
   const body = await authFetch<ApiSuccess<{ coupon: AdminCoupon }>>(API.admin.coupons, {
     method: 'POST',
     body: JSON.stringify(input),
@@ -1782,7 +1822,7 @@ export async function createAdminCoupon(input: Partial<AdminCoupon>) {
   return body.data.coupon;
 }
 
-export async function updateAdminCoupon(id: string, updates: Partial<AdminCoupon>) {
+export async function updateAdminCoupon(id: string, updates: AdminCouponInput) {
   const body = await authFetch<ApiSuccess<{ coupon: AdminCoupon }>>(`${API.admin.coupons}/${id}`, {
     method: 'PATCH',
     body: JSON.stringify(updates),
