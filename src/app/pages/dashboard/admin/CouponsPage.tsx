@@ -23,7 +23,9 @@ import {
   listAdminCoupons,
   updateAdminCoupon,
   createAdminCoupon,
+  listAdminProducts,
   type AdminCoupon,
+  type AdminProduct,
 } from '../../../lib/api';
 
 type CouponType = 'percent' | 'fixed_paise';
@@ -39,6 +41,10 @@ type CouponFormState = {
   startsAt: string;
   endsAt: string;
   active: boolean;
+  isPublic: boolean;
+  title: string;
+  description: string;
+  productIds: string[];
 };
 
 /** Ready-to-use ODI Kids promo templates — fill the create form in one click. */
@@ -63,6 +69,10 @@ const PROMO_TEMPLATES: {
       startsAt: '',
       endsAt: '',
       active: true,
+      isPublic: true,
+      title: '10% off ODI Kids',
+      description: 'Min order ₹500 · save up to ₹500',
+      productIds: [],
     },
   },
   {
@@ -80,6 +90,10 @@ const PROMO_TEMPLATES: {
       startsAt: '',
       endsAt: '',
       active: true,
+      isPublic: true,
+      title: 'Flat ₹100 off',
+      description: 'Min order ₹999 · once per customer',
+      productIds: [],
     },
   },
   {
@@ -97,6 +111,10 @@ const PROMO_TEMPLATES: {
       startsAt: '',
       endsAt: '',
       active: true,
+      isPublic: true,
+      title: 'Save ₹50 on Space Explorer',
+      description: 'Min order ₹500',
+      productIds: [],
     },
   },
   {
@@ -114,6 +132,10 @@ const PROMO_TEMPLATES: {
       startsAt: '',
       endsAt: '',
       active: true,
+      isPublic: true,
+      title: 'Welcome 15% off',
+      description: 'First order · max ₹200 off',
+      productIds: [],
     },
   },
 ];
@@ -129,6 +151,10 @@ const emptyForm = (): CouponFormState => ({
   startsAt: '',
   endsAt: '',
   active: true,
+  isPublic: false,
+  title: '',
+  description: '',
+  productIds: [],
 });
 
 const inputClass =
@@ -176,6 +202,10 @@ function formFromCoupon(c: AdminCoupon): CouponFormState {
     startsAt: isoToDateInput(c.starts_at),
     endsAt: isoToDateInput(c.ends_at),
     active: c.active,
+    isPublic: !!c.is_public,
+    title: c.title ?? '',
+    description: c.description ?? '',
+    productIds: c.product_ids ?? [],
   };
 }
 
@@ -200,6 +230,10 @@ function buildPayload(form: CouponFormState) {
     starts_at: dateToIsoStart(form.startsAt),
     ends_at: dateToIsoEnd(form.endsAt),
     active: form.active,
+    is_public: form.isPublic,
+    title: form.title.trim() || null,
+    description: form.description.trim() || null,
+    productIds: form.productIds,
   };
 }
 
@@ -274,6 +308,96 @@ export default function CouponsPage() {
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [products, setProducts] = useState<AdminProduct[]>([]);
+  const [productsLoading, setProductsLoading] = useState(false);
+  const [productSearch, setProductSearch] = useState('');
+  const [productDropdownOpen, setProductDropdownOpen] = useState(false);
+
+  const liveProducts = useMemo(
+    () => products.filter((p) => p.status === 'live'),
+    [products]
+  );
+
+  const productSearchResults = useMemo(() => {
+    const q = productSearch.trim().toLowerCase();
+    const available = liveProducts.filter((p) => !form.productIds.includes(p.id));
+    if (!q) return available.slice(0, 8);
+    return available
+      .filter(
+        (p) =>
+          p.name.toLowerCase().includes(q) ||
+          p.slug.toLowerCase().includes(q)
+      )
+      .slice(0, 8);
+  }, [liveProducts, form.productIds, productSearch]);
+
+  const selectedProducts = useMemo(
+    () =>
+      form.productIds
+        .map((id) => products.find((p) => p.id === id))
+        .filter((p): p is AdminProduct => Boolean(p)),
+    [products, form.productIds]
+  );
+
+  function offerCopyForProduct(product: AdminProduct, f: CouponFormState) {
+    const discount =
+      f.type === 'percent' ? `${f.value}% off` : `₹${Math.round(f.value)} off`;
+    const title = `${discount} on ${product.name}`.slice(0, 80);
+    const bits: string[] = [];
+    if (f.minSubtotal > 0) bits.push(`Min order ₹${f.minSubtotal}`);
+    if (f.type === 'percent' && f.maxDiscount.trim()) {
+      bits.push(`Cap ₹${f.maxDiscount.trim()}`);
+    }
+    return { title, description: bits.join(' · ').slice(0, 240) };
+  }
+
+  function addProduct(product: AdminProduct) {
+    setForm((f) => {
+      if (f.productIds.includes(product.id)) return f;
+      const copy = offerCopyForProduct(product, f);
+      const shouldFillTitle = !f.title.trim() || f.productIds.length === 0;
+      return {
+        ...f,
+        productIds: [...f.productIds, product.id],
+        title: shouldFillTitle ? copy.title : f.title,
+        description: shouldFillTitle ? copy.description : f.description,
+      };
+    });
+    setProductSearch('');
+    setProductDropdownOpen(false);
+  }
+
+  function removeProduct(productId: string) {
+    setForm((f) => ({
+      ...f,
+      productIds: f.productIds.filter((id) => id !== productId),
+    }));
+  }
+
+  async function loadProducts() {
+    setProductsLoading(true);
+    try {
+      const res = await listAdminProducts(1, 100);
+      setProducts(res.products);
+    } catch {
+      setProducts([]);
+    } finally {
+      setProductsLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    if (formOpen && products.length === 0) {
+      void loadProducts();
+    }
+  }, [formOpen, products.length]);
+
+  useEffect(() => {
+    if (!formOpen) {
+      setProductSearch('');
+      setProductDropdownOpen(false);
+    }
+  }, [formOpen]);
 
   async function loadCoupons() {
     setLoading(true);
@@ -681,27 +805,163 @@ export default function CouponsPage() {
               <p className={hintClass}>Optional. Blank = no expiry date.</p>
             </div>
 
+            <div className="md:col-span-2 xl:col-span-3">
+              <label className={labelClass}>Products</label>
+              {productsLoading ? (
+                <p className="text-xs text-neutral-500 flex items-center gap-2">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading live products…
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  <div className="relative">
+                    <div className="flex items-center gap-2 rounded-xl border border-white/[0.06] bg-[#050505] px-3 focus-within:border-white/[0.2] transition-colors">
+                      <Search className="w-4 h-4 text-neutral-500 shrink-0" />
+                      <input
+                        type="text"
+                        value={productSearch}
+                        onChange={(e) => {
+                          setProductSearch(e.target.value);
+                          setProductDropdownOpen(true);
+                        }}
+                        onFocus={() => setProductDropdownOpen(true)}
+                        onBlur={() => {
+                          // Delay so click on an option registers
+                          window.setTimeout(() => setProductDropdownOpen(false), 150);
+                        }}
+                        placeholder={
+                          liveProducts.length
+                            ? 'Search live products to scope this offer…'
+                            : 'No live products yet'
+                        }
+                        disabled={liveProducts.length === 0}
+                        className="w-full min-w-0 bg-transparent text-sm outline-none py-3 placeholder:text-neutral-600 text-white"
+                        autoComplete="off"
+                      />
+                    </div>
+                    {productDropdownOpen && liveProducts.length > 0 && (
+                      <ul className="absolute z-20 mt-1.5 w-full max-h-56 overflow-y-auto rounded-xl border border-white/[0.08] bg-[#0A0A0A] shadow-xl">
+                        {productSearchResults.length === 0 ? (
+                          <li className="px-3 py-3 text-xs text-neutral-500">
+                            {productSearch.trim()
+                              ? 'No matching live products'
+                              : 'All live products already selected'}
+                          </li>
+                        ) : (
+                          productSearchResults.map((p) => (
+                            <li key={p.id}>
+                              <button
+                                type="button"
+                                onMouseDown={(e) => e.preventDefault()}
+                                onClick={() => addProduct(p)}
+                                className="w-full text-left px-3 py-2.5 hover:bg-white/[0.04] transition-colors"
+                              >
+                                <span className="block text-sm font-medium text-white truncate">
+                                  {p.name}
+                                </span>
+                                <span className="block text-[10px] text-neutral-500 uppercase tracking-wider mt-0.5">
+                                  {p.slug} · live
+                                </span>
+                              </button>
+                            </li>
+                          ))
+                        )}
+                      </ul>
+                    )}
+                  </div>
+
+                  {selectedProducts.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {selectedProducts.map((p) => (
+                        <span
+                          key={p.id}
+                          className="inline-flex items-center gap-1.5 max-w-full rounded-lg border border-cyan-500/20 bg-cyan-500/10 px-2.5 py-1.5 text-xs font-bold text-cyan-300"
+                        >
+                          <span className="truncate">{p.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => removeProduct(p.id)}
+                            className="shrink-0 p-0.5 rounded text-cyan-400/70 hover:text-white hover:bg-white/10 transition-colors"
+                            aria-label={`Remove ${p.name}`}
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-[11px] text-neutral-600">
+                      No products selected — offer applies store-wide.
+                    </p>
+                  )}
+                </div>
+              )}
+              <p className={hintClass}>
+                Search and select live products. Title & description fill in automatically from the
+                product + discount.
+              </p>
+            </div>
+
+            {(form.title || form.description || form.productIds.length > 0 || form.isPublic) && (
+              <div className="md:col-span-2 xl:col-span-3 rounded-xl border border-white/[0.06] bg-[#050505] px-4 py-3">
+                <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-neutral-500 mb-1">
+                  Checkout offer preview
+                </p>
+                <p className="text-sm font-bold text-white">
+                  {form.title.trim() || form.code || 'Offer title'}
+                </p>
+                {form.description.trim() ? (
+                  <p className="text-xs text-neutral-400 mt-1">{form.description}</p>
+                ) : (
+                  <p className="text-xs text-neutral-600 mt-1">No description</p>
+                )}
+              </div>
+            )}
+
             <div className="xl:col-span-3 flex flex-col sm:flex-row sm:flex-wrap sm:items-center sm:justify-between gap-4 pt-2">
-              <label className="inline-flex items-center gap-3 cursor-pointer select-none min-w-0">
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={form.active}
-                  onClick={() => setForm((f) => ({ ...f, active: !f.active }))}
-                  className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${
-                    form.active ? 'bg-emerald-500/80' : 'bg-white/[0.1]'
-                  }`}
-                >
-                  <span
-                    className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${
-                      form.active ? 'translate-x-5' : 'translate-x-0'
+              <div className="flex flex-col gap-3">
+                <label className="inline-flex items-center gap-3 cursor-pointer select-none min-w-0">
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={form.active}
+                    onClick={() => setForm((f) => ({ ...f, active: !f.active }))}
+                    className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${
+                      form.active ? 'bg-emerald-500/80' : 'bg-white/[0.1]'
                     }`}
-                  />
-                </button>
-                <span className="text-sm font-bold text-neutral-300 min-w-0">
-                  {form.active ? 'Active — customers can redeem' : 'Inactive — hidden from checkout'}
-                </span>
-              </label>
+                  >
+                    <span
+                      className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${
+                        form.active ? 'translate-x-5' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                  <span className="text-sm font-bold text-neutral-300 min-w-0">
+                    {form.active ? 'Active — customers can redeem' : 'Inactive — hidden from checkout'}
+                  </span>
+                </label>
+                <label className="inline-flex items-center gap-3 cursor-pointer select-none min-w-0">
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={form.isPublic}
+                    onClick={() => setForm((f) => ({ ...f, isPublic: !f.isPublic }))}
+                    className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${
+                      form.isPublic ? 'bg-cyan-500/80' : 'bg-white/[0.1]'
+                    }`}
+                  >
+                    <span
+                      className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${
+                        form.isPublic ? 'translate-x-5' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                  <span className="text-sm font-bold text-neutral-300 min-w-0">
+                    {form.isPublic
+                      ? 'Show on checkout offers'
+                      : 'Hidden code only — customers must type it'}
+                  </span>
+                </label>
+              </div>
 
               <div className="flex flex-col-reverse sm:flex-row sm:items-center gap-3 w-full sm:w-auto">
                 {formError && (
@@ -767,9 +1027,24 @@ export default function CouponsPage() {
                       <p className="font-black font-mono text-cyan-400 tracking-wide break-all">
                         {c.code}
                       </p>
-                      <p className="text-[10px] font-bold tracking-[0.15em] uppercase text-neutral-600 mt-1">
-                        {c.type === 'percent' ? 'Percent' : 'Fixed'}
-                      </p>
+                      <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                        <p className="text-[10px] font-bold tracking-[0.15em] uppercase text-neutral-600">
+                          {c.type === 'percent' ? 'Percent' : 'Fixed'}
+                        </p>
+                        {c.is_public ? (
+                          <span className="text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border bg-cyan-500/10 text-cyan-400 border-cyan-500/20">
+                            Offers
+                          </span>
+                        ) : null}
+                        {(c.product_ids?.length ?? 0) > 0 ? (
+                          <span className="text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border bg-white/[0.03] text-neutral-500 border-white/[0.08]">
+                            {c.product_ids!.length} product{c.product_ids!.length === 1 ? '' : 's'}
+                          </span>
+                        ) : null}
+                      </div>
+                      {c.title ? (
+                        <p className="text-xs text-neutral-400 mt-1 truncate">{c.title}</p>
+                      ) : null}
                     </div>
                     <StatusBadge coupon={c} />
                   </div>
@@ -846,9 +1121,21 @@ export default function CouponsPage() {
                         <div className="font-black font-mono text-cyan-400 tracking-wide group-hover:text-cyan-300 transition-colors">
                           {c.code}
                         </div>
-                        <div className="text-[10px] font-bold tracking-[0.15em] uppercase text-neutral-600 mt-1">
-                          {c.type === 'percent' ? 'Percent' : 'Fixed'}
+                        <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                          <div className="text-[10px] font-bold tracking-[0.15em] uppercase text-neutral-600">
+                            {c.type === 'percent' ? 'Percent' : 'Fixed'}
+                          </div>
+                          {c.is_public ? (
+                            <span className="text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border bg-cyan-500/10 text-cyan-400 border-cyan-500/20">
+                              Offers
+                            </span>
+                          ) : null}
                         </div>
+                        {c.title ? (
+                          <div className="text-xs text-neutral-500 mt-1 max-w-[12rem] truncate">
+                            {c.title}
+                          </div>
+                        ) : null}
                       </td>
                       <td className="px-4 lg:px-6 py-4">
                         <div className="font-bold text-white">{discountLabel(c)}</div>
