@@ -53,7 +53,7 @@ function BuyLink({ onClick }: { onClick: () => void }) {
       type="button"
       onClick={onClick}
       whileHover="hover"
-      className="group inline-flex items-center gap-1 text-xl md:text-2xl font-medium tracking-tight transition-colors text-neutral-900 hover:text-neutral-500"
+      className="group inline-flex items-center gap-1 text-xl md:text-2xl font-medium tracking-tight transition-colors text-neutral-900 hover:text-neutral-500 cursor-pointer"
     >
       Buy Now
       <motion.span variants={{ hover: { x: 6 } }} transition={{ type: "spring", stiffness: 400, damping: 25 }}>

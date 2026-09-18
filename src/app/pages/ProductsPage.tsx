@@ -151,7 +151,13 @@ function ProductCard({ product }: { product: StoreProduct }) {
   };
 
   return (
-    <article className="bg-white rounded-2xl border border-neutral-200/80 overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-row md:flex-col h-full">
+    <article
+      className={`group bg-white rounded-2xl border border-neutral-200/80 overflow-hidden shadow-sm flex flex-row md:flex-col h-full w-full max-w-[22rem] mx-auto md:max-w-none transition-all duration-300 ease-out ${
+        isProductPurchasable(product)
+          ? 'hover:-translate-y-1.5 hover:shadow-xl hover:border-neutral-300 cursor-pointer'
+          : 'hover:shadow-md hover:border-neutral-300'
+      }`}
+    >
       <div className="relative w-[38%] max-w-[148px] md:w-full md:max-w-none shrink-0">
         <span
           className={`absolute top-3 left-3 z-10 px-2 py-0.5 text-[8px] md:text-[9px] font-black tracking-widest rounded ${badge.className}`}
@@ -175,13 +181,13 @@ function ProductCard({ product }: { product: StoreProduct }) {
               setWishlistBusy(false);
             }
           }}
-          className="absolute top-3 right-3 z-20 w-8 h-8 rounded-full bg-white/95 border border-neutral-200/80 flex items-center justify-center shadow-sm hover:scale-105 active:scale-95 transition-transform disabled:opacity-60"
+          className="absolute top-3 right-3 z-20 w-8 h-8 rounded-full bg-white/95 border border-neutral-200/80 flex items-center justify-center shadow-sm cursor-pointer hover:scale-110 hover:shadow-md active:scale-95 transition-transform disabled:opacity-60 disabled:cursor-not-allowed"
           aria-label={liked ? `Remove ${product.name} from wishlist` : `Save ${product.name} to wishlist`}
           aria-pressed={liked}
         >
           <Heart
             className={`w-4 h-4 transition-colors ${
-              liked ? 'fill-red-500 text-red-500' : 'text-neutral-400 hover:text-red-400'
+              liked ? 'fill-red-500 text-red-500' : 'text-neutral-400 group-hover:text-red-400'
             }`}
           />
         </button>
@@ -189,13 +195,15 @@ function ProductCard({ product }: { product: StoreProduct }) {
           type="button"
           onClick={goToProduct}
           disabled={!product.available}
-          className="w-full h-full min-h-[128px] md:min-h-0 md:aspect-[4/3] bg-neutral-100 overflow-hidden disabled:cursor-default"
+          className={`w-full h-full min-h-[128px] md:min-h-0 md:aspect-[4/3] bg-neutral-100 overflow-hidden ${
+            product.available ? 'cursor-pointer' : 'cursor-default'
+          }`}
         >
           <img
             src={product.media?.card?.url ?? product.images?.[0]?.url ?? ''}
             alt={product.name}
             loading="lazy"
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
           />
         </button>
       </div>
@@ -205,10 +213,12 @@ function ProductCard({ product }: { product: StoreProduct }) {
           type="button"
           onClick={goToProduct}
           disabled={!product.available}
-          className="text-left disabled:cursor-default"
+          className={`text-left w-full ${product.available ? 'cursor-pointer' : 'cursor-default'}`}
         >
-          <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-400">{product.volume}</p>
-          <h3 className="font-bold text-neutral-900 text-sm sm:text-base leading-snug hover:text-[#1a4fd6] transition-colors mt-0.5">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-400">
+            {product.volume}
+          </p>
+          <h3 className="font-bold text-neutral-900 text-sm sm:text-base leading-snug group-hover:text-[#1a4fd6] transition-colors mt-0.5">
             {product.name}
           </h3>
         </button>
@@ -246,7 +256,7 @@ function ProductCard({ product }: { product: StoreProduct }) {
               <button
                 type="button"
                 onClick={goToProduct}
-                className="flex-1 py-2.5 rounded-lg text-white text-xs font-bold hover:opacity-90 transition-opacity"
+                className="flex-1 py-2.5 rounded-lg text-white text-xs font-bold cursor-pointer hover:opacity-90 hover:brightness-105 active:scale-[0.98] transition-all"
                 style={{ background: CTA }}
               >
                 Buy Now
@@ -254,7 +264,7 @@ function ProductCard({ product }: { product: StoreProduct }) {
               <button
                 type="button"
                 onClick={addToCart}
-                className="w-10 h-10 shrink-0 rounded-lg border border-neutral-200 flex items-center justify-center hover:bg-neutral-50 transition-colors"
+                className="w-10 h-10 shrink-0 rounded-lg border border-neutral-200 flex items-center justify-center cursor-pointer hover:bg-neutral-50 hover:border-neutral-300 active:scale-95 transition-all"
                 aria-label="Add to cart"
               >
                 <ShoppingBag className="w-4 h-4 text-neutral-600" />
@@ -265,7 +275,7 @@ function ProductCard({ product }: { product: StoreProduct }) {
               type="button"
               onClick={() => void notifyMe()}
               disabled={notifyBusy}
-              className="w-full py-2.5 rounded-lg border border-neutral-200 text-xs font-bold text-neutral-600 hover:bg-neutral-50 flex items-center justify-center gap-1.5 disabled:opacity-60"
+              className="w-full py-2.5 rounded-lg border border-neutral-200 text-xs font-bold text-neutral-600 cursor-pointer hover:bg-neutral-50 hover:border-neutral-300 flex items-center justify-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
             >
               <Bell className={`w-3.5 h-3.5 ${subscribed ? 'fill-neutral-600' : ''}`} />
               {subscribed ? 'Subscribed' : 'Notify Me'}
@@ -458,7 +468,7 @@ export default function ProductsPage() {
 
       {/* Sticky search + filters — stays under navbar while scrolling */}
       <div className="sticky top-[4.75rem] sm:top-[5.25rem] z-[90] bg-white/95 backdrop-blur-md border-b border-neutral-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 py-3 flex items-center gap-2 sm:gap-3">
+        <div className="max-w-[68rem] 2xl:max-w-7xl mx-auto px-5 sm:px-8 lg:px-14 xl:px-16 2xl:px-12 py-3 flex items-center gap-2 sm:gap-3">
           {/* Mobile: search only · Desktop: search + filters */}
           <div className="relative flex-1 min-w-0 md:max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 pointer-events-none" />
@@ -499,7 +509,7 @@ export default function ProductsPage() {
                 key={cat.key}
                 type="button"
                 onClick={() => selectCategory(cat.key)}
-                className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap shrink-0 transition-colors ${
+                className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
                   category === cat.key
                     ? 'bg-neutral-900 text-white'
                     : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
@@ -516,7 +526,7 @@ export default function ProductsPage() {
             disabled={isRefreshing || isLoading}
             title="Refresh catalog"
             aria-label="Refresh catalog"
-            className="hidden md:inline-flex shrink-0 items-center gap-1.5 px-3 py-2 rounded-full border border-neutral-200 bg-neutral-50 text-xs font-bold text-neutral-700 hover:bg-neutral-100 hover:border-neutral-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="hidden md:inline-flex shrink-0 items-center gap-1.5 px-3 py-2 rounded-full border border-neutral-200 bg-neutral-50 text-xs font-bold text-neutral-700 cursor-pointer hover:bg-neutral-100 hover:border-neutral-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
             Refresh
@@ -597,7 +607,7 @@ export default function ProductsPage() {
         ref={shopRef}
         className="bg-[#f7f8fa] py-8 sm:py-10 scroll-mt-36"
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12">
+        <div className="max-w-[68rem] 2xl:max-w-7xl mx-auto px-5 sm:px-8 lg:px-14 xl:px-16 2xl:px-12">
           {(search || category !== 'all') && (
             <p className="text-xs text-neutral-500 mb-4">
               {products.length} kit{products.length !== 1 ? 's' : ''}
@@ -606,7 +616,7 @@ export default function ProductsPage() {
             </p>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 lg:gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-5 xl:gap-6 2xl:gap-7 justify-items-center md:justify-items-stretch">
             {isLoading ? (
               <div className="col-span-full">
                 <ODILoader size="sm" label="Loading products…" className="py-16" />
