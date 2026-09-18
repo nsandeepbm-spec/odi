@@ -1,6 +1,7 @@
 import { Link } from 'react-router';
-import { Instagram, Linkedin, Youtube, Facebook, ArrowRight } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { ODILogo } from './ODILogo';
+import { odiSocialLinks } from './SocialBrandIcons';
 
 const exploreLinks = [
   { name: 'Home', to: '/' },
@@ -19,17 +20,6 @@ const serviceLinks = [
 const resourceLinks = [
   { name: 'Learn More', to: '/learn-more' },
   { name: 'Contact', to: '/contact' },
-] as const;
-
-const socialLinks = [
-  { Icon: Instagram, href: 'https://www.instagram.com/odi3dstudio/', label: 'Instagram' },
-  {
-    Icon: Facebook,
-    href: 'https://www.facebook.com/people/Oceaniek-Dimension-Industries/61589448369192/',
-    label: 'Facebook',
-  },
-  { Icon: Linkedin, href: 'https://www.linkedin.com/company/odistudioglobal', label: 'LinkedIn' },
-  { Icon: Youtube, href: 'https://www.youtube.com/@ODI.STUDIO', label: 'YouTube' },
 ] as const;
 
 function FooterLink({ to, children }: { to: string; children: React.ReactNode }) {
@@ -81,17 +71,18 @@ export function Footer() {
               From concept to final frame, we craft depth that feels natural, immersive and unforgettable.
             </p>
 
-            <div className="flex gap-3">
-              {socialLinks.map(({ Icon, href, label }) => (
+            <div className="flex flex-wrap gap-2.5">
+              {odiSocialLinks.map(({ Logo, href, label }) => (
                 <a
                   key={label}
                   href={href}
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={label}
-                  className="w-10 h-10 rounded-full border border-white/15 flex items-center justify-center text-white/55 hover:text-white hover:border-[#00C8FF]/50 hover:bg-[#00C8FF]/10 transition-all duration-300"
+                  title={label}
+                  className="w-11 h-11 rounded-full bg-white flex items-center justify-center shadow-sm hover:bg-white/90 hover:scale-105 transition-all duration-300"
                 >
-                  <Icon size={16} strokeWidth={1.5} />
+                  <Logo className="w-5 h-5" />
                 </a>
               ))}
             </div>
@@ -171,11 +162,11 @@ export function Footer() {
         <div className="relative py-8 md:py-12 mb-8 overflow-hidden flex items-center justify-center border-t border-white/[0.06]">
           <div
             aria-hidden="true"
-            className="pointer-events-none select-none flex items-baseline justify-center whitespace-nowrap font-black uppercase tracking-tight leading-none text-[18vw] md:text-[8rem] lg:text-[9.5rem] text-white/15"
+            className="pointer-events-none select-none flex flex-col items-center justify-center text-center font-black uppercase tracking-tight leading-[0.9] text-[22vw] sm:text-[18vw] md:flex-row md:items-baseline md:whitespace-nowrap md:text-[8rem] lg:text-[9.5rem] text-white/15"
           >
             <span>ODI</span>
-            <span className="inline-block w-[0.28em] md:w-[0.4em]" />
-            <span>STUDIO</span>
+            <span className="hidden md:inline-block w-[0.28em] md:w-[0.4em]" />
+            <span>studio</span>
           </div>
         </div>
 

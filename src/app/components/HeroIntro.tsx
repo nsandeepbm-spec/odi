@@ -46,7 +46,7 @@ export function HeroIntro() {
           playsInline
           className="absolute inset-0 w-full h-full object-cover opacity-85 transition-opacity duration-1000"
         >
-          <source src="/ODI_SS1.mp4" type="video/mp4" />
+          <source src="/ODI_Website_Hero Section_v001.mp4" type="video/mp4" />
         </video>
         {/* Dark Cinematic Gradients */}
         <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/20 to-black/70 pointer-events-none" />

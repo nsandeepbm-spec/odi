@@ -3,6 +3,7 @@ import { motion, useInView } from 'motion/react';
 import { Send, CheckCircle2, Loader2 } from 'lucide-react';
 import { Link } from 'react-router';
 import { submitContactInquiry } from '../lib/api';
+import { odiSocialLinks } from '../components/SocialBrandIcons';
 
 // ─── DESIGN TOKENS (matches LearnMorePage) ────────────────────────────────────
 const T = { bg: '#FFFFFF', bgAlt: '#F7F7F5', text: '#111111', sub: '#666666', border: '#E8E8E8' };
@@ -177,12 +178,60 @@ export default function ContactPage() {
                 We typically reply within one working day.
               </p>
               <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 20 }}>
-                {[['odistudio24@gmail.com', 'Email'], ['India · Worldwide', 'Location']].map(([v, l]) => (
-                  <div key={l} className="mb-4">
-                    <div className="text-sm font-bold">{v}</div>
-                    <div className="text-[10px] tracking-wide uppercase mt-0.5" style={{ color: T.sub }}>{l}</div>
+                {[
+                  ['hello@odi.studio', 'Email', 'mailto:hello@odi.studio'],
+                  ['+91 98769 07266', 'Mobile', 'tel:+919876907266'],
+                  [
+                    'ODI Studio, 2nd floor, Plot No. D-254, 8A, Industrial Area, Sector 75, Sahibzada Ajit Singh Nagar, Punjab 140307',
+                    'Location',
+                    null,
+                  ],
+                ].map(([v, l, href]) => (
+                  <div key={l} className="mb-5">
+                    <div
+                      className="text-xs font-black tracking-[0.18em] uppercase mb-1.5"
+                      style={{ color: T.text }}
+                    >
+                      {l}
+                    </div>
+                    {href ? (
+                      <a
+                        href={href}
+                        className="text-sm font-semibold leading-relaxed hover:underline underline-offset-2"
+                        style={{ color: T.sub }}
+                      >
+                        {v}
+                      </a>
+                    ) : (
+                      <div className="text-sm font-semibold leading-relaxed" style={{ color: T.sub }}>
+                        {v}
+                      </div>
+                    )}
                   </div>
                 ))}
+                <div className="mt-6 pt-5" style={{ borderTop: `1px solid ${T.border}` }}>
+                  <div
+                    className="text-xs font-black tracking-[0.18em] uppercase mb-4"
+                    style={{ color: T.text }}
+                  >
+                    Follow us
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                    {odiSocialLinks.map(({ label, href, Logo }) => (
+                      <a
+                        key={label}
+                        href={href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={label}
+                        title={label}
+                        className="group w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-200 hover:bg-[#F7F7F5] hover:-translate-y-0.5 active:scale-95"
+                      >
+                        <Logo className="w-7 h-7 transition-transform duration-200 group-hover:scale-110" />
+                      </a>
+                    ))}
+                  </div>
+                </div>
               </div>
             </FadeUp>
 

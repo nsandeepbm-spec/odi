@@ -368,7 +368,7 @@ const LearnMorePage: React.FC = () => {
           <FadeUp delay={0.1}>
             <div className="w-full aspect-video rounded-3xl overflow-hidden border border-neutral-200/50 shadow-md bg-black">
               <video
-                src="/ODI_SS1.mp4"
+                src="/ODI_Website_Hero Section_v001.mp4"
                 controls
                 className="w-full h-full object-contain"
                 playsInline
