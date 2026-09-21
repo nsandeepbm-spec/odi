@@ -1,8 +1,14 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router';
 import { motion } from 'motion/react';
 import { Loader2, Shield, Bell, User } from 'lucide-react';
 import { PageHeader, Card } from '../../../components/dashboard/shared';
 import { displayName, getInitials, useAuth } from '../../../lib/auth';
+import {
+  authErrorMessage,
+  changePassword,
+  hasEmailPasswordProvider,
+} from '../../../lib/firebase';
 
 const inputCls =
   'w-full px-4 py-3 rounded-xl border border-white/[0.08] bg-white/[0.03] focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/30 outline-none transition-all text-sm text-white placeholder:text-neutral-600';
@@ -14,6 +20,17 @@ export default function SettingsPage() {
   const [phone, setPhone] = useState('');
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
+
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [passwordMessage, setPasswordMessage] = useState<{
+    type: 'ok' | 'err';
+    text: string;
+  } | null>(null);
+
+  const canChangePassword = hasEmailPasswordProvider(firebaseUser);
 
   useEffect(() => {
     if (!user) return;
@@ -47,6 +64,43 @@ export default function SettingsPage() {
     }
   };
 
+  const handlePasswordUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordMessage(null);
+
+    if (newPassword.length < 6) {
+      setPasswordMessage({ type: 'err', text: 'New password should be at least 6 characters.' });
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordMessage({ type: 'err', text: 'New password and confirmation do not match.' });
+      return;
+    }
+    if (currentPassword === newPassword) {
+      setPasswordMessage({
+        type: 'err',
+        text: 'New password must be different from the current one.',
+      });
+      return;
+    }
+
+    setPasswordSaving(true);
+    try {
+      await changePassword(currentPassword, newPassword);
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setPasswordMessage({
+        type: 'ok',
+        text: 'Password updated. Use it the next time you sign in.',
+      });
+    } catch (err) {
+      setPasswordMessage({ type: 'err', text: authErrorMessage(err) });
+    } finally {
+      setPasswordSaving(false);
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -65,7 +119,6 @@ export default function SettingsPage() {
         {/* Profile */}
         <Card title="Profile" action={<User className="w-4 h-4 text-neutral-600" />}>
           <form onSubmit={handleSave} className="p-4 sm:p-6">
-            {/* Avatar + meta */}
             <div className="flex items-start sm:items-center gap-3 sm:gap-4 mb-6 sm:mb-8 p-3 sm:p-4 rounded-xl border border-white/[0.04] bg-white/[0.02] min-w-0">
               {avatarUrl ? (
                 <img
@@ -156,29 +209,93 @@ export default function SettingsPage() {
           </form>
         </Card>
 
-        {/* Security */}
+        {/* Security — Firebase Auth only; never stores password in our DB */}
         <Card title="Security" action={<Shield className="w-4 h-4 text-neutral-600" />}>
           <div className="p-4 sm:p-6">
-            <div className="space-y-5 max-w-md">
-              <div className="space-y-2">
-                <label className={labelCls}>Current Password</label>
-                <input type="password" placeholder="••••••••" className={inputCls} />
+            {canChangePassword ? (
+              <form onSubmit={handlePasswordUpdate} className="space-y-5 max-w-md">
+                <p className="text-xs text-neutral-500 leading-relaxed">
+                  Changing your password updates sign-in only — your orders and profile stay on this
+                  account. Passwords are never stored in our database.
+                </p>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <label className={labelCls}>Current Password</label>
+                    <Link
+                      to="/forgot-password"
+                      className="text-[11px] font-semibold text-cyan-400/90 hover:text-cyan-300 transition-colors"
+                    >
+                      Forgot password?
+                    </Link>
+                  </div>
+                  <input
+                    type="password"
+                    autoComplete="current-password"
+                    required
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className={inputCls}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className={labelCls}>New Password</label>
+                  <input
+                    type="password"
+                    autoComplete="new-password"
+                    required
+                    minLength={6}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className={inputCls}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className={labelCls}>Confirm New Password</label>
+                  <input
+                    type="password"
+                    autoComplete="new-password"
+                    required
+                    minLength={6}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className={inputCls}
+                  />
+                </div>
+
+                {passwordMessage && (
+                  <p
+                    className={`text-xs font-semibold px-4 py-3 rounded-xl border ${
+                      passwordMessage.type === 'ok'
+                        ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+                        : 'text-red-400 bg-red-500/10 border-red-500/20'
+                    }`}
+                  >
+                    {passwordMessage.text}
+                  </p>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={passwordSaving}
+                  className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-6 py-2.5 rounded-xl border border-white/[0.08] text-sm font-bold tracking-wide text-neutral-300 hover:bg-white/[0.04] hover:text-white transition-colors disabled:opacity-50"
+                >
+                  {passwordSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                  {passwordSaving ? 'Updating…' : 'Update Password'}
+                </button>
+              </form>
+            ) : (
+              <div className="max-w-md space-y-3">
+                <p className="text-sm text-neutral-300 font-medium">Signed in with Google</p>
+                <p className="text-xs text-neutral-500 leading-relaxed">
+                  This account has no email/password login. Security is managed through your Google
+                  account — there is nothing to change here, and no password is stored in our
+                  database.
+                </p>
               </div>
-              <div className="space-y-2">
-                <label className={labelCls}>New Password</label>
-                <input type="password" placeholder="••••••••" className={inputCls} />
-              </div>
-              <div className="space-y-2">
-                <label className={labelCls}>Confirm New Password</label>
-                <input type="password" placeholder="••••••••" className={inputCls} />
-              </div>
-            </div>
-            <button
-              type="button"
-              className="mt-6 w-full sm:w-auto px-6 py-2.5 rounded-xl border border-white/[0.08] text-sm font-bold tracking-wide text-neutral-300 hover:bg-white/[0.04] hover:text-white transition-colors"
-            >
-              Update Password
-            </button>
+            )}
           </div>
         </Card>
 
@@ -186,16 +303,30 @@ export default function SettingsPage() {
         <Card title="Notifications" action={<Bell className="w-4 h-4 text-neutral-600" />}>
           <div className="p-4 sm:p-6 divide-y divide-white/[0.04]">
             {[
-              { label: 'Order updates',     desc: 'Status changes for your orders and deliveries.',      on: true },
-              { label: 'New releases',      desc: 'Be first to know when a new Explorer volume drops.',  on: true },
-              { label: 'Offers & promos',   desc: 'Occasional discounts and bundle offers.',             on: false },
+              {
+                label: 'Order updates',
+                desc: 'Status changes for your orders and deliveries.',
+                on: true,
+              },
+              {
+                label: 'New releases',
+                desc: 'Be first to know when a new Explorer volume drops.',
+                on: true,
+              },
+              {
+                label: 'Offers & promos',
+                desc: 'Occasional discounts and bundle offers.',
+                on: false,
+              },
             ].map((n) => (
               <label
                 key={n.label}
                 className="flex items-start sm:items-center justify-between gap-3 sm:gap-6 py-4 first:pt-0 last:pb-0 cursor-pointer group"
               >
                 <div className="min-w-0">
-                  <p className="text-sm font-bold text-white group-hover:text-neutral-100 transition-colors">{n.label}</p>
+                  <p className="text-sm font-bold text-white group-hover:text-neutral-100 transition-colors">
+                    {n.label}
+                  </p>
                   <p className="text-xs text-neutral-500 mt-0.5">{n.desc}</p>
                 </div>
                 <input

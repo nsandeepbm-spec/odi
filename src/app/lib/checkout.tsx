@@ -406,7 +406,7 @@ export function CheckoutProvider({ children }: { children: React.ReactNode }) {
       return false;
     }
     if (!auth.currentUser) {
-      setCouponMessage('Sign in to apply a coupon offer');
+      setCouponMessage('Sign in to apply a coupon — then continue to checkout');
       return false;
     }
 
