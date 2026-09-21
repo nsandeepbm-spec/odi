@@ -50,6 +50,8 @@ Full HTTP contract (methods, auth, request/response): **[`../api.md`](../api.md)
 
 Auth and profile use the Express API in `odi-backend/`:
 
+**Passwords:** Email/password and Google sign-in are handled by **Firebase Auth** (both providers enabled in the Firebase console). Passwords are **never** stored in Supabase — only profile fields (`firebase_uid`, email, name, role, …). Forgot password (`/forgot-password`) calls Firebase `sendPasswordResetEmail`; after reset the same Firebase UID syncs via `POST /auth/sync` so orders and profile are unchanged. No Express forgot-password route.
+
 | Frontend (`lib/api.ts`) | Backend |
 | --- | --- |
 | `POST /auth/sync` | Sync Firebase user → Supabase profile |
