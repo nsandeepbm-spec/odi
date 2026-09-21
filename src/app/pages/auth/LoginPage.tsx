@@ -127,7 +127,7 @@ export default function LoginPage() {
             <label className="text-[10px] font-bold tracking-[0.2em] uppercase" style={{ color: T.sub }}>
               Password
             </label>
-            <Link to="#" className="text-xs font-semibold hover:underline" style={{ color: T.text }}>
+            <Link to="/forgot-password" className="text-xs font-semibold hover:underline" style={{ color: T.text }}>
               Forgot password?
             </Link>
           </div>

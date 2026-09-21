@@ -2,11 +2,16 @@ import { initializeApp } from 'firebase/app';
 import {
   getAuth,
   GoogleAuthProvider,
+  EmailAuthProvider,
   signInWithPopup,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
+  reauthenticateWithCredential,
+  updatePassword,
   updateProfile,
   signOut,
+  type User as FirebaseUser,
 } from 'firebase/auth';
 
 const firebaseConfig = {
@@ -43,6 +48,39 @@ export function logout() {
   return signOut(auth);
 }
 
+/**
+ * Sends Firebase's password-reset email. Passwords live only in Firebase Auth —
+ * never in our DB. Safe for existing users (same UID after reset).
+ */
+export function sendPasswordReset(email: string) {
+  return sendPasswordResetEmail(auth, email.trim());
+}
+
+/** True if this Firebase account has an email/password credential (not Google-only). */
+export function hasEmailPasswordProvider(user: FirebaseUser | null | undefined): boolean {
+  return !!user?.providerData.some((p) => p.providerId === 'password');
+}
+
+/**
+ * Change password for a signed-in email/password user.
+ * Re-authenticates with the current password first (Firebase requirement).
+ * Password is updated in Firebase Auth only — never written to our DB.
+ */
+export async function changePassword(currentPassword: string, newPassword: string) {
+  const user = auth.currentUser;
+  if (!user?.email) {
+    throw Object.assign(new Error('Not signed in'), { code: 'auth/missing-email' });
+  }
+  if (!hasEmailPasswordProvider(user)) {
+    throw Object.assign(new Error('No password on this account'), {
+      code: 'auth/operation-not-allowed',
+    });
+  }
+  const credential = EmailAuthProvider.credential(user.email, currentPassword);
+  await reauthenticateWithCredential(user, credential);
+  await updatePassword(user, newPassword);
+}
+
 /** Friendly messages for the Firebase auth error codes users actually hit. */
 export function authErrorMessage(err: unknown): string {
   const code = (err as { code?: string })?.code ?? '';
@@ -64,6 +102,12 @@ export function authErrorMessage(err: unknown): string {
       return 'Google sign-in was cancelled.';
     case 'auth/network-request-failed':
       return 'Network error. Check your connection and try again.';
+    case 'auth/missing-email':
+      return 'Enter your email address.';
+    case 'auth/requires-recent-login':
+      return 'For security, sign out and sign in again, then try changing your password.';
+    case 'auth/operation-not-allowed':
+      return 'This account uses Google sign-in and has no password to change.';
     default:
       return 'Something went wrong. Please try again.';
   }

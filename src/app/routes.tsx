@@ -26,6 +26,7 @@ const lazyRoute = (importFn: () => Promise<any>) => async () => {
 // --- Auth ---
 const LoginPage = lazyRoute(() => import('./pages/auth/LoginPage'));
 const RegisterPage = lazyRoute(() => import('./pages/auth/RegisterPage'));
+const ForgotPasswordPage = lazyRoute(() => import('./pages/auth/ForgotPasswordPage'));
 
 // --- Checkout ---
 const CheckoutLayout = lazyRoute(() => import('./components/checkout/CheckoutLayout'));
@@ -77,6 +78,7 @@ export const router = createBrowserRouter([
   // Standalone Auth Routes
   { path: "/login", lazy: LoginPage },
   { path: "/register", lazy: RegisterPage },
+  { path: "/forgot-password", lazy: ForgotPasswordPage },
 
   // Checkout Flow
   {
