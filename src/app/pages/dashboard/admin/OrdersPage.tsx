@@ -163,6 +163,17 @@ export default function OrdersPage() {
         }
       />
 
+      {filter === 'incomplete_payment' && (
+        <div className="mb-4 relative z-10 rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-100/90">
+          <p className="font-bold text-amber-200">Incomplete payment</p>
+          <p className="text-xs mt-1 text-amber-100/70 leading-relaxed">
+            Razorpay may have charged the customer while this order stayed pending. Open the order →{' '}
+            <span className="font-bold text-amber-100">Sync payment from Razorpay</span> to mark it
+            paid (stock, email, shipment).
+          </p>
+        </div>
+      )}
+
       <Card className="relative z-10">
         <div className="px-4 sm:px-6 py-4 sm:py-5 border-b border-white/[0.04] flex flex-col gap-4 bg-[#0d0d0d]">
           <div className="flex flex-col lg:flex-row lg:items-center gap-4">

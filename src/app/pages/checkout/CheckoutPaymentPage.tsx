@@ -191,32 +191,41 @@ export default function CheckoutPaymentPage() {
         description: `Purchase ${product.name}`,
         order_id: session.razorpayOrderId,
         handler: async (response: RazorpaySuccess) => {
-          try {
-            await verifyPayment({
-              orderId: session.orderId,
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature,
-            });
-            completeOrder(session.orderNumber);
-            navigate(successPath(session.orderNumber, 'online'));
-          } catch (verifyErr) {
-            setFeedback({
-              tone: 'error',
-              title: 'Payment not confirmed',
-              message:
-                verifyErr instanceof Error
-                  ? verifyErr.message
-                  : 'Payment received but verification failed. Contact support with your order number.',
-            });
+          const payload = {
+            orderId: session.orderId,
+            razorpay_order_id: response.razorpay_order_id,
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_signature: response.razorpay_signature,
+          };
+          let lastError: unknown = null;
+          for (let attempt = 0; attempt < 3; attempt++) {
+            try {
+              await verifyPayment(payload);
+              completeOrder(session.orderNumber);
+              navigate(successPath(session.orderNumber, 'online'));
+              return;
+            } catch (verifyErr) {
+              lastError = verifyErr;
+              if (attempt < 2) {
+                await new Promise((r) => setTimeout(r, 800 * (attempt + 1)));
+              }
+            }
           }
+          setFeedback({
+            tone: 'error',
+            title: 'Payment received — confirming…',
+            message:
+              (lastError instanceof Error ? lastError.message + ' ' : '') +
+              `Razorpay accepted payment ${response.razorpay_payment_id}. If this screen stays here, tell support your order ${session.orderNumber} — an admin can sync the payment.`,
+          });
         },
         modal: {
           ondismiss: () => {
             setFeedback({
               tone: 'error',
-              title: 'Payment not completed',
-              message: 'You were not charged. Your order was not placed. You can try again when ready.',
+              title: 'Checkout closed',
+              message:
+                'If you completed payment in the Razorpay window, do not pay again — check My Orders in a few minutes or contact support with your payment SMS/email. If you cancelled before paying, you were not charged.',
             });
           },
         },

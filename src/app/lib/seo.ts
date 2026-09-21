@@ -155,7 +155,8 @@ function isPrivatePath(path: string): boolean {
     path.startsWith('/dashboard') ||
     path.startsWith('/checkout') ||
     path === '/login' ||
-    path === '/register'
+    path === '/register' ||
+    path === '/forgot-password'
   );
 }
 
