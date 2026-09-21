@@ -468,7 +468,7 @@ export interface CouponOffer {
   discount_preview_paise: number;
 }
 
-/** GET /coupons/offers — public checkout offers for a product (auth). */
+/** GET /coupons/offers — public offers for a product (guests OK; auth adds per-user eligibility). */
 export async function listCouponOffers(opts: {
   productId?: string;
   slug?: string;
@@ -478,9 +478,21 @@ export async function listCouponOffers(opts: {
   if (opts.productId) qs.set('productId', opts.productId);
   if (opts.slug) qs.set('slug', opts.slug);
   if (opts.quantity != null) qs.set('quantity', String(opts.quantity));
-  const body = await authFetch<
+  const path = `${API.coupons.offers}?${qs}`;
+  // Prefer auth when signed in so “already used” reasons are accurate.
+  if (auth.currentUser) {
+    try {
+      const body = await authFetch<
+        ApiSuccess<{ offers: CouponOffer[]; subtotal_paise: number; currency: string }>
+      >(path);
+      return body.data;
+    } catch {
+      /* fall through to public */
+    }
+  }
+  const body = await publicFetch<
     ApiSuccess<{ offers: CouponOffer[]; subtotal_paise: number; currency: string }>
-  >(`${API.coupons.offers}?${qs}`);
+  >(path);
   return body.data;
 }
 
@@ -1415,6 +1427,26 @@ export async function createAdminOrderShipment(id: string) {
     method: 'POST',
   });
   return body.data.order;
+}
+
+/** POST /admin/orders/:id/sync-payment — mark paid if Razorpay already captured. */
+export async function syncAdminOrderPayment(id: string): Promise<{
+  order: AdminOrder;
+  alreadyPaid: boolean;
+  synced: boolean;
+  razorpayPaymentId: string | null;
+}> {
+  const body = await authFetch<
+    ApiSuccess<{
+      order: AdminOrder;
+      alreadyPaid: boolean;
+      synced: boolean;
+      razorpayPaymentId: string | null;
+    }>
+  >(`${API.admin.orders}/${id}/sync-payment`, {
+    method: 'POST',
+  });
+  return body.data;
 }
 
 export async function createAdminOrderPickup(

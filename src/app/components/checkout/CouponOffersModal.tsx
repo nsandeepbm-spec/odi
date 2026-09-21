@@ -19,6 +19,9 @@ type Props = {
   applying: boolean;
   onApply: (code: string) => Promise<boolean>;
   onClear: () => void;
+  /** Prefetched on checkout page load — modal opens with data ready */
+  initialOffers?: CouponOffer[];
+  initialOffersKey?: string;
 };
 
 type CacheEntry = {
@@ -62,18 +65,79 @@ export function CouponOffersModal({
   applying,
   onApply,
   onClear,
+  initialOffers,
+  initialOffersKey,
 }: Props) {
   const cacheRef = useRef<CacheEntry | null>(null);
-  const [offers, setOffers] = useState<CouponOffer[]>([]);
+  const [offers, setOffers] = useState<CouponOffer[]>(initialOffers ?? []);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [manualCode, setManualCode] = useState('');
   const [selectedCode, setSelectedCode] = useState<string | null>(null);
   const [checkMessage, setCheckMessage] = useState<string | null>(null);
+  const [viewportHeight, setViewportHeight] = useState<number | null>(null);
+  const [keyboardOffset, setKeyboardOffset] = useState(0);
+  const [isCompact, setIsCompact] = useState(false);
+  const codeInputRef = useRef<HTMLInputElement>(null);
 
   const cacheKey = `${productId}:${quantity}`;
 
-  // Prefetch as soon as product is known so opening the modal feels instant
+  // Keep bottom sheet above the mobile keyboard (visualViewport)
+  useEffect(() => {
+    if (!open) {
+      setKeyboardOffset(0);
+      setViewportHeight(null);
+      return;
+    }
+
+    const mq = window.matchMedia('(max-width: 639px)');
+    const syncMq = () => setIsCompact(mq.matches);
+    syncMq();
+    mq.addEventListener('change', syncMq);
+
+    const vv = window.visualViewport;
+    const syncVv = () => {
+      if (!mq.matches) {
+        setKeyboardOffset(0);
+        setViewportHeight(null);
+        return;
+      }
+      if (!vv) {
+        setViewportHeight(window.innerHeight);
+        setKeyboardOffset(0);
+        return;
+      }
+      const layoutH = window.innerHeight;
+      const visibleH = vv.height;
+      const offsetTop = vv.offsetTop;
+      const inset = Math.max(0, Math.round(layoutH - visibleH - offsetTop));
+      setKeyboardOffset(inset);
+      setViewportHeight(Math.round(visibleH));
+    };
+
+    syncVv();
+    vv?.addEventListener('resize', syncVv);
+    vv?.addEventListener('scroll', syncVv);
+    window.addEventListener('resize', syncVv);
+    return () => {
+      mq.removeEventListener('change', syncMq);
+      vv?.removeEventListener('resize', syncVv);
+      vv?.removeEventListener('scroll', syncVv);
+      window.removeEventListener('resize', syncVv);
+    };
+  }, [open]);
+
+  // Seed from parent prefetch (checkout page load)
+  useEffect(() => {
+    if (!initialOffers || !initialOffersKey) return;
+    if (initialOffersKey !== cacheKey) return;
+    cacheRef.current = { key: cacheKey, offers: initialOffers };
+    setOffers(initialOffers);
+    setLoading(false);
+    setError(null);
+  }, [initialOffers, initialOffersKey, cacheKey]);
+
+  // Prefetch / refresh when product or qty changes
   useEffect(() => {
     if (!productId) return;
     let cancelled = false;
@@ -88,7 +152,6 @@ export function CouponOffersModal({
 
     (async () => {
       setLoading(true);
-      // Keep prior list visible while refreshing a different qty
       try {
         const res = await listCouponOffers({ productId, quantity });
         if (cancelled) return;
@@ -99,7 +162,6 @@ export function CouponOffersModal({
         if (cancelled) return;
         cacheRef.current = null;
         setOffers([]);
-        // Only surface errors once the sheet is (or will be) visible
         setError(err instanceof Error ? err.message : 'Could not load offers');
       } finally {
         if (!cancelled) setLoading(false);
@@ -146,48 +208,89 @@ export function CouponOffersModal({
   };
 
   const showSkeleton = loading && offers.length === 0;
+  const keyboardOpen = isCompact && keyboardOffset > 80;
+  const sheetMaxHeight =
+    isCompact && viewportHeight != null
+      ? Math.max(280, Math.min(viewportHeight - 8, Math.floor(viewportHeight * 0.96)))
+      : undefined;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
+        style={
+          isCompact
+            ? {
+                ...(sheetMaxHeight != null ? { maxHeight: `${sheetMaxHeight}px` } : null),
+                bottom: keyboardOffset > 0 ? `${keyboardOffset}px` : 0,
+              }
+            : undefined
+        }
         className={[
           'p-0 gap-0 border-neutral-200 bg-white text-neutral-900 shadow-2xl overflow-hidden',
-          // Mobile: bottom sheet. Desktop: centered card.
+          // Mobile: bottom sheet that shrinks with the visual viewport / keyboard
           'fixed inset-x-0 bottom-0 top-auto left-0 right-0 translate-x-0 translate-y-0',
-          'w-full max-w-none rounded-t-2xl rounded-b-none max-h-[92dvh]',
+          'w-full max-w-none rounded-t-2xl rounded-b-none max-h-[min(92dvh,100%)]',
           'data-[state=open]:slide-in-from-bottom data-[state=closed]:slide-out-to-bottom',
           'sm:inset-auto sm:top-[50%] sm:left-[50%] sm:bottom-auto sm:right-auto',
           'sm:translate-x-[-50%] sm:translate-y-[-50%]',
           'sm:w-full sm:max-w-md sm:rounded-2xl sm:max-h-[85dvh]',
           'sm:data-[state=open]:slide-in-from-bottom-0 sm:data-[state=closed]:slide-out-to-bottom-0',
           'flex flex-col',
+          'transition-[max-height,bottom] duration-200 ease-out',
         ].join(' ')}
       >
-        {/* Mobile drag hint */}
-        <div className="sm:hidden flex justify-center pt-2 pb-0" aria-hidden>
-          <span className="h-1 w-10 rounded-full bg-neutral-300" />
-        </div>
+        {/* Mobile drag hint — hide when keyboard open to save space */}
+        {!keyboardOpen ? (
+          <div className="sm:hidden flex justify-center pt-2 pb-0 shrink-0" aria-hidden>
+            <span className="h-1 w-10 rounded-full bg-neutral-300" />
+          </div>
+        ) : null}
 
-        <DialogHeader className="px-4 sm:px-5 pt-3 sm:pt-5 pb-3 border-b border-neutral-100 text-left pr-12 shrink-0">
+        <DialogHeader
+          className={`px-4 sm:px-5 border-b border-neutral-100 text-left pr-12 shrink-0 ${
+            keyboardOpen ? 'pt-2 pb-2' : 'pt-3 sm:pt-5 pb-3'
+          }`}
+        >
           <DialogTitle className="text-base sm:text-lg font-black tracking-tight text-neutral-900">
             Apply Coupon
           </DialogTitle>
-          <DialogDescription className="text-xs sm:text-sm text-neutral-500 mt-1">
-            One offer per order. Enter a code or pick from available offers.
-          </DialogDescription>
+          {!keyboardOpen ? (
+            <DialogDescription className="text-xs sm:text-sm text-neutral-500 mt-1">
+              One offer per order. Enter a code or pick from available offers.
+            </DialogDescription>
+          ) : (
+            <DialogDescription className="sr-only">
+              Enter a coupon code or pick an offer.
+            </DialogDescription>
+          )}
         </DialogHeader>
 
-        <div className="px-4 sm:px-5 py-3 sm:py-4 border-b border-neutral-100 shrink-0">
+        <div className="px-4 sm:px-5 py-3 border-b border-neutral-100 shrink-0">
           <label className="text-[10px] font-bold tracking-[0.2em] uppercase text-neutral-500 mb-2 block">
             Have a coupon code?
           </label>
           <div className="flex gap-2">
             <input
+              ref={codeInputRef}
               type="text"
+              inputMode="text"
+              autoCapitalize="characters"
+              autoCorrect="off"
+              spellCheck={false}
+              enterKeyHint="done"
               value={manualCode}
               onChange={(e) => {
                 setManualCode(e.target.value.toUpperCase());
                 setCheckMessage(null);
+              }}
+              onFocus={() => {
+                // After keyboard animates, keep the field in the visible sheet
+                window.setTimeout(() => {
+                  codeInputRef.current?.scrollIntoView({
+                    block: 'nearest',
+                    behavior: 'smooth',
+                  });
+                }, 300);
               }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
@@ -212,7 +315,7 @@ export function CouponOffersModal({
           )}
         </div>
 
-        <div className="px-4 sm:px-5 py-3 overflow-y-auto flex-1 min-h-0 overscroll-contain">
+        <div className="px-4 sm:px-5 py-3 overflow-y-auto flex-1 min-h-0 overscroll-contain touch-pan-y">
           <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-neutral-500 mb-3 flex items-center gap-1.5">
             <Tag className="w-3 h-3" />
             Available offers
@@ -249,6 +352,8 @@ export function CouponOffersModal({
                         setSelectedCode(offer.code);
                         setManualCode(offer.code);
                         setCheckMessage(null);
+                        // Blur input so keyboard closes and full list / APPLY is usable
+                        codeInputRef.current?.blur();
                       }}
                       className={`w-full text-left rounded-xl border px-3 py-3 sm:px-3.5 transition-colors ${
                         locked
@@ -296,19 +401,25 @@ export function CouponOffersModal({
           )}
         </div>
 
-        <div className="px-4 sm:px-5 py-3 sm:py-4 border-t border-neutral-100 bg-neutral-50/90 flex flex-col gap-3 shrink-0 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-          <div className="text-sm min-w-0">
-            {appliedCode ? (
-              <p className="font-medium text-neutral-700 break-words">
-                Applied:{' '}
-                <span className="font-mono font-bold text-neutral-900">{appliedCode}</span>
-              </p>
-            ) : previewPaise > 0 ? (
-              <p className="font-bold text-emerald-700">You save {formatInr(previewPaise)}</p>
-            ) : (
-              <p className="text-neutral-500 text-xs sm:text-sm">Select an offer to apply</p>
-            )}
-          </div>
+        <div
+          className={`px-4 sm:px-5 border-t border-neutral-100 bg-neutral-50/90 flex flex-col gap-2 sm:gap-3 shrink-0 ${
+            keyboardOpen ? 'py-2' : 'py-3 sm:py-4'
+          } pb-[max(0.5rem,env(safe-area-inset-bottom))]`}
+        >
+          {!keyboardOpen ? (
+            <div className="text-sm min-w-0">
+              {appliedCode ? (
+                <p className="font-medium text-neutral-700 break-words">
+                  Applied:{' '}
+                  <span className="font-mono font-bold text-neutral-900">{appliedCode}</span>
+                </p>
+              ) : previewPaise > 0 ? (
+                <p className="font-bold text-emerald-700">You save {formatInr(previewPaise)}</p>
+              ) : (
+                <p className="text-neutral-500 text-xs sm:text-sm">Select an offer to apply</p>
+              )}
+            </div>
+          ) : null}
           <div className="flex items-stretch sm:items-center gap-2 w-full">
             {appliedCode ? (
               <button

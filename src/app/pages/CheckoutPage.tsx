@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { useCheckout } from '../lib/checkout';
 import { discountPercent, formatInr, isProductPurchasable, type KitItem } from '../data/products';
-import { getPublicProductReviews, type PublicReview } from '../lib/api';
+import { getPublicProductReviews, listCouponOffers, type CouponOffer, type PublicReview } from '../lib/api';
 import { motion, AnimatePresence } from 'motion/react';
 import { useCartStore } from '../store/cartStore';
 import { CheckoutOrderSummary } from '../components/checkout/CheckoutOrderSummary';
@@ -96,6 +96,8 @@ export default function CheckoutPage() {
   const [detailTab, setDetailTab] = useState<DetailTab>('description');
   const [reviews, setReviews] = useState<PublicReview[]>([]);
   const [offersOpen, setOffersOpen] = useState(false);
+  const [offers, setOffers] = useState<CouponOffer[]>([]);
+  const [offersLoading, setOffersLoading] = useState(false);
   const { addItem, upsertItem, toggleDrawer } = useCartStore();
 
   useEffect(() => {
@@ -104,6 +106,26 @@ export default function CheckoutPage() {
       .then((data) => setReviews(data.reviews))
       .catch(() => setReviews([]));
   }, [product?.slug]);
+
+  // Load available offers as soon as the checkout product page is ready (guests OK)
+  useEffect(() => {
+    if (!product?.id) return;
+    let cancelled = false;
+    setOffersLoading(true);
+    listCouponOffers({ productId: product.id, quantity })
+      .then((res) => {
+        if (!cancelled) setOffers(res.offers);
+      })
+      .catch(() => {
+        if (!cancelled) setOffers([]);
+      })
+      .finally(() => {
+        if (!cancelled) setOffersLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [product?.id, quantity]);
 
   if (isLoadingProduct) {
     return <ODILoader size="md" label="Loading kit details…" />;
@@ -547,7 +569,11 @@ export default function CheckoutPage() {
                   </>
                 ) : (
                   <p className="text-sm text-neutral-500">
-                    View available offers or enter a code
+                    {offersLoading
+                      ? 'Loading offers…'
+                      : offers.length > 0
+                        ? `${offers.length} offer${offers.length === 1 ? '' : 's'} available`
+                        : 'View available offers or enter a code'}
                   </p>
                 )}
               </div>
@@ -570,6 +596,52 @@ export default function CheckoutPage() {
                 </button>
               </div>
             </div>
+
+            {/* Instant offers preview (loaded with the page — guests included) */}
+            {!couponCode && (offersLoading || offers.length > 0) ? (
+              <ul className="mt-2 space-y-1.5">
+                {offersLoading && offers.length === 0 ? (
+                  <li className="rounded-lg border border-neutral-100 bg-neutral-50 px-3 py-2 animate-pulse">
+                    <div className="h-3 w-2/3 rounded bg-neutral-200" />
+                  </li>
+                ) : (
+                  offers.slice(0, 3).map((offer) => (
+                    <li key={offer.id}>
+                      <button
+                        type="button"
+                        disabled={!offer.eligible}
+                        onClick={() => {
+                          setOffersOpen(true);
+                        }}
+                        className={`w-full text-left rounded-lg border px-3 py-2 transition-colors ${
+                          offer.eligible
+                            ? 'border-emerald-200/80 bg-emerald-50/50 hover:border-emerald-300 cursor-pointer'
+                            : 'border-neutral-100 bg-neutral-50 opacity-70 cursor-default'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-neutral-900 truncate">{offer.title}</p>
+                            <p className="text-[10px] font-mono font-bold text-neutral-500 mt-0.5">
+                              {offer.code}
+                            </p>
+                            {!offer.eligible && offer.reason ? (
+                              <p className="text-[10px] text-amber-700 mt-0.5">{offer.reason}</p>
+                            ) : null}
+                          </div>
+                          {offer.eligible && offer.discount_preview_paise > 0 ? (
+                            <span className="text-[10px] font-black text-emerald-700 shrink-0">
+                              Save {formatInr(offer.discount_preview_paise)}
+                            </span>
+                          ) : null}
+                        </div>
+                      </button>
+                    </li>
+                  ))
+                )}
+              </ul>
+            ) : null}
+
             {couponMessage && (
               <p
                 className={`text-xs mt-1.5 font-medium break-words ${
@@ -588,6 +660,8 @@ export default function CheckoutPage() {
               applying={couponApplying}
               onApply={applyCoupon}
               onClear={clearCoupon}
+              initialOffers={offers}
+              initialOffersKey={product.id ? `${product.id}:${quantity}` : undefined}
             />
           </div>
 

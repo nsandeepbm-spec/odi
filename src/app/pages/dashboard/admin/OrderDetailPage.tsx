@@ -10,6 +10,7 @@ import {
   AlertCircle,
   FileDown,
   Truck,
+  RefreshCw,
 } from 'lucide-react';
 import {
   PageHeader,
@@ -25,6 +26,7 @@ import {
   getAdminOrderDetail,
   createAdminOrderShipment,
   getAdminOrderTracking,
+  syncAdminOrderPayment,
   type AdminOrderDetail,
   type ShipmentTracking,
 } from '../../../lib/api';
@@ -90,6 +92,8 @@ export default function OrderDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [shippingAction, setShippingAction] = useState<'shipment' | null>(null);
+  const [syncingPayment, setSyncingPayment] = useState(false);
+  const [syncMessage, setSyncMessage] = useState<string | null>(null);
   const [tracking, setTracking] = useState<ShipmentTracking | null>(null);
   const [trackingLoading, setTrackingLoading] = useState(false);
   const [trackingError, setTrackingError] = useState<string | null>(null);
@@ -149,6 +153,27 @@ export default function OrderDetailPage() {
       alert(err instanceof Error ? err.message : 'Failed to create shipment');
     } finally {
       setShippingAction(null);
+    }
+  };
+
+  const handleSyncPayment = async () => {
+    if (!detail) return;
+    setSyncingPayment(true);
+    setSyncMessage(null);
+    try {
+      const result = await syncAdminOrderPayment(detail.order.id);
+      const refreshed = await getAdminOrderDetail(detail.order.id);
+      setDetail(refreshed);
+      if (refreshed.order.delhivery_waybill) loadTracking(refreshed.order.id);
+      setSyncMessage(
+        result.alreadyPaid && !result.synced
+          ? 'Order was already marked paid.'
+          : `Payment synced from Razorpay${result.razorpayPaymentId ? ` (${result.razorpayPaymentId})` : ''}. Order is now paid.`
+      );
+    } catch (err) {
+      setSyncMessage(err instanceof Error ? err.message : 'Could not sync payment from Razorpay');
+    } finally {
+      setSyncingPayment(false);
     }
   };
 
@@ -240,7 +265,7 @@ export default function OrderDetailPage() {
                           {order.paid_at
                             ? `Paid ${formatDateTime(order.paid_at)}`
                             : display.label === 'Incomplete payment'
-                              ? 'Waiting for online payment'
+                              ? 'Razorpay may have charged — sync to confirm'
                               : display.label === 'Abandoned payment'
                                 ? 'Checkout abandoned — not a customer cancel'
                                 : 'Not paid yet'}
@@ -252,7 +277,34 @@ export default function OrderDetailPage() {
                 <p className="text-[11px] text-neutral-500 mt-2">
                   Status updates automatically from payment and Delhivery fulfillment.
                 </p>
+                {syncMessage && (
+                  <p
+                    className={`text-xs mt-2 font-medium break-words ${
+                      /synced|already marked paid|now paid/i.test(syncMessage)
+                        ? 'text-emerald-400'
+                        : 'text-amber-400'
+                    }`}
+                  >
+                    {syncMessage}
+                  </p>
+                )}
               </div>
+              {adminOrderStatusDisplay(order).label === 'Incomplete payment' &&
+              order.razorpay_order_id ? (
+                <button
+                  type="button"
+                  onClick={() => void handleSyncPayment()}
+                  disabled={syncingPayment}
+                  className="inline-flex items-center justify-center gap-2 w-full sm:w-auto shrink-0 px-4 py-2.5 text-sm font-bold rounded-xl bg-amber-500/15 text-amber-300 border border-amber-500/30 hover:bg-amber-500/25 transition-colors disabled:opacity-50"
+                >
+                  {syncingPayment ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="w-4 h-4" />
+                  )}
+                  Sync payment from Razorpay
+                </button>
+              ) : null}
             </div>
 
             <div className="p-4 sm:p-6">
