@@ -522,7 +522,7 @@ const LearnMorePage: React.FC = () => {
 
         <div className={`${shell} grid grid-cols-1 lg:grid-cols-12 gap-8 sm:gap-10 lg:gap-16 items-stretch`}>
           <FadeUp className="lg:col-span-6 w-full">
-            <div className="relative w-full aspect-[4/3] sm:aspect-[16/11] lg:aspect-[4/3] rounded-2xl sm:rounded-3xl overflow-hidden bg-neutral-950 border border-neutral-200/30 shadow-sm">
+            <div className="relative w-full aspect-[4/3] sm:aspect-[16/11] lg:aspect-[4/3] rounded-2xl sm:rounded-3xl overflow-hidden bg-gray-100 border border-neutral-200/30 shadow-sm">
               <img
                 src="/product-image/4.png"
                 alt="ODI Kids Space Explorer kit — book, collector cards, and 3D glasses"
@@ -566,7 +566,7 @@ const LearnMorePage: React.FC = () => {
               <div>
                 <div className="mb-5 sm:mb-6 flex items-baseline gap-3 flex-wrap">
                   <span className="font-black tracking-tight" style={{ fontSize: 'clamp(1.85rem, 5vw, 2.5rem)' }}>
-                    ₹1,299
+                    ₹1,399
                   </span>
                   <span className="text-sm font-medium" style={{ color: T.sub }}>
                     Ages 6–99
