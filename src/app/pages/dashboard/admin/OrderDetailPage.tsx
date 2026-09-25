@@ -13,12 +13,12 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import {
-  PageHeader,
   Card,
   PaymentBadge,
   EmptyState,
   inrFromPaise,
   OrderBadge,
+  adminDeliveryStatusDisplay,
   adminOrderStatusDisplay,
 } from '../../../components/dashboard/shared';
 import { ODILoader } from '../../../components/ODILoader';
@@ -39,6 +39,9 @@ import {
   formatPickupTimeLabel,
   resolvePickupSchedule,
 } from '../../../lib/pickupSchedule';
+
+const panel =
+  '!border-neutral-500/55 shadow-[0_0_0_1px_rgba(163,163,163,0.12),0_20px_40px_-20px_rgba(0,0,0,0.55)]';
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-IN', {
@@ -83,6 +86,63 @@ function SectionTitle({ icon: Icon, children }: { icon: React.ElementType; child
   );
 }
 
+function isCodOrder(order: AdminOrderDetail['order'], payments: AdminOrderDetail['payments']) {
+  if (order.channel === 'BULK_OFFLINE') return false;
+  if (payments.some((p) => p.provider === 'cod')) return true;
+  return !order.razorpay_order_id && order.payment_lifecycle == null;
+}
+
+function paymentBadgeForOrder(
+  order: AdminOrderDetail['order'],
+  payments: AdminOrderDetail['payments']
+): { status: 'paid' | 'pending' | 'failed'; label: string; hint: string } {
+  const lifecycle = adminOrderStatusDisplay(order).label;
+  if (lifecycle === 'Incomplete payment') {
+    return {
+      status: 'pending',
+      label: 'Incomplete',
+      hint: 'Razorpay may have charged — sync to confirm',
+    };
+  }
+  if (lifecycle === 'Abandoned payment') {
+    return {
+      status: 'failed',
+      label: 'Abandoned',
+      hint: 'Checkout abandoned — not a customer cancel',
+    };
+  }
+  if (isCodOrder(order, payments)) {
+    const codPay = payments.find((p) => p.provider === 'cod');
+    const collected =
+      Boolean(order.paid_at) ||
+      codPay?.status === 'captured' ||
+      codPay?.status === 'paid' ||
+      order.status === 'delivered';
+    if (collected) {
+      return {
+        status: 'paid',
+        label: 'COD collected',
+        hint: order.paid_at
+          ? `Collected ${formatDateTime(order.paid_at)}`
+          : 'Cash collected on Delhivery delivery',
+      };
+    }
+    return {
+      status: 'pending',
+      label: 'COD due',
+      hint: 'Updates automatically when Delhivery marks delivered',
+    };
+  }
+  if (order.paid_at || payments.some((p) => p.status === 'captured' || p.status === 'paid')) {
+    return {
+      status: 'paid',
+      label: 'Paid',
+      hint: order.paid_at ? `Paid ${formatDateTime(order.paid_at)}` : 'Paid',
+    };
+  }
+  return { status: 'pending', label: 'Pending', hint: 'Not paid yet' };
+}
+
 export default function OrderDetailPage() {
   const { orderId } = useParams<{ orderId: string }>();
   const [searchParams] = useSearchParams();
@@ -103,7 +163,44 @@ export default function OrderDetailPage() {
     setTrackingLoading(true);
     setTrackingError(null);
     getAdminOrderTracking(id)
-      .then((t) => setTracking(t))
+      .then(async (t) => {
+        setTracking(t);
+        if (t.orderStatus === 'delivered') {
+          // Delhivery delivered settles COD on the API — refresh payments / paid_at.
+          try {
+            const refreshed = await getAdminOrderDetail(id);
+            setDetail(refreshed);
+          } catch {
+            setDetail((prev) =>
+              prev && prev.order.id === id
+                ? {
+                    ...prev,
+                    order: {
+                      ...prev.order,
+                      status: t.orderStatus || prev.order.status,
+                      delhivery_status: t.status,
+                    },
+                  }
+                : prev
+            );
+          }
+          return;
+        }
+        if (t.orderStatus) {
+          setDetail((prev) =>
+            prev && prev.order.id === id
+              ? {
+                  ...prev,
+                  order: {
+                    ...prev.order,
+                    status: t.orderStatus || prev.order.status,
+                    delhivery_status: t.status,
+                  },
+                }
+              : prev
+          );
+        }
+      })
       .catch((e) => {
         setTracking(null);
         setTrackingError(e instanceof Error ? e.message : 'Could not load tracking');
@@ -119,6 +216,10 @@ export default function OrderDetailPage() {
     getAdminOrderDetail(orderId)
       .then((d) => {
         if (!cancelled) {
+          if (d.order.channel === 'BULK_OFFLINE') {
+            navigate(`/dashboard/admin/bulk-orders/${d.order.id}`, { replace: true });
+            return;
+          }
           setDetail(d);
           setLoading(false);
           if (d.order.delhivery_waybill) loadTracking(d.order.id);
@@ -184,20 +285,30 @@ export default function OrderDetailPage() {
   if (error || !detail) {
     return (
       <div className="min-w-0">
-        <PageHeader
-          title="Order"
-          accent="Detail."
-          subtitle="Could not load this order."
-          action={
+        <header className="relative z-10 mb-8 overflow-hidden rounded-2xl border border-neutral-500/55 bg-[#0A0A0A] shadow-[0_0_0_1px_rgba(163,163,163,0.12),0_20px_40px_-20px_rgba(0,0,0,0.55)]">
+          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent" />
+          <div className="relative px-4 sm:px-6 py-5 sm:py-6 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-5">
+            <div className="min-w-0">
+              <h1
+                className="font-black tracking-tight text-white leading-none"
+                style={{ fontSize: 'clamp(1.75rem, 3.2vw, 2.6rem)', letterSpacing: '-0.03em' }}
+              >
+                Order{' '}
+                <span className="bg-gradient-to-br from-cyan-400 via-indigo-400 to-purple-500 bg-clip-text text-transparent">
+                  Detail.
+                </span>
+              </h1>
+              <p className="mt-3 text-sm text-neutral-400">Could not load this order.</p>
+            </div>
             <Link
               to="/dashboard/admin/orders"
-              className="inline-flex items-center justify-center gap-2 w-full sm:w-auto shrink-0 px-5 py-2.5 text-sm font-bold tracking-wide border border-white/[0.1] text-white bg-black/40 hover:bg-white/[0.04] transition-all rounded-xl"
+              className="inline-flex items-center justify-center gap-2 w-full sm:w-auto shrink-0 px-5 py-2.5 text-sm font-bold tracking-wide border border-neutral-500/70 text-white bg-black/40 hover:bg-white/[0.04] hover:border-neutral-400 transition-all rounded-xl"
             >
               <ArrowLeft className="w-4 h-4" /> Back to orders
             </Link>
-          }
-        />
-        <Card>
+          </div>
+        </header>
+        <Card className={panel}>
           <EmptyState
             icon={AlertCircle}
             title="Order not found"
@@ -223,59 +334,81 @@ export default function OrderDetailPage() {
 
   return (
     <div className="min-w-0">
-      <PageHeader
-        title={order.order_number}
-        accent="Detail."
-        subtitle={`Placed ${formatDate(order.created_at)} · ${customerName}`}
-        action={
-          <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 w-full sm:w-auto">
-            <button
-              type="button"
-              onClick={() => void downloadOrderInvoice(detail)}
-              className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-5 py-2.5 text-sm font-bold tracking-wide bg-gradient-to-r from-cyan-400 to-indigo-500 text-white shadow-[0_0_18px_rgba(56,189,248,0.22)] hover:shadow-[0_0_24px_rgba(99,102,241,0.35)] transition-all rounded-xl"
+      <header className="relative z-10 mb-8 overflow-hidden rounded-2xl border border-neutral-500/55 bg-[#0A0A0A] shadow-[0_0_0_1px_rgba(163,163,163,0.12),0_20px_40px_-20px_rgba(0,0,0,0.55)]">
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent" />
+        <div className="absolute -right-16 -top-20 h-48 w-48 rounded-full bg-cyan-500/[0.07] blur-3xl pointer-events-none" />
+        <div className="absolute -left-10 bottom-0 h-32 w-32 rounded-full bg-violet-500/[0.05] blur-3xl pointer-events-none" />
+
+        <div className="relative px-4 sm:px-6 py-5 sm:py-6 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-5">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2 mb-3">
+              <span className="inline-flex items-center gap-1.5 rounded-md border border-cyan-400/25 bg-cyan-500/10 px-2 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-cyan-300">
+                <Package className="w-3 h-3" />
+                Online order
+              </span>
+              {(() => {
+                const delivery = adminDeliveryStatusDisplay(order);
+                return (
+                  <span className="inline-flex items-center rounded-md border border-white/[0.08] bg-white/[0.03] px-2 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-neutral-300">
+                    {delivery.label}
+                  </span>
+                );
+              })()}
+            </div>
+            <h1
+              className="font-black tracking-tight text-white leading-none truncate"
+              style={{ fontSize: 'clamp(1.75rem, 3.2vw, 2.6rem)', letterSpacing: '-0.03em' }}
             >
-              <FileDown className="w-4 h-4" /> Invoice
-            </button>
+              {order.order_number}
+            </h1>
+            <p className="mt-3 max-w-xl text-sm text-neutral-400 leading-relaxed">
+              Placed {formatDate(order.created_at)} · {customerName}
+            </p>
+          </div>
+
+          <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 w-full sm:w-auto shrink-0">
             <button
               type="button"
               onClick={() => navigate('/dashboard/admin/orders')}
-              className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-5 py-2.5 text-sm font-bold tracking-wide border border-white/[0.1] text-white bg-black/40 hover:bg-white/[0.04] hover:border-white/[0.2] transition-all rounded-xl"
+              className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-5 py-2.5 text-sm font-bold tracking-wide border border-neutral-500/70 text-white bg-black/40 hover:bg-white/[0.04] hover:border-neutral-400 transition-all rounded-xl"
             >
               <ArrowLeft className="w-4 h-4" /> Back to orders
             </button>
+            <button
+              type="button"
+              onClick={() => void downloadOrderInvoice(detail)}
+              className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-5 py-2.5 text-sm font-bold tracking-wide bg-cyan-500 text-white hover:bg-cyan-400 transition-all rounded-xl"
+            >
+              <FileDown className="w-4 h-4" /> Invoice
+            </button>
           </div>
-        }
-      />
+        </div>
+      </header>
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 relative z-10">
         {/* Main column */}
         <div className="xl:col-span-8 flex flex-col gap-6 min-w-0">
           {/* Order summary + status */}
-          <Card>
-            <div className="px-4 sm:px-6 py-5 border-b border-white/[0.04] bg-[#0d0d0d] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <Card className={panel}>
+            <div className="px-4 sm:px-6 py-5 border-b border-neutral-500/40 bg-[#0d0d0d] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div className="min-w-0">
                 <SectionTitle icon={Package}>Order</SectionTitle>
                 <div className="flex flex-wrap items-center gap-3 -mt-2">
                   {(() => {
-                    const display = adminOrderStatusDisplay(order);
+                    const delivery = adminDeliveryStatusDisplay(order, tracking);
+                    const pay = paymentBadgeForOrder(order, payments);
                     return (
                       <>
-                        <OrderBadge status={display.badgeStatus} label={display.label} />
-                        <span className="text-xs text-neutral-500 font-medium">
-                          {order.paid_at
-                            ? `Paid ${formatDateTime(order.paid_at)}`
-                            : display.label === 'Incomplete payment'
-                              ? 'Razorpay may have charged — sync to confirm'
-                              : display.label === 'Abandoned payment'
-                                ? 'Checkout abandoned — not a customer cancel'
-                                : 'Not paid yet'}
-                        </span>
+                        <OrderBadge status={delivery.badgeStatus} label={delivery.label} />
+                        <PaymentBadge status={pay.status} label={pay.label} />
+                        <span className="text-xs text-neutral-500 font-medium">{pay.hint}</span>
                       </>
                     );
                   })()}
                 </div>
                 <p className="text-[11px] text-neutral-500 mt-2">
-                  Status updates automatically from payment and Delhivery fulfillment.
+                  Status updates automatically from payment and Delhivery fulfillment. COD cash
+                  settles when the courier marks the shipment delivered.
                 </p>
                 {syncMessage && (
                   <p
@@ -341,7 +474,7 @@ export default function OrderDetailPage() {
           </Card>
 
           {/* Fulfillment */}
-          <Card>
+          <Card className={panel}>
             <div id="fulfillment" ref={fulfillmentRef} className="p-4 sm:p-6 scroll-mt-24">
               <SectionTitle icon={Truck}>Fulfillment (Delhivery)</SectionTitle>
               <div className="bg-white/[0.02] border border-white/[0.04] rounded-2xl p-4 flex flex-col gap-4 min-w-0">
@@ -480,7 +613,7 @@ export default function OrderDetailPage() {
           </Card>
 
           {/* Products */}
-          <Card title={`Products · ${items.length}`}>
+          <Card title={`Products · ${items.length}`} className={panel}>
             <div className="p-4 sm:p-6 space-y-3">
               {items.length === 0 ? (
                 <p className="text-sm text-neutral-500 text-center py-8">No line items.</p>
@@ -521,7 +654,7 @@ export default function OrderDetailPage() {
 
           {/* Payments */}
           {payments.length > 0 && (
-            <Card title="Payment">
+            <Card title="Payment" className={panel}>
               <div className="p-4 sm:p-6 space-y-4">
                 {payments.map((pmt) => (
                   <div
@@ -562,11 +695,11 @@ export default function OrderDetailPage() {
 
         {/* Sidebar */}
         <div className="xl:col-span-4 flex flex-col gap-6 min-w-0">
-          <Card>
+          <Card className={panel}>
             <div className="p-4 sm:p-6">
               <SectionTitle icon={User}>Customer</SectionTitle>
               {user ? (
-                <div className="flex items-center gap-3 mb-4 pb-4 border-b border-white/[0.04]">
+                <div className="flex items-center gap-3 mb-4 pb-4 border-b border-neutral-500/30">
                   {user.avatar_url ? (
                     <img
                       src={user.avatar_url}
@@ -586,7 +719,7 @@ export default function OrderDetailPage() {
                   </div>
                 </div>
               ) : null}
-              <div className="bg-white/[0.02] border border-white/[0.04] rounded-2xl p-4">
+              <div className="bg-white/[0.02] border border-neutral-500/40 rounded-2xl p-4">
                 <DetailRow label="Email" value={user?.email ?? addr?.email ?? '—'} />
                 <DetailRow label="Phone" value={user?.phone ?? addr?.phone ?? '—'} />
                 <DetailRow label="Role" value={user?.role} />
@@ -595,10 +728,10 @@ export default function OrderDetailPage() {
             </div>
           </Card>
 
-          <Card>
+          <Card className={panel}>
             <div className="p-4 sm:p-6">
               <SectionTitle icon={MapPin}>Shipping</SectionTitle>
-              <div className="bg-white/[0.02] border border-white/[0.04] rounded-2xl p-4">
+              <div className="bg-white/[0.02] border border-neutral-500/40 rounded-2xl p-4">
                 <DetailRow label="Name" value={customerName} />
                 <DetailRow label="Email" value={addr?.email ?? '—'} />
                 <DetailRow label="Phone" value={addr?.phone ?? '—'} />
@@ -607,7 +740,7 @@ export default function OrderDetailPage() {
             </div>
           </Card>
 
-          <div className="rounded-2xl border border-white/[0.06] bg-[#0A0A0A] p-4 sm:p-5 min-w-0">
+          <div className="rounded-2xl border border-neutral-500/55 bg-[#0A0A0A] p-4 sm:p-5 min-w-0 shadow-[0_0_0_1px_rgba(163,163,163,0.12),0_20px_40px_-20px_rgba(0,0,0,0.55)]">
             <p className="text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-2">
               Order total
             </p>

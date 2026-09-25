@@ -30,7 +30,14 @@ function shippingLine(status: ShippingQuoteStatus, paise: number) {
   return { text: formatInr(0), className: 'text-neutral-600 font-bold' };
 }
 
-export function CheckoutOrderSummary({ currentItem }: { currentItem?: SummaryItem }) {
+export function CheckoutOrderSummary({
+  currentItem,
+  /** When false (COD), hide coupon discount and show full payable total. */
+  couponsAllowed = true,
+}: {
+  currentItem?: SummaryItem;
+  couponsAllowed?: boolean;
+}) {
   const { items, getTotal } = useCartStore();
   const {
     product,
@@ -68,11 +75,13 @@ export function CheckoutOrderSummary({ currentItem }: { currentItem?: SummaryIte
       ? currentItem.pricePaise * currentItem.quantity
       : getTotal();
 
-  const discount = useCheckoutTotals ? discountPaise : 0;
-  const showCoupon = useCheckoutTotals && !!couponCode && discount > 0;
+  const discount = useCheckoutTotals && couponsAllowed ? discountPaise : 0;
+  const showCoupon = useCheckoutTotals && couponsAllowed && !!couponCode && discount > 0;
 
   const total = useCheckoutTotals
-    ? totalPaise
+    ? couponsAllowed
+      ? totalPaise
+      : totalPaise + discountPaise
     : currentItem
       ? currentItem.pricePaise * currentItem.quantity
       : getTotal();
@@ -154,6 +163,11 @@ export function CheckoutOrderSummary({ currentItem }: { currentItem?: SummaryIte
               Coupon saves {formatInr(discount)}
             </p>
           )}
+          {!couponsAllowed && couponCode ? (
+            <p className="text-[11px] font-medium text-amber-700 mt-0.5">
+              Coupons apply to online payment only
+            </p>
+          ) : null}
         </div>
       </div>
 

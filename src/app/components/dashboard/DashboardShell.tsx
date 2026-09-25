@@ -1,19 +1,19 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router';
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronDown, LogOut, Menu, PanelLeft, PanelLeftClose, Search, Settings, X, type LucideIcon } from 'lucide-react';
+import { ChevronDown, LogOut, Menu, PanelLeft, PanelLeftClose, Settings, X, type LucideIcon } from 'lucide-react';
 import { displayName, getInitials, useAuth } from '../../lib/auth';
 import { ODILogo } from '../ODILogo';
 import NotificationBell from './NotificationBell';
 
 // Premium Dark Theme Tokens
-const T = { 
-  bg: '#050505', 
-  bgAlt: '#0a0a0a', 
-  text: '#fafafa', 
-  sub: '#a1a1aa', 
-  border: '#1f1f22',
-  accent: '#38bdf8'
+const T = {
+  bg: '#050505',
+  bgAlt: '#0a0a0a',
+  text: '#fafafa',
+  sub: '#a1a1aa',
+  border: 'rgba(115, 115, 115, 0.45)',
+  accent: '#38bdf8',
 };
 
 export interface NavItem {
@@ -127,7 +127,7 @@ export default function DashboardShell({ portal, groups, switchTo }: DashboardSh
             <button
               type="button"
               onClick={() => setDesktopCollapsed(!desktopCollapsed)}
-              className="p-1.5 rounded-lg hover:bg-white/5 text-neutral-400 hover:text-white transition-colors shrink-0"
+              className="p-1.5 rounded-lg border border-transparent hover:border-neutral-500/50 hover:bg-white/5 text-neutral-400 hover:text-white transition-colors shrink-0"
               aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             >
               {collapsed ? <PanelLeft className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
@@ -141,7 +141,7 @@ export default function DashboardShell({ portal, groups, switchTo }: DashboardSh
           {groups.map((group) => (
             <div key={group.label}>
               {!collapsed && (
-                <div className="px-3 mb-1.5 text-[10px] font-bold tracking-[0.2em] uppercase" style={{ color: T.sub }}>
+                <div className="px-3 mb-1.5 text-[10px] font-bold tracking-[0.2em] uppercase text-neutral-500">
                   {group.label}
                 </div>
               )}
@@ -157,8 +157,8 @@ export default function DashboardShell({ portal, groups, switchTo }: DashboardSh
                       onClick={() => setSidebarOpen(false)}
                       className={`group relative flex items-center ${collapsed ? 'justify-center p-2.5' : 'gap-3 px-3 py-2'} rounded-xl text-sm font-semibold transition-all duration-300 ${
                         active
-                          ? 'bg-white/10 text-white shadow-[0_0_20px_rgba(255,255,255,0.03)] border border-white/5'
-                          : 'text-neutral-400 hover:bg-white/5 hover:text-neutral-200 border border-transparent'
+                          ? 'bg-white/10 text-white shadow-[0_0_20px_rgba(255,255,255,0.03)] border border-neutral-500/40'
+                          : 'text-neutral-400 hover:bg-white/5 hover:text-neutral-200 border border-transparent hover:border-neutral-600/40'
                       }`}
                     >
                       {active && (
@@ -188,7 +188,11 @@ export default function DashboardShell({ portal, groups, switchTo }: DashboardSh
       {/* Desktop Sidebar */}
       <aside
         className={`hidden md:flex h-full flex-col shrink-0 transition-[width] duration-300 ease-in-out ${desktopCollapsed ? 'w-[84px]' : 'w-[300px]'}`}
-        style={{ background: T.bgAlt, borderRight: `1px solid ${T.border}` }}
+        style={{
+          background: T.bgAlt,
+          borderRight: `1px solid ${T.border}`,
+          boxShadow: '1px 0 0 rgba(163,163,163,0.08)',
+        }}
       >
         {renderSidebarContent(false)}
       </aside>
@@ -210,11 +214,14 @@ export default function DashboardShell({ portal, groups, switchTo }: DashboardSh
               exit={{ x: '-100%' }}
               transition={{ type: 'spring', stiffness: 320, damping: 32 }}
               className="fixed top-0 left-0 h-screen w-[300px] flex flex-col z-40 md:hidden shadow-2xl shadow-black"
-              style={{ background: T.bgAlt, borderRight: `1px solid ${T.border}` }}
+              style={{
+                background: T.bgAlt,
+                borderRight: `1px solid ${T.border}`,
+              }}
             >
               <button
                 onClick={() => setSidebarOpen(false)}
-                className="absolute top-4 right-3 p-1.5 rounded-lg hover:bg-white/10 text-neutral-400 hover:text-white transition-colors z-10"
+                className="absolute top-4 right-3 p-1.5 rounded-lg border border-neutral-500/40 hover:bg-white/10 text-neutral-400 hover:text-white transition-colors z-10"
                 aria-label="Close menu"
               >
                 <X className="w-5 h-5" />
@@ -233,11 +240,12 @@ export default function DashboardShell({ portal, groups, switchTo }: DashboardSh
           style={{
             background: T.bgAlt,
             borderBottom: `1px solid ${T.border}`,
+            boxShadow: '0 1px 0 rgba(163,163,163,0.08)',
           }}
         >
           <button
             onClick={() => setSidebarOpen(true)}
-            className="md:hidden p-2 -ml-1 rounded-xl hover:bg-white/[0.06] text-neutral-500 hover:text-white transition-colors"
+            className="md:hidden p-2 -ml-1 rounded-xl border border-transparent hover:border-neutral-500/40 hover:bg-white/[0.06] text-neutral-500 hover:text-white transition-colors"
             aria-label="Open menu"
           >
             <Menu className="w-5 h-5" />
@@ -261,20 +269,11 @@ export default function DashboardShell({ portal, groups, switchTo }: DashboardSh
             </Link>
           )}
 
-          <div className="hidden lg:flex items-center gap-2 flex-1 max-w-md px-3.5 py-2 rounded-full border border-white/[0.07] bg-white/[0.03] focus-within:bg-white/[0.05] focus-within:border-white/[0.14] focus-within:ring-1 focus-within:ring-cyan-500/20 transition-all">
-            <Search className="w-3.5 h-3.5 shrink-0 text-neutral-500 flex-none" />
-            <input
-              type="search"
-              autoComplete="off"
-              autoCorrect="off"
-              spellCheck={false}
-              placeholder={portal === 'Admin' ? 'Search orders, customers…' : 'Search your orders…'}
-              className="w-full bg-transparent text-sm outline-none placeholder:text-neutral-600 text-neutral-300"
-              style={{ WebkitTextFillColor: 'inherit' }}
-            />
+          <div className="flex flex-col justify-center min-w-0 flex-1">
+            <h1 className="text-sm md:text-base font-black text-white tracking-tight truncate">
+              {portal === 'Admin' ? 'Admin Dashboard' : 'My Dashboard'}
+            </h1>
           </div>
-
-          <div className="flex-1 sm:hidden" />
 
           <div className="flex items-center gap-1.5 sm:gap-2 ml-auto shrink-0 relative z-40">
             <NotificationBell
@@ -287,8 +286,8 @@ export default function DashboardShell({ portal, groups, switchTo }: DashboardSh
                 onClick={() => setProfileOpen((open) => !open)}
                 className={`flex items-center gap-2.5 pl-1.5 pr-2.5 py-1 rounded-full border transition-colors ${
                   profileOpen
-                    ? 'border-white/15 bg-white/[0.08]'
-                    : 'border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.07] hover:border-white/12'
+                    ? 'border-neutral-400/50 bg-white/[0.08]'
+                    : 'border-neutral-500/45 bg-white/[0.03] hover:bg-white/[0.07] hover:border-neutral-400/50'
                 }`}
                 aria-label={`${name} profile`}
                 aria-expanded={profileOpen}
@@ -314,7 +313,7 @@ export default function DashboardShell({ portal, groups, switchTo }: DashboardSh
                     className="absolute right-0 top-full pt-2.5 z-50 w-[272px]"
                     role="menu"
                   >
-                    <div className="rounded-2xl overflow-hidden border border-white/[0.08] bg-[#111113] shadow-[0_16px_48px_rgba(0,0,0,0.55)]">
+                    <div className="rounded-2xl overflow-hidden border border-neutral-500/50 bg-[#111113] shadow-[0_16px_48px_rgba(0,0,0,0.55)]">
                       <div className="px-4 py-4 bg-gradient-to-b from-white/[0.04] to-transparent">
                         <div className="flex items-center gap-3">
                           <Avatar size="lg" />
@@ -330,7 +329,7 @@ export default function DashboardShell({ portal, groups, switchTo }: DashboardSh
                         </div>
                       </div>
 
-                      <div className="h-px bg-white/[0.06]" />
+                      <div className="h-px bg-neutral-500/30" />
 
                       <div className="p-1.5">
                         <Link
@@ -339,7 +338,7 @@ export default function DashboardShell({ portal, groups, switchTo }: DashboardSh
                           className="flex items-center gap-3 w-full px-2.5 py-2 text-[13px] font-medium text-neutral-300 hover:bg-white/[0.06] hover:text-white rounded-xl transition-colors"
                           role="menuitem"
                         >
-                          <span className="w-8 h-8 rounded-lg bg-white/[0.04] border border-white/[0.06] flex items-center justify-center shrink-0">
+                          <span className="w-8 h-8 rounded-lg bg-white/[0.04] border border-neutral-500/40 flex items-center justify-center shrink-0">
                             <Settings className="w-3.5 h-3.5 text-neutral-400" />
                           </span>
                           Settings
@@ -351,7 +350,7 @@ export default function DashboardShell({ portal, groups, switchTo }: DashboardSh
                             className="flex items-center gap-3 w-full px-2.5 py-2 text-[13px] font-medium text-neutral-300 hover:bg-white/[0.06] hover:text-white rounded-xl transition-colors"
                             role="menuitem"
                           >
-                            <span className="w-8 h-8 rounded-lg bg-white/[0.04] border border-white/[0.06] flex items-center justify-center shrink-0">
+                            <span className="w-8 h-8 rounded-lg bg-white/[0.04] border border-neutral-500/40 flex items-center justify-center shrink-0">
                               <switchTo.icon className="w-3.5 h-3.5 text-neutral-400" />
                             </span>
                             {switchTo.label}
@@ -359,7 +358,7 @@ export default function DashboardShell({ portal, groups, switchTo }: DashboardSh
                         )}
                       </div>
 
-                      <div className="h-px bg-white/[0.06]" />
+                      <div className="h-px bg-neutral-500/30" />
 
                       <div className="p-1.5">
                         <button

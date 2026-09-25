@@ -1,17 +1,32 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { motion } from 'motion/react';
-import { Bell, Headphones, AlertCircle, Loader2, ChevronDown, Send } from 'lucide-react';
+import {
+  Bell,
+  Headphones,
+  AlertCircle,
+  Loader2,
+  ChevronDown,
+  ChevronRight,
+  Send,
+  Inbox,
+  Package,
+  CreditCard,
+  Tag,
+  CheckCheck,
+  type LucideIcon,
+} from 'lucide-react';
 import { useNavigate } from 'react-router';
 import {
-  PageHeader,
   Card,
   EmptyState,
   DashboardSkeleton,
   ListPager,
 } from '../../../components/dashboard/shared';
 import {
+  getUnreadNotificationCount,
   listAdminSupportTickets,
   listNotifications,
+  markAllNotificationsRead,
   markNotificationRead,
   updateAdminSupportTicket,
   type AppNotification,
@@ -20,10 +35,13 @@ import {
 } from '../../../lib/api';
 import { requestNotificationsRefresh } from '../../../components/dashboard/NotificationBell';
 
-const NOTIF_PER_PAGE = 12;
+const NOTIF_PER_PAGE = 5;
 const TICKET_PER_PAGE = 8;
+const panel =
+  '!border-neutral-500/55 shadow-[0_0_0_1px_rgba(163,163,163,0.12),0_20px_40px_-20px_rgba(0,0,0,0.55)]';
 
 type PageMeta = { total: number; page: number; perPage: number; totalPages: number };
+type NotifFilter = 'all' | 'unread';
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleString('en-IN', {
@@ -33,6 +51,65 @@ function formatDate(iso: string) {
     hour: '2-digit',
     minute: '2-digit',
   });
+}
+
+function formatRelative(iso: string) {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'Just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+}
+
+function notificationVisual(type: string): {
+  icon: LucideIcon;
+  label: string;
+  iconCls: string;
+  accent: string;
+} {
+  const t = type.toLowerCase();
+  if (t.includes('support')) {
+    return {
+      icon: Headphones,
+      label: 'Support',
+      iconCls: 'bg-amber-500/15 text-amber-300 border-amber-500/25',
+      accent: 'bg-amber-400',
+    };
+  }
+  if (t.includes('paid') || t.includes('refund') || t.includes('payment')) {
+    return {
+      icon: CreditCard,
+      label: 'Payment',
+      iconCls: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/25',
+      accent: 'bg-emerald-400',
+    };
+  }
+  if (t.includes('product') || t.includes('catalog')) {
+    return {
+      icon: Tag,
+      label: 'Catalog',
+      iconCls: 'bg-violet-500/15 text-violet-300 border-violet-500/25',
+      accent: 'bg-violet-400',
+    };
+  }
+  if (t.includes('order')) {
+    return {
+      icon: Package,
+      label: 'Order',
+      iconCls: 'bg-cyan-500/15 text-cyan-300 border-cyan-500/25',
+      accent: 'bg-cyan-400',
+    };
+  }
+  return {
+    icon: Bell,
+    label: 'Alert',
+    iconCls: 'bg-white/[0.06] text-neutral-300 border-white/[0.1]',
+    accent: 'bg-neutral-400',
+  };
 }
 
 const STATUSES: SupportTicketStatus[] = ['open', 'in_progress', 'resolved', 'closed'];
@@ -71,9 +148,12 @@ export default function AdminInboxPage() {
   });
   const [notifPage, setNotifPage] = useState(1);
   const [ticketPage, setTicketPage] = useState(1);
+  const [notifFilter, setNotifFilter] = useState<NotifFilter>('all');
+  const [unreadCount, setUnreadCount] = useState(0);
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [paging, setPaging] = useState(false);
+  const [markingAll, setMarkingAll] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
@@ -86,16 +166,19 @@ export default function AdminInboxPage() {
     else setPaging(true);
     setError(null);
     try {
-      const [notifRes, ticketRes] = await Promise.all([
+      const [notifRes, ticketRes, unread] = await Promise.all([
         listNotifications({
           includeCleared: true,
+          unreadOnly: notifFilter === 'unread',
           page: notifPage,
           perPage: NOTIF_PER_PAGE,
         }),
         listAdminSupportTickets(ticketPage, TICKET_PER_PAGE, statusFilter || undefined),
+        getUnreadNotificationCount().catch(() => 0),
       ]);
       setNotifications(notifRes.notifications);
       setNotifMeta(notifRes.meta);
+      setUnreadCount(unread);
       setTickets(ticketRes.tickets);
       setTicketMeta(ticketRes.meta);
       setReplyDraft((prev) => {
@@ -112,7 +195,7 @@ export default function AdminInboxPage() {
       setLoading(false);
       setPaging(false);
     }
-  }, [notifPage, ticketPage, statusFilter]);
+  }, [notifPage, ticketPage, statusFilter, notifFilter]);
 
   useEffect(() => {
     void load();
@@ -127,12 +210,40 @@ export default function AdminInboxPage() {
             x.id === n.id ? { ...x, is_read: true, read_at: new Date().toISOString() } : x
           )
         );
+        setUnreadCount((c) => Math.max(0, c - 1));
         requestNotificationsRefresh();
       } catch {
         /* continue */
       }
     }
     if (n.link) navigate(n.link);
+  };
+
+  const onMarkAllRead = async () => {
+    if (unreadCount === 0 || markingAll) return;
+    setMarkingAll(true);
+    try {
+      await markAllNotificationsRead();
+      setUnreadCount(0);
+      requestNotificationsRefresh();
+      if (notifFilter === 'unread') {
+        setNotifications([]);
+        setNotifMeta({ total: 0, page: 1, perPage: NOTIF_PER_PAGE, totalPages: 1 });
+        setNotifPage(1);
+      } else {
+        setNotifications((prev) =>
+          prev.map((n) => ({
+            ...n,
+            is_read: true,
+            read_at: n.read_at ?? new Date().toISOString(),
+          }))
+        );
+      }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Could not mark all as read');
+    } finally {
+      setMarkingAll(false);
+    }
   };
 
   const onSaveReply = async (id: string) => {
@@ -190,68 +301,214 @@ export default function AdminInboxPage() {
       transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
       className="min-w-0"
     >
-      <PageHeader
-        eyebrow="Ops"
-        title="Inbox"
-        accent="& Support."
-        subtitle="Order alerts and customer tickets — open a ticket to reply."
-      />
+      <header className="relative z-10 mb-8 overflow-hidden rounded-2xl border border-neutral-500/55 bg-[#0A0A0A] shadow-[0_0_0_1px_rgba(163,163,163,0.12),0_20px_40px_-20px_rgba(0,0,0,0.55)]">
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent" />
+        <div className="absolute -right-16 -top-20 h-48 w-48 rounded-full bg-cyan-500/[0.07] blur-3xl pointer-events-none" />
+        <div className="absolute -left-10 bottom-0 h-32 w-32 rounded-full bg-violet-500/[0.05] blur-3xl pointer-events-none" />
+
+        <div className="relative px-4 sm:px-6 py-5 sm:py-6">
+          <div className="flex flex-wrap items-center gap-2 mb-3">
+            <span className="inline-flex items-center gap-1.5 rounded-md border border-cyan-400/25 bg-cyan-500/10 px-2 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-cyan-300">
+              <Inbox className="w-3 h-3" />
+              Inbox & leads
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-md border border-white/[0.08] bg-white/[0.03] px-2 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-neutral-400">
+              Ops
+            </span>
+          </div>
+          <h1
+            className="font-black tracking-tight text-white leading-none"
+            style={{ fontSize: 'clamp(1.75rem, 3.2vw, 2.6rem)', letterSpacing: '-0.03em' }}
+          >
+            Inbox{' '}
+            <span className="bg-gradient-to-br from-cyan-400 via-indigo-400 to-purple-500 bg-clip-text text-transparent">
+              & Support.
+            </span>
+          </h1>
+          <p className="mt-3 max-w-xl text-sm text-neutral-400 leading-relaxed">
+            Order alerts and customer tickets — open a ticket to reply.
+          </p>
+        </div>
+      </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 relative z-10 items-start">
         <Card
-          className="lg:col-span-5 min-w-0"
+          className={`lg:col-span-5 min-w-0 ${panel}`}
           title="Notification history"
           action={
-            <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">
-              {notifMeta.total} total
-            </span>
+            <div className="flex items-center gap-2">
+              {unreadCount > 0 ? (
+                <span className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-400/25 bg-cyan-500/10 px-2 py-1 text-[10px] font-black uppercase tracking-wider text-cyan-300">
+                  <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 shadow-[0_0_6px_rgba(34,211,238,0.8)]" />
+                  {unreadCount} unread
+                </span>
+              ) : (
+                <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">
+                  {notifMeta.total} total
+                </span>
+              )}
+            </div>
           }
         >
+          <div className="px-4 sm:px-6 py-3.5 border-b border-neutral-500/40 bg-[#0d0d0d] flex flex-wrap items-center justify-between gap-3">
+            <div className="flex gap-1.5 p-1 rounded-xl bg-[#050505] border border-white/[0.06]">
+              {(
+                [
+                  { id: 'all' as const, label: 'All' },
+                  { id: 'unread' as const, label: 'Unread' },
+                ] as const
+              ).map((f) => (
+                <button
+                  key={f.id}
+                  type="button"
+                  onClick={() => {
+                    setNotifFilter(f.id);
+                    setNotifPage(1);
+                  }}
+                  className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors ${
+                    notifFilter === f.id
+                      ? 'bg-white/10 text-white shadow-sm'
+                      : 'text-neutral-500 hover:text-neutral-300'
+                  }`}
+                >
+                  {f.label}
+                  {f.id === 'unread' && unreadCount > 0 ? (
+                    <span className="ml-1.5 tabular-nums text-cyan-400">{unreadCount}</span>
+                  ) : null}
+                </button>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => void onMarkAllRead()}
+              disabled={unreadCount === 0 || markingAll}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider text-neutral-400 border border-white/[0.06] hover:text-white hover:border-white/15 hover:bg-white/[0.04] transition-colors disabled:opacity-35 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-neutral-400"
+            >
+              {markingAll ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCheck className="w-3 h-3" />}
+              Mark all read
+            </button>
+          </div>
+
           {notifications.length === 0 ? (
-            <EmptyState icon={Bell} title="No notifications" subtitle="Order and catalog alerts appear here." />
+            <EmptyState
+              icon={Bell}
+              title={notifFilter === 'unread' ? 'All caught up' : 'No notifications'}
+              subtitle={
+                notifFilter === 'unread'
+                  ? 'No unread alerts right now.'
+                  : 'Order and catalog alerts appear here.'
+              }
+            />
           ) : (
-            <>
-              <ul className={`divide-y divide-white/[0.04] ${paging ? 'opacity-60' : ''}`}>
-                {notifications.map((n) => (
-                  <li key={n.id}>
-                    <button
-                      type="button"
-                      onClick={() => void onNotifClick(n)}
-                      className="w-full text-left px-4 sm:px-6 py-4 hover:bg-white/[0.03] transition-colors"
-                    >
-                      <div className="flex items-start gap-3">
-                        <span
-                          className={`mt-1.5 h-2 w-2 rounded-full shrink-0 ${
-                            n.is_read ? 'bg-neutral-700' : 'bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.7)]'
-                          }`}
-                        />
-                        <div className="min-w-0 flex-1">
-                          <p className={`text-sm tracking-tight ${n.is_read ? 'font-semibold text-neutral-300' : 'font-bold text-white'}`}>
-                            {n.title}
-                          </p>
-                          {n.body && (
-                            <p className="text-xs text-neutral-400 mt-1 leading-relaxed line-clamp-2">{n.body}</p>
-                          )}
-                          <p className="text-[10px] text-neutral-600 mt-2">{formatDate(n.created_at)}</p>
+            <div className="flex flex-col max-h-[min(420px,55vh)]">
+              <ul
+                className={`min-h-0 flex-1 overflow-y-auto overscroll-contain divide-y divide-white/[0.04] ${
+                  paging ? 'opacity-55 pointer-events-none' : ''
+                }`}
+              >
+                {notifications.map((n) => {
+                  const visual = notificationVisual(n.type);
+                  const Icon = visual.icon;
+                  return (
+                    <li key={n.id}>
+                      <button
+                        type="button"
+                        onClick={() => void onNotifClick(n)}
+                        className={`group relative w-full text-left px-4 sm:px-5 py-3 transition-colors ${
+                          n.is_read
+                            ? 'hover:bg-white/[0.025]'
+                            : 'bg-cyan-500/[0.04] hover:bg-cyan-500/[0.07]'
+                        }`}
+                      >
+                        {!n.is_read && (
+                          <span
+                            className={`absolute left-0 top-2.5 bottom-2.5 w-[3px] rounded-r-full ${visual.accent}`}
+                            aria-hidden
+                          />
+                        )}
+                        <div className="flex items-start gap-2.5">
+                          <span
+                            className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border ${visual.iconCls}`}
+                          >
+                            <Icon className="h-3.5 w-3.5" />
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0">
+                                <div className="flex flex-wrap items-center gap-1.5">
+                                  <p
+                                    className={`text-[13px] tracking-tight leading-snug line-clamp-1 ${
+                                      n.is_read ? 'font-semibold text-neutral-300' : 'font-bold text-white'
+                                    }`}
+                                  >
+                                    {n.title}
+                                  </p>
+                                  {!n.is_read && (
+                                    <span className="shrink-0 rounded-md bg-cyan-500/15 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-cyan-300">
+                                      New
+                                    </span>
+                                  )}
+                                </div>
+                                <span className="mt-1 inline-flex text-[9px] font-bold uppercase tracking-[0.14em] text-neutral-500">
+                                  {visual.label}
+                                </span>
+                              </div>
+                              <div className="shrink-0 text-right">
+                                <p
+                                  className="text-[10px] font-semibold tabular-nums text-neutral-500"
+                                  title={formatDate(n.created_at)}
+                                >
+                                  {formatRelative(n.created_at)}
+                                </p>
+                                {n.link ? (
+                                  <ChevronRight className="ml-auto mt-1 h-3.5 w-3.5 text-neutral-600 opacity-0 transition-all group-hover:translate-x-0.5 group-hover:opacity-100 group-hover:text-cyan-400" />
+                                ) : null}
+                              </div>
+                            </div>
+                            {n.body ? (
+                              <p className="mt-1 text-xs leading-relaxed text-neutral-400 line-clamp-1">
+                                {n.body}
+                              </p>
+                            ) : null}
+                          </div>
                         </div>
-                      </div>
-                    </button>
-                  </li>
-                ))}
+                      </button>
+                    </li>
+                  );
+                })}
               </ul>
-              <ListPager
-                page={notifMeta.page}
-                totalPages={notifMeta.totalPages}
-                total={notifMeta.total}
-                disabled={paging}
-                onPageChange={setNotifPage}
-              />
-            </>
+
+              <div className="shrink-0 px-4 sm:px-5 py-3 border-t border-neutral-500/40 bg-[#0d0d0d] flex items-center justify-between gap-3">
+                <p className="text-[10px] text-neutral-500 tabular-nums">
+                  Page {notifMeta.page} of {Math.max(1, notifMeta.totalPages)}
+                  {notifMeta.total > 0 ? ` · ${notifMeta.total} total` : ''}
+                </p>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={paging || notifMeta.page <= 1}
+                    onClick={() => setNotifPage((p) => Math.max(1, p - 1))}
+                    className="px-3 py-1.5 text-[11px] font-bold rounded-lg border border-neutral-500/50 text-neutral-300 hover:bg-white/[0.04] hover:border-neutral-400 disabled:opacity-40 disabled:pointer-events-none transition-colors"
+                  >
+                    Prev
+                  </button>
+                  <button
+                    type="button"
+                    disabled={paging || notifMeta.page >= notifMeta.totalPages}
+                    onClick={() => setNotifPage((p) => p + 1)}
+                    className="px-3 py-1.5 text-[11px] font-bold rounded-lg border border-neutral-500/50 text-neutral-300 hover:bg-white/[0.04] hover:border-neutral-400 disabled:opacity-40 disabled:pointer-events-none transition-colors"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            </div>
           )}
         </Card>
 
         <Card
-          className="lg:col-span-7 min-w-0"
+          className={`lg:col-span-7 min-w-0 ${panel}`}
           title="Support tickets"
           action={
             <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">
@@ -259,7 +516,7 @@ export default function AdminInboxPage() {
             </span>
           }
         >
-          <div className="px-4 sm:px-6 py-4 border-b border-white/[0.04] flex gap-2 overflow-x-auto">
+          <div className="px-4 sm:px-6 py-4 border-b border-neutral-500/40 flex gap-2 overflow-x-auto">
             {[{ id: '', label: 'All' }, ...STATUSES.map((s) => ({ id: s, label: s.replace('_', ' ') }))].map((f) => (
               <button
                 key={f.id || 'all'}

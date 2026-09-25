@@ -12,7 +12,7 @@ import {
   RotateCcw,
   Save,
 } from 'lucide-react';
-import { PageHeader, Card, DashboardSkeleton } from '../../../components/dashboard/shared';
+import { Card, DashboardSkeleton } from '../../../components/dashboard/shared';
 import {
   getAdminLegalPage,
   updateAdminLegalPage,
@@ -25,13 +25,15 @@ import {
 } from '../../../lib/api';
 import { blocksToText, textToBlocks } from '../../../lib/legalFormat';
 
+const panel =
+  '!border-neutral-500/55 shadow-[0_0_0_1px_rgba(163,163,163,0.12),0_20px_40px_-20px_rgba(0,0,0,0.55)]';
 const fieldCls =
-  'w-full px-3.5 py-2.5 rounded-xl border border-white/[0.1] bg-[#050505] text-sm text-white outline-none focus:border-cyan-500/40';
+  'w-full px-3.5 py-2.5 rounded-xl border border-neutral-500/50 bg-[#050505] text-sm text-white outline-none focus:border-cyan-500/40';
 const labelCls = 'text-[10px] font-bold tracking-[0.15em] uppercase text-neutral-400 mb-1.5 block';
 const btnPrimary =
   'inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white text-black text-sm font-bold hover:bg-neutral-200 disabled:opacity-50';
 const btnGhost =
-  'inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-white/[0.1] text-sm font-semibold text-white hover:bg-white/[0.04] disabled:opacity-50';
+  'inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-neutral-500/70 text-sm font-semibold text-white hover:bg-white/[0.04] disabled:opacity-50';
 
 type Tab = LegalSlug | 'company';
 
@@ -229,18 +231,43 @@ export default function AdminLegalPagesPage() {
 
   return (
     <div className="min-w-0">
-      <PageHeader
-        title="Legal"
-        accent="pages"
-        subtitle="Edit the copy. Public pages format headings, lists and the company card for you."
-        action={
-          publicHref ? (
+      <header className="relative z-10 mb-8 overflow-hidden rounded-2xl border border-neutral-500/55 bg-[#0A0A0A] shadow-[0_0_0_1px_rgba(163,163,163,0.12),0_20px_40px_-20px_rgba(0,0,0,0.55)]">
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent" />
+        <div className="absolute -right-16 -top-20 h-48 w-48 rounded-full bg-cyan-500/[0.07] blur-3xl pointer-events-none" />
+        <div className="absolute -left-10 bottom-0 h-32 w-32 rounded-full bg-violet-500/[0.05] blur-3xl pointer-events-none" />
+
+        <div className="relative px-4 sm:px-6 py-5 sm:py-6 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-5">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2 mb-3">
+              <span className="inline-flex items-center gap-1.5 rounded-md border border-cyan-400/25 bg-cyan-500/10 px-2 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-cyan-300">
+                <Scale className="w-3 h-3" />
+                Inbox & leads
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-md border border-white/[0.08] bg-white/[0.03] px-2 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-neutral-400">
+                Public pages
+              </span>
+            </div>
+            <h1
+              className="font-black tracking-tight text-white leading-none"
+              style={{ fontSize: 'clamp(1.75rem, 3.2vw, 2.6rem)', letterSpacing: '-0.03em' }}
+            >
+              Legal{' '}
+              <span className="bg-gradient-to-br from-cyan-400 via-indigo-400 to-purple-500 bg-clip-text text-transparent">
+                pages.
+              </span>
+            </h1>
+            <p className="mt-3 max-w-xl text-sm text-neutral-400 leading-relaxed">
+              Edit the copy. Public pages format headings, lists and the company card for you.
+            </p>
+          </div>
+
+          {publicHref ? (
             <Link to={publicHref} target="_blank" rel="noreferrer" className={`${btnGhost} w-full sm:w-auto`}>
               <ExternalLink className="w-4 h-4" /> View live
             </Link>
-          ) : undefined
-        }
-      />
+          ) : null}
+        </div>
+      </header>
 
       <div className="flex flex-wrap gap-2 mb-6">
         {TABS.map((t) => (
@@ -251,7 +278,7 @@ export default function AdminLegalPagesPage() {
             className={`px-4 py-2 rounded-full text-sm font-semibold border transition-colors ${
               tab === t.id
                 ? 'bg-white text-black border-white'
-                : 'border-white/[0.1] text-neutral-300 hover:bg-white/[0.04]'
+                : 'border-neutral-500/50 text-neutral-300 hover:bg-white/[0.04] hover:border-neutral-400'
             }`}
           >
             {t.label}
@@ -260,19 +287,19 @@ export default function AdminLegalPagesPage() {
       </div>
 
       {error ? (
-        <div className="mb-6 flex items-start gap-3 rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+        <div className="mb-6 flex items-start gap-3 rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
           <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
           <p>{error}</p>
         </div>
       ) : null}
       {notice ? (
-        <div className="mb-6 rounded-2xl border border-cyan-500/20 bg-cyan-500/10 px-4 py-3 text-sm text-cyan-100">{notice}</div>
+        <div className="mb-6 rounded-2xl border border-cyan-500/30 bg-cyan-500/10 px-4 py-3 text-sm text-cyan-100">{notice}</div>
       ) : null}
 
       {loading ? (
         <DashboardSkeleton />
       ) : tab === 'company' && company ? (
-        <Card title="Company card">
+        <Card title="Company card" className={panel}>
           <div className="p-4 sm:p-6 space-y-4">
             <p className="text-sm text-neutral-400">Shown wherever a section includes @company.</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -315,6 +342,7 @@ export default function AdminLegalPagesPage() {
         <div className="space-y-6">
           <Card
             title="Page"
+            className={panel}
             action={
               <button type="button" className={btnPrimary} disabled={saving} onClick={() => void savePage()}>
                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
@@ -366,6 +394,7 @@ export default function AdminLegalPagesPage() {
 
           <Card
             title="Sections"
+            className={panel}
             action={
               <button
                 type="button"
@@ -427,7 +456,7 @@ export default function AdminLegalPagesPage() {
           </div>
         </div>
       ) : (
-        <Card>
+        <Card className={panel}>
           <div className="p-8 flex items-center gap-3 text-neutral-400 text-sm">
             <Scale className="w-4 h-4" />
             Nothing to edit.

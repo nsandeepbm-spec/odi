@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router';
 import { getSeoForPath } from '../lib/seo';
+import { ReviewPrompt } from './ReviewPrompt';
 
 function upsertMeta(attr: 'name' | 'property', key: string, content: string) {
   const selector = `meta[${attr}="${key}"]`;
@@ -72,6 +73,7 @@ export function SeoRoot() {
     <>
       <Seo />
       <Outlet />
+      <ReviewPrompt />
     </>
   );
 }

@@ -11,7 +11,7 @@ import {
   ExternalLink,
   Eye,
 } from 'lucide-react';
-import { PageHeader, Card, EmptyState, TableSkeleton } from '../../../components/dashboard/shared';
+import { Card, EmptyState, TableSkeleton } from '../../../components/dashboard/shared';
 import { ScheduledPickupPanel } from '../../../components/dashboard/ScheduledPickupPanel';
 import {
   listAdminPickups,
@@ -20,10 +20,13 @@ import {
 } from '../../../lib/api';
 import { formatPickupDateLabel, formatPickupScheduleBlock } from '../../../lib/pickupSchedule';
 
+const panel =
+  '!border-neutral-500/55 shadow-[0_0_0_1px_rgba(163,163,163,0.12),0_20px_40px_-20px_rgba(0,0,0,0.55)]';
+
 /** Space bulk Delhivery pickup calls (~1.2 req/s) to stay under typical rate limits. */
 const PICKUP_GAP_MS = 850;
 
-type Tab = 'needs' | 'scheduled';
+type Tab = 'needs' | 'scheduled' | 'delivered';
 
 function tomorrowIsoDate() {
   const d = new Date();
@@ -66,6 +69,7 @@ export default function PickupsPage() {
   const [tab, setTab] = useState<Tab>('needs');
   const [needsRows, setNeedsRows] = useState<AdminPickupRow[]>([]);
   const [scheduledRows, setScheduledRows] = useState<AdminPickupRow[]>([]);
+  const [deliveredRows, setDeliveredRows] = useState<AdminPickupRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
@@ -85,11 +89,13 @@ export default function PickupsPage() {
       const data = await listAdminPickups();
       setNeedsRows(data.needs);
       setScheduledRows(data.scheduled);
+      setDeliveredRows(data.delivered ?? []);
       setSelected(new Set());
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load pickups');
       setNeedsRows([]);
       setScheduledRows([]);
+      setDeliveredRows([]);
     } finally {
       setLoading(false);
     }
@@ -99,7 +105,7 @@ export default function PickupsPage() {
     void fetchPickups();
   }, [fetchPickups]);
 
-  const source = tab === 'needs' ? needsRows : scheduledRows;
+  const source = tab === 'needs' ? needsRows : tab === 'delivered' ? deliveredRows : scheduledRows;
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -217,20 +223,45 @@ export default function PickupsPage() {
 
   return (
     <div className="min-w-0">
-      <PageHeader
-        title="Schedule"
-        accent="Pickups."
-        subtitle="Needs schedule: ready to request pickup. Scheduled: click any row to open details and re-download the shipping label (or use Delhivery One for the official courier PDF)."
-        action={
+      <header className="relative z-10 mb-8 overflow-hidden rounded-2xl border border-neutral-500/55 bg-[#0A0A0A] shadow-[0_0_0_1px_rgba(163,163,163,0.12),0_20px_40px_-20px_rgba(0,0,0,0.55)]">
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent" />
+        <div className="absolute -right-16 -top-20 h-48 w-48 rounded-full bg-cyan-500/[0.07] blur-3xl pointer-events-none" />
+        <div className="absolute -left-10 bottom-0 h-32 w-32 rounded-full bg-violet-500/[0.05] blur-3xl pointer-events-none" />
+
+        <div className="relative px-4 sm:px-6 py-5 sm:py-6 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-5">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2 mb-3">
+              <span className="inline-flex items-center gap-1.5 rounded-md border border-emerald-400/25 bg-emerald-500/10 px-2 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-300">
+                <CalendarClock className="w-3 h-3" />
+                Fulfillment
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-md border border-white/[0.08] bg-white/[0.03] px-2 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-neutral-400">
+                Delhivery pickup
+              </span>
+            </div>
+            <h1
+              className="font-black tracking-tight text-white leading-none"
+              style={{ fontSize: 'clamp(1.75rem, 3.2vw, 2.6rem)', letterSpacing: '-0.03em' }}
+            >
+              Schedule{' '}
+              <span className="bg-gradient-to-br from-cyan-400 via-indigo-400 to-purple-500 bg-clip-text text-transparent">
+                Pickups.
+              </span>
+            </h1>
+            <p className="mt-3 max-w-xl text-sm text-neutral-400 leading-relaxed">
+              Needs schedule is ready for the courier. Scheduled is waiting for pickup. Delivered has already reached the customer.
+            </p>
+          </div>
+
           <Link
             to="/dashboard/admin/shipments"
-            className="inline-flex items-center justify-center gap-2 w-full sm:w-auto shrink-0 px-4 sm:px-5 py-2.5 text-sm font-bold tracking-wide border border-white/[0.1] text-white bg-black/40 hover:bg-white/[0.04] rounded-xl"
+            className="inline-flex items-center justify-center gap-2 w-full sm:w-auto shrink-0 px-5 py-2.5 text-sm font-bold tracking-wide border border-neutral-500/70 text-white bg-black/40 hover:bg-white/[0.04] hover:border-neutral-400 transition-all rounded-xl"
           >
             <Truck className="w-4 h-4" />
             Shipments (AWB)
           </Link>
-        }
-      />
+        </div>
+      </header>
 
       <div className="relative z-10 mb-4 flex gap-2">
         <button
@@ -238,8 +269,8 @@ export default function PickupsPage() {
           onClick={() => setTab('needs')}
           className={`flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm font-bold rounded-xl border transition-colors ${
             tab === 'needs'
-              ? 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30'
-              : 'bg-black/40 text-neutral-400 border-white/[0.08] hover:text-white'
+              ? 'bg-cyan-500/15 text-cyan-300 border-cyan-500/40'
+              : 'bg-black/40 text-neutral-400 border-neutral-500/50 hover:text-white hover:border-neutral-400'
           }`}
         >
           <CalendarClock className="w-4 h-4 shrink-0" />
@@ -253,8 +284,8 @@ export default function PickupsPage() {
           onClick={() => setTab('scheduled')}
           className={`flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm font-bold rounded-xl border transition-colors ${
             tab === 'scheduled'
-              ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
-              : 'bg-black/40 text-neutral-400 border-white/[0.08] hover:text-white'
+              ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40'
+              : 'bg-black/40 text-neutral-400 border-neutral-500/50 hover:text-white hover:border-neutral-400'
           }`}
         >
           <ListChecks className="w-4 h-4 shrink-0" />
@@ -263,10 +294,25 @@ export default function PickupsPage() {
             {scheduledRows.length}
           </span>
         </button>
+        <button
+          type="button"
+          onClick={() => setTab('delivered')}
+          className={`flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm font-bold rounded-xl border transition-colors ${
+            tab === 'delivered'
+              ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40'
+              : 'bg-black/40 text-neutral-400 border-neutral-500/50 hover:text-white hover:border-neutral-400'
+          }`}
+        >
+          <CheckCircle2 className="w-4 h-4 shrink-0" />
+          Delivered
+          <span className="text-[10px] font-black px-1.5 py-0.5 rounded-md bg-white/10 shrink-0">
+            {deliveredRows.length}
+          </span>
+        </button>
       </div>
 
       {tab === 'needs' && (
-        <Card className="relative z-10 mb-4">
+        <Card className={`relative z-10 mb-4 ${panel}`}>
           <div className="px-4 sm:px-5 py-4 grid grid-cols-2 lg:flex lg:flex-row lg:items-end gap-3 sm:gap-4 bg-[#0d0d0d]">
             <div className="flex flex-col gap-1.5 min-w-0">
               <label className="text-[10px] font-black uppercase tracking-widest text-neutral-500">
@@ -327,10 +373,10 @@ export default function PickupsPage() {
         <p className="relative z-10 mb-3 text-xs font-medium text-emerald-400 px-1 break-words">{lastMessage}</p>
       )}
 
-      <Card className="relative z-10">
+      <Card className={`relative z-10 ${panel}`}>
         <div className="px-4 sm:px-6 py-4 border-b border-white/[0.04] flex flex-col sm:flex-row sm:items-center gap-3 bg-[#0d0d0d]">
-          <div className="flex items-center gap-3 w-full sm:flex-1 sm:max-w-md px-4 py-2 rounded-xl bg-[#050505] border border-white/[0.06]">
-            <Search className="w-4 h-4 text-neutral-500 shrink-0" />
+          <div className="flex items-center gap-3 w-full sm:flex-1 sm:max-w-md px-4 py-2.5 rounded-xl bg-[#111] border border-neutral-500 shadow-inner focus-within:border-cyan-400 transition-colors">
+            <Search className="w-4 h-4 text-neutral-300 shrink-0" />
             <input
               type="text"
               value={query}
@@ -340,11 +386,12 @@ export default function PickupsPage() {
                   ? 'Search order / waybill…'
                   : 'Search order / date / pickup ID…'
               }
-              className="w-full min-w-0 bg-transparent text-sm outline-none placeholder:text-neutral-500 text-white"
+              className="w-full min-w-0 bg-transparent text-sm outline-none placeholder:text-neutral-400 text-white"
             />
           </div>
           <p className="text-xs text-neutral-500">
-            {filtered.length} {tab === 'needs' ? 'ready' : 'scheduled'}
+            {filtered.length}{' '}
+            {tab === 'needs' ? 'ready for pickup' : tab === 'delivered' ? 'delivered' : 'scheduled'}
             {tab === 'needs' ? (
               <span className="hidden sm:inline">{` · bulk gap ${PICKUP_GAP_MS}ms`}</span>
             ) : null}
@@ -357,14 +404,47 @@ export default function PickupsPage() {
           <EmptyState icon={CalendarX} title="Couldn't load pickups" subtitle={error} />
         ) : filtered.length === 0 ? (
           <EmptyState
-            icon={tab === 'needs' ? CheckCircle2 : ListChecks}
-            title={tab === 'needs' ? 'Nothing to pick up' : 'No scheduled pickups'}
+            icon={tab === 'scheduled' ? ListChecks : CheckCircle2}
+            title={
+              tab === 'needs'
+                ? 'Nothing to pick up'
+                : tab === 'delivered'
+                  ? 'No delivered orders yet'
+                  : 'No scheduled pickups'
+            }
             subtitle={
               tab === 'needs'
                 ? 'No manifested orders waiting for pickup. Create waybills on Shipments first.'
-                : 'When you schedule a pickup, it will appear here with date and time.'
+                : tab === 'delivered'
+                  ? 'When Delhivery marks a shipment delivered, it moves here so it is not mixed with pickups.'
+                  : 'When you schedule a pickup, it will appear here with date and time.'
             }
           />
+        ) : tab === 'delivered' ? (
+          <div className="divide-y divide-white/[0.04]">
+            {filtered.map((row) => (
+              <div key={row.id} className="px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center gap-3">
+                <div className="min-w-0 flex-1">
+                  <Link to={orderDetailHref(row.id)} className="font-black text-cyan-400 hover:underline">
+                    {row.orderNumber}
+                  </Link>
+                  <p className="text-xs text-neutral-500 mt-0.5">
+                    {row.customerName}
+                    {row.city ? ` · ${row.city}` : ''} · {formatOrderPlaced(row.createdAt)}
+                  </p>
+                  <p className="font-mono text-xs text-cyan-400 mt-1 break-all">{row.waybill}</p>
+                </div>
+                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400">Delivered</span>
+                <Link
+                  to={orderDetailHref(row.id)}
+                  className="inline-flex items-center gap-1 text-xs font-bold text-neutral-400 hover:text-white"
+                >
+                  Order
+                  <ExternalLink className="w-3 h-3" />
+                </Link>
+              </div>
+            ))}
+          </div>
         ) : tab === 'needs' ? (
           <>
             {/* Mobile / tablet cards */}

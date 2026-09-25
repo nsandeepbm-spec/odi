@@ -22,7 +22,6 @@ import { discountPercent, formatInr, isProductPurchasable, type KitItem } from '
 import { getPublicProductReviews, listCouponOffers, type CouponOffer, type PublicReview } from '../lib/api';
 import { motion, AnimatePresence } from 'motion/react';
 import { useCartStore } from '../store/cartStore';
-import { CheckoutOrderSummary } from '../components/checkout/CheckoutOrderSummary';
 import { CouponOffersModal } from '../components/checkout/CouponOffersModal';
 import { ODILoader } from '../components/ODILoader';
 
@@ -91,6 +90,8 @@ export default function CheckoutPage() {
     applyCoupon,
     clearCoupon,
     discountPaise,
+    subtotalPaise,
+    totalPaise,
   } = useCheckout();
   const [currentImg, setCurrentImg] = useState(0);
   const [detailTab, setDetailTab] = useState<DetailTab>('description');
@@ -481,18 +482,18 @@ export default function CheckoutPage() {
           )}
         </div>
 
-        {/* Sticky sidebar: buy card + order summary — 2nd on mobile, spans full left-column height on desktop */}
-        <div className="order-2 lg:order-none lg:col-start-9 lg:col-span-4 lg:row-start-1 lg:row-span-4 lg:sticky lg:top-28 flex flex-col gap-5">
-        <div className="bg-white border border-neutral-200 rounded-2xl p-5 md:p-6 shadow-sm">
+        {/* Sticky sidebar — roomy enough to read, short enough for Buy Now */}
+        <div className="order-2 lg:order-none lg:col-start-9 lg:col-span-4 lg:row-start-1 lg:row-span-4 lg:sticky lg:top-24 flex flex-col">
+        <div className="bg-white border border-neutral-200 rounded-2xl p-5 shadow-sm">
           <div className="flex items-start justify-between gap-3 mb-2">
             <h1
-              className="text-2xl font-black text-neutral-900 leading-tight min-w-0"
+              className="text-[1.35rem] font-black text-neutral-900 leading-tight min-w-0"
               style={{ letterSpacing: '-0.03em' }}
             >
               {product.name}
             </h1>
             {(product.volume || product.tag) && (
-              <span className="shrink-0 inline-flex items-center px-2.5 py-1 rounded-md bg-[#00a680]/10 text-[#00a680] text-[10px] font-bold tracking-wide whitespace-nowrap mt-1">
+              <span className="shrink-0 inline-flex items-center px-2.5 py-1 rounded-md bg-[#00a680]/10 text-[#00a680] text-[10px] font-bold tracking-wide whitespace-nowrap">
                 {[product.volume?.replace(/^Vol\.\s*/i, ''), product.tag]
                   .filter(Boolean)
                   .join(' ')}
@@ -508,141 +509,115 @@ export default function CheckoutPage() {
             >
               <Stars rating={product.rating_avg} />
               <span className="text-sm font-bold text-neutral-900">{product.rating_avg.toFixed(1)}</span>
-              <span className="text-sm text-neutral-500 underline underline-offset-2">
+              <span className="text-xs text-neutral-500 underline underline-offset-2">
                 ({product.rating_count} reviews)
               </span>
             </button>
           )}
 
-          <p className="text-sm text-neutral-600 leading-relaxed mb-4">{product.description}</p>
+          <p className="text-sm text-neutral-600 leading-snug mb-4 line-clamp-2">{product.description}</p>
 
-          <div className="rounded-xl border border-neutral-100 bg-neutral-50/80 px-4 py-3.5 mb-4">
-            <div className="flex flex-wrap items-center gap-2.5">
-              <span
-                className="text-[2rem] leading-none font-black text-neutral-900 tracking-tight"
-                style={{ letterSpacing: '-0.04em' }}
-              >
-                {formatInr(product.price_paise)}
-              </span>
-              {off !== null && (
-                <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-emerald-500 text-white text-[11px] font-black tracking-wide shadow-sm shadow-emerald-500/25">
-                  {off}% OFF
+          {/* Unit price + quantity */}
+          <div className="flex items-end justify-between gap-3 mb-4 pb-4 border-b border-neutral-100">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <span
+                  className="text-[1.75rem] leading-none font-black text-neutral-900 tracking-tight"
+                  style={{ letterSpacing: '-0.04em' }}
+                >
+                  {formatInr(product.price_paise)}
                 </span>
-              )}
-            </div>
-            {product.compare_at_paise != null && product.compare_at_paise > product.price_paise && (
-              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
-                <p className="text-sm text-neutral-500">
-                  M.R.P.:{' '}
-                  <span className="line-through decoration-neutral-400">
-                    {formatInr(product.compare_at_paise)}
-                  </span>
-                </p>
                 {off !== null && (
-                  <p className="text-sm font-bold text-emerald-600">
-                    Save {formatInr(product.compare_at_paise - product.price_paise)}
-                  </p>
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-emerald-500 text-white text-[10px] font-black">
+                    {off}% OFF
+                  </span>
                 )}
               </div>
-            )}
+              {product.compare_at_paise != null && product.compare_at_paise > product.price_paise && (
+                <p className="text-xs text-neutral-500 mt-1.5">
+                  M.R.P. <span className="line-through">{formatInr(product.compare_at_paise)}</span>
+                  <span className="text-emerald-600 font-bold ml-2">
+                    Save {formatInr(product.compare_at_paise - product.price_paise)}
+                  </span>
+                </p>
+              )}
+            </div>
+            <div className="shrink-0 text-right">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-400 mb-1.5">Qty</p>
+              <div className="flex items-center border border-neutral-300 rounded-lg bg-white">
+                <button
+                  type="button"
+                  onClick={() => setQuantity(quantity - 1)}
+                  disabled={quantity <= 1}
+                  className="w-9 h-9 flex items-center justify-center hover:bg-neutral-50 disabled:opacity-40 text-neutral-600"
+                  aria-label="Decrease quantity"
+                >
+                  <Minus className="w-3.5 h-3.5" />
+                </button>
+                <div className="w-9 h-9 flex items-center justify-center border-l border-r border-neutral-300 text-sm font-bold">
+                  {quantity}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setQuantity(quantity + 1)}
+                  disabled={quantity >= product.stock_qty}
+                  className="w-9 h-9 flex items-center justify-center hover:bg-neutral-50 disabled:opacity-40 text-neutral-600"
+                  aria-label="Increase quantity"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              <p className="text-[11px] mt-1.5 font-medium text-emerald-600">
+                {product.stock_qty > 0 && product.stock_qty <= 10 ? 'Few left in stock' : 'In stock'}
+              </p>
+            </div>
           </div>
 
-          <div className="mb-4 mt-4">
-            <label className="text-[10px] font-bold tracking-[0.2em] uppercase text-black mb-2 flex items-center gap-1.5">
+          {/* Coupon */}
+          <div className="mb-4">
+            <label className="text-[10px] font-bold tracking-[0.2em] uppercase text-neutral-500 mb-1.5 flex items-center gap-1.5">
               <Tag className="w-3 h-3" />
-              Coupon offer
+              Coupon
             </label>
-            <div className="flex flex-col gap-3 rounded-xl border border-neutral-200 bg-white px-3.5 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+            <div className="flex items-center gap-2 rounded-xl border border-neutral-200 bg-neutral-50/50 px-3 py-2.5">
               <div className="min-w-0 flex-1">
                 {couponCode ? (
-                  <>
-                    <p className="text-sm font-bold text-neutral-900 font-mono tracking-wide truncate">
-                      {couponCode}
-                    </p>
+                  <p className="text-sm font-bold text-neutral-900 font-mono truncate">
+                    {couponCode}
                     {discountPaise > 0 ? (
-                      <p className="text-xs font-medium text-emerald-700 mt-0.5">
-                        Saving {formatInr(discountPaise)}
-                      </p>
-                    ) : (
-                      <p className="text-xs text-neutral-500 mt-0.5">Applied</p>
-                    )}
-                  </>
+                      <span className="font-sans text-emerald-700 ml-2 text-xs">
+                        −{formatInr(discountPaise)}
+                      </span>
+                    ) : null}
+                  </p>
                 ) : (
-                  <p className="text-sm text-neutral-500">
+                  <p className="text-sm text-neutral-500 truncate">
                     {offersLoading
                       ? 'Loading offers…'
                       : offers.length > 0
                         ? `${offers.length} offer${offers.length === 1 ? '' : 's'} available`
-                        : 'View available offers or enter a code'}
+                        : 'Have a coupon code?'}
                   </p>
                 )}
               </div>
-              <div className="flex items-center gap-2 w-full sm:w-auto sm:shrink-0">
-                {couponCode ? (
-                  <button
-                    type="button"
-                    onClick={clearCoupon}
-                    className="flex-1 sm:flex-none px-3 py-2.5 rounded-lg border border-neutral-200 text-neutral-700 text-xs font-bold hover:bg-neutral-50 transition-colors"
-                  >
-                    Remove
-                  </button>
-                ) : null}
+              {couponCode ? (
                 <button
                   type="button"
-                  onClick={() => setOffersOpen(true)}
-                  className="flex-1 sm:flex-none px-3.5 py-2.5 rounded-lg bg-neutral-900 text-white text-xs font-bold hover:bg-neutral-800 transition-colors"
+                  onClick={clearCoupon}
+                  className="px-2.5 py-1.5 rounded-lg border border-neutral-200 text-[11px] font-bold text-neutral-600 hover:bg-white shrink-0"
                 >
-                  {couponCode ? 'Change' : 'View offers'}
+                  Remove
                 </button>
-              </div>
+              ) : null}
+              <button
+                type="button"
+                onClick={() => setOffersOpen(true)}
+                className="px-3 py-1.5 rounded-lg bg-neutral-900 text-white text-[11px] font-bold hover:bg-neutral-800 shrink-0"
+              >
+                {couponCode ? 'Change' : 'View offers'}
+              </button>
             </div>
-
-            {/* Instant offers preview (loaded with the page — guests included) */}
-            {!couponCode && (offersLoading || offers.length > 0) ? (
-              <ul className="mt-2 space-y-1.5">
-                {offersLoading && offers.length === 0 ? (
-                  <li className="rounded-lg border border-neutral-100 bg-neutral-50 px-3 py-2 animate-pulse">
-                    <div className="h-3 w-2/3 rounded bg-neutral-200" />
-                  </li>
-                ) : (
-                  offers.slice(0, 3).map((offer) => (
-                    <li key={offer.id}>
-                      <button
-                        type="button"
-                        disabled={!offer.eligible}
-                        onClick={() => {
-                          setOffersOpen(true);
-                        }}
-                        className={`w-full text-left rounded-lg border px-3 py-2 transition-colors ${
-                          offer.eligible
-                            ? 'border-emerald-200/80 bg-emerald-50/50 hover:border-emerald-300 cursor-pointer'
-                            : 'border-neutral-100 bg-neutral-50 opacity-70 cursor-default'
-                        }`}
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0">
-                            <p className="text-xs font-bold text-neutral-900 truncate">{offer.title}</p>
-                            <p className="text-[10px] font-mono font-bold text-neutral-500 mt-0.5">
-                              {offer.code}
-                            </p>
-                            {!offer.eligible && offer.reason ? (
-                              <p className="text-[10px] text-amber-700 mt-0.5">{offer.reason}</p>
-                            ) : null}
-                          </div>
-                          {offer.eligible && offer.discount_preview_paise > 0 ? (
-                            <span className="text-[10px] font-black text-emerald-700 shrink-0">
-                              Save {formatInr(offer.discount_preview_paise)}
-                            </span>
-                          ) : null}
-                        </div>
-                      </button>
-                    </li>
-                  ))
-                )}
-              </ul>
-            ) : null}
-
-            {couponMessage && (
+            {couponMessage ? (
               <p
                 className={`text-xs mt-1.5 font-medium break-words ${
                   couponCode ? 'text-emerald-600' : 'text-red-500'
@@ -650,7 +625,7 @@ export default function CheckoutPage() {
               >
                 {couponMessage}
               </p>
-            )}
+            ) : null}
             <CouponOffersModal
               open={offersOpen}
               onOpenChange={setOffersOpen}
@@ -665,100 +640,75 @@ export default function CheckoutPage() {
             />
           </div>
 
-          <div className="mb-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-bold text-neutral-900">Quantity</span>
-              <div className="flex items-center border border-neutral-300 rounded-lg bg-white">
-                <button
-                  type="button"
-                  onClick={() => setQuantity(quantity - 1)}
-                  disabled={quantity <= 1}
-                  className="w-9 h-9 flex items-center justify-center hover:bg-neutral-50 disabled:opacity-40 text-neutral-600"
+          {/* Live total */}
+          <div className="rounded-xl border border-neutral-100 bg-neutral-50/80 px-4 py-3 mb-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">Total</p>
+                <p className="text-xs text-neutral-500 mt-0.5">
+                  Qty {quantity}
+                  {couponCode && discountPaise > 0 ? ` · saved ${formatInr(discountPaise)}` : ''}
+                  {' · '}shipping next
+                </p>
+              </div>
+              <div className="text-right shrink-0">
+                {couponCode && discountPaise > 0 ? (
+                  <p className="text-xs text-neutral-400 line-through mb-0.5">{formatInr(subtotalPaise)}</p>
+                ) : null}
+                <span
+                  className="text-[1.65rem] leading-none font-black text-neutral-900 tracking-tight"
+                  style={{ letterSpacing: '-0.03em' }}
                 >
-                  <Minus className="w-3.5 h-3.5" />
-                </button>
-                <div className="w-9 h-9 flex items-center justify-center border-l border-r border-neutral-300 text-sm font-bold">
-                  {quantity}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setQuantity(quantity + 1)}
-                  disabled={quantity >= product.stock_qty}
-                  className="w-9 h-9 flex items-center justify-center hover:bg-neutral-50 disabled:opacity-40 text-neutral-600"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                </button>
+                  {formatInr(totalPaise)}
+                </span>
               </div>
             </div>
-            {product.stock_qty > 0 && product.stock_qty <= 10 && (
-              <p className="text-xs text-amber-600 font-medium mt-1.5">
-                {/* Only {product.stock_qty} left in stock */}
-                Few items left in stock
-              </p>
-            )}
-            {product.stock_qty > 10 && (
-              <p className="text-xs text-emerald-600 font-medium mt-1.5">In stock</p>
-            )}
           </div>
 
-          <div className="flex flex-col gap-2.5 mb-4">
-            {canBuy ? (
-              <>
-                <button
-                  type="button"
-                  onClick={() => {
-                    addItem(cartPayload);
-                    toggleDrawer();
-                  }}
-                  className="w-full py-3 rounded-xl border-2 border-neutral-900 text-neutral-900 font-bold tracking-wide hover:bg-neutral-50 transition-colors text-sm"
-                >
-                  ADD TO CART
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    upsertItem(cartPayload);
-                    goToReview();
-                  }}
-                  className="w-full py-3 rounded-xl bg-[#f05a13] text-white font-bold tracking-wide hover:bg-[#e0500e] transition-colors text-sm"
-                >
-                  BUY NOW
-                </button>
-              </>
-            ) : (
-              <p className="text-sm text-neutral-500 font-medium text-center py-3">
-                This kit is coming soon. Add to cart and checkout will be available when it goes live.
-              </p>
-            )}
-          </div>
+          {canBuy ? (
+            <div className="flex flex-col gap-2.5 mb-4">
+              <button
+                type="button"
+                onClick={() => {
+                  upsertItem(cartPayload);
+                  goToReview();
+                }}
+                className="w-full py-3.5 rounded-xl bg-[#f05a13] text-white font-bold tracking-wide hover:bg-[#e0500e] transition-colors text-sm shadow-sm shadow-[#f05a13]/20"
+              >
+                BUY NOW
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  addItem(cartPayload);
+                  toggleDrawer();
+                }}
+                className="w-full py-3 rounded-xl border-2 border-neutral-900 text-neutral-900 font-bold tracking-wide hover:bg-neutral-50 transition-colors text-sm"
+              >
+                ADD TO CART
+              </button>
+            </div>
+          ) : (
+            <p className="text-sm text-neutral-500 font-medium text-center py-3 mb-4">
+              Coming soon — checkout when this kit goes live.
+            </p>
+          )}
 
-          <div className="grid grid-cols-2 gap-2 py-4 border-y border-neutral-100 mb-3">
-            <div className="flex flex-col items-center text-center gap-1.5 px-1 border-r border-neutral-100">
+          <div className="grid grid-cols-3 gap-1.5 pt-3 border-t border-neutral-100">
+            <div className="flex flex-col items-center text-center gap-1.5 px-1 py-2">
               <Banknote className="w-4 h-4 text-neutral-700" />
               <span className="text-[10px] font-bold text-neutral-700 leading-tight">Cash on Delivery</span>
             </div>
-            <div className="flex flex-col items-center text-center gap-1.5 px-1">
+            <div className="flex flex-col items-center text-center gap-1.5 px-1 py-2">
               <Truck className="w-4 h-4 text-neutral-700" />
               <span className="text-[10px] font-bold text-neutral-700 leading-tight">Delhivery shipping</span>
             </div>
-          </div>
-
-          <div className="flex items-center justify-center gap-2 text-[10px] font-bold text-neutral-400">
-            <ShieldCheck className="w-3.5 h-3.5" />
-            <span>Safe and Secure Payments</span>
+            <div className="flex flex-col items-center text-center gap-1.5 px-1 py-2">
+              <ShieldCheck className="w-4 h-4 text-neutral-700" />
+              <span className="text-[10px] font-bold text-neutral-700 leading-tight">Safe payments</span>
+            </div>
           </div>
         </div>
-
-        <CheckoutOrderSummary
-          currentItem={{
-            id: product.slug,
-            name: product.name,
-            pricePaise: product.price_paise,
-            quantity,
-            imageUrl: productImages[0] ?? '',
-            tag: product.tag ?? undefined,
-          }}
-        />
         </div>
       </div>
 

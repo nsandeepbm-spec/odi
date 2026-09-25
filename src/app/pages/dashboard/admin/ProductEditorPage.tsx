@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router';
+import { useNavigate, useParams, Link } from 'react-router';
 import {
   Loader2,
   Package,
@@ -9,8 +9,9 @@ import {
   Check,
   Truck,
   AlertCircle,
+  ArrowLeft,
 } from 'lucide-react';
-import { PageHeader, inrFromPaise } from '../../../components/dashboard/shared';
+import { inrFromPaise } from '../../../components/dashboard/shared';
 import { ODILoader } from '../../../components/ODILoader';
 import {
   createAdminProduct,
@@ -28,6 +29,9 @@ import {
 } from '../../../lib/productImages';
 import { discountPercent } from '../../../data/products';
 import { requestNotificationsRefresh } from '../../../components/dashboard/NotificationBell';
+
+const panel =
+  'border-neutral-500/55 shadow-[0_0_0_1px_rgba(163,163,163,0.12),0_20px_40px_-20px_rgba(0,0,0,0.55)]';
 
 const STATUSES: AdminProductStatus[] = ['draft', 'live', 'coming_soon', 'archived'];
 const MAX_GALLERY = 5;
@@ -179,7 +183,7 @@ function SectionCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className="bg-[#0A0A0A] rounded-3xl border border-white/[0.06] shadow-[0_4px_24px_-4px_rgba(0,0,0,0.5)] relative z-10  p-5 sm:p-6 flex flex-col gap-4">
+    <div className={`bg-[#0A0A0A] rounded-3xl border ${panel} relative z-10 p-5 sm:p-6 flex flex-col gap-4`}>
       <div>
         <h2 className="text-sm font-black tracking-tight text-white">{title}</h2>
         {hint && <p className="text-xs text-neutral-500 mt-0.5">{hint}</p>}
@@ -446,11 +450,45 @@ export default function ProductEditorPage() {
 
   return (
     <div className="max-w-7xl pb-20 mx-auto min-w-0">
-      <PageHeader
-        title={isEdit ? 'Edit' : 'New'}
-        accent="Product."
-        subtitle="Left: catalog & checkout tabs. Right: preview, pricing, media, publish."
-      />
+      <header className="relative z-10 mb-8 overflow-hidden rounded-2xl border border-neutral-500/55 bg-[#0A0A0A] shadow-[0_0_0_1px_rgba(163,163,163,0.12),0_20px_40px_-20px_rgba(0,0,0,0.55)]">
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent" />
+        <div className="absolute -right-16 -top-20 h-48 w-48 rounded-full bg-cyan-500/[0.07] blur-3xl pointer-events-none" />
+        <div className="absolute -left-10 bottom-0 h-32 w-32 rounded-full bg-violet-500/[0.05] blur-3xl pointer-events-none" />
+
+        <div className="relative px-4 sm:px-6 py-5 sm:py-6 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-5">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2 mb-3">
+              <span className="inline-flex items-center gap-1.5 rounded-md border border-cyan-400/25 bg-cyan-500/10 px-2 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-cyan-300">
+                <Package className="w-3 h-3" />
+                Catalog
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-md border border-white/[0.08] bg-white/[0.03] px-2 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-neutral-400">
+                {isEdit ? 'Edit kit' : 'New kit'}
+              </span>
+            </div>
+            <h1
+              className="font-black tracking-tight text-white leading-none"
+              style={{ fontSize: 'clamp(1.75rem, 3.2vw, 2.6rem)', letterSpacing: '-0.03em' }}
+            >
+              {isEdit ? 'Edit' : 'New'}{' '}
+              <span className="bg-gradient-to-br from-cyan-400 via-indigo-400 to-purple-500 bg-clip-text text-transparent">
+                Product.
+              </span>
+            </h1>
+            <p className="mt-3 max-w-xl text-sm text-neutral-400 leading-relaxed">
+              Left: catalog & checkout tabs. Right: preview, pricing, media, publish.
+            </p>
+          </div>
+
+          <Link
+            to="/dashboard/admin/products"
+            className="inline-flex items-center justify-center gap-2 w-full sm:w-auto shrink-0 px-5 py-2.5 text-sm font-bold tracking-wide border border-neutral-500/70 text-white bg-black/40 hover:bg-white/[0.04] hover:border-neutral-400 transition-all rounded-xl"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to products
+          </Link>
+        </div>
+      </header>
 
       <form onSubmit={handleSave} className="mt-6">
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">

@@ -1,14 +1,18 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import { Search, Truck, Loader2, CalendarX, CheckCircle2, CalendarClock, FileDown } from 'lucide-react';
-import { PageHeader, Card, EmptyState, TableSkeleton } from '../../../components/dashboard/shared';
+import { Card, EmptyState, TableSkeleton } from '../../../components/dashboard/shared';
 import {
   listAdminOrders,
   createAdminOrderShipment,
   type AdminOrder,
 } from '../../../lib/api';
 import { inDateRange } from '../../../lib/csv';
+import { deliveryStageFromDelhivery, isDeliveredShipment } from '../../../lib/deliveryStage';
 import { downloadShippingLabelForOrder } from '../../../lib/shippingLabel';
+
+const panel =
+  '!border-neutral-500/55 shadow-[0_0_0_1px_rgba(163,163,163,0.12),0_20px_40px_-20px_rgba(0,0,0,0.55)]';
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-IN', {
@@ -27,13 +31,20 @@ function customerName(order: AdminOrder) {
 }
 
 function shipmentStatus(order: AdminOrder) {
+  if (isDeliveredShipment(order)) {
+    return { label: 'Delivered', short: 'Delivered', key: 'delivered', className: 'text-emerald-400' };
+  }
+  const stage = deliveryStageFromDelhivery({ status: order.delhivery_status });
+  if (order.status === 'shipped' || stage === 'shipped') {
+    return { label: 'In transit', short: 'In transit', key: 'transit', className: 'text-indigo-400' };
+  }
   if (order.delhivery_pickup_token) {
-    return { label: 'Pickup scheduled', short: 'Scheduled', className: 'text-emerald-400' };
+    return { label: 'Pickup scheduled', short: 'Scheduled', key: 'scheduled', className: 'text-sky-400' };
   }
   if (order.delhivery_waybill) {
-    return { label: 'Manifested · needs pickup', short: 'Needs pickup', className: 'text-amber-400' };
+    return { label: 'Ready for pickup', short: 'Ready to pickup', key: 'ready', className: 'text-amber-400' };
   }
-  return { label: 'Awaiting manifestation', short: 'Awaiting AWB', className: 'text-neutral-500' };
+  return { label: 'Awaiting waybill', short: 'Awaiting AWB', key: 'awaiting', className: 'text-neutral-500' };
 }
 
 function ShipmentRowActions({
@@ -50,6 +61,10 @@ function ShipmentRowActions({
   const btn = fullWidth
     ? 'inline-flex items-center justify-center gap-1.5 w-full px-3 py-2.5 text-xs font-bold rounded-lg'
     : 'inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg';
+
+  if (isDeliveredShipment(order)) {
+    return <span className="text-xs font-bold text-emerald-400">Delivered</span>;
+  }
 
   if (!order.delhivery_waybill) {
     return (
@@ -111,17 +126,26 @@ export default function ShipmentsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [bucket, setBucket] = useState<'all' | 'ready' | 'transit' | 'delivered'>('all');
 
   const fetchOrders = async () => {
     setLoading(true);
     setError(null);
     try {
-      const [paidRes, processingRes, pendingRes] = await Promise.all([
+      const [paidRes, processingRes, pendingRes, shippedRes, deliveredRes] = await Promise.all([
         listAdminOrders(1, 50, 'paid'),
         listAdminOrders(1, 50, 'processing'),
         listAdminOrders(1, 50, 'pending'),
+        listAdminOrders(1, 50, 'shipped'),
+        listAdminOrders(1, 50, 'delivered'),
       ]);
-      const combined = [...paidRes.orders, ...processingRes.orders, ...pendingRes.orders];
+      const combined = [
+        ...paidRes.orders,
+        ...processingRes.orders,
+        ...pendingRes.orders,
+        ...shippedRes.orders,
+        ...deliveredRes.orders,
+      ];
       const unique = Array.from(new Map(combined.map((item) => [item.id, item])).values());
       unique.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       setOrders(unique);
@@ -152,6 +176,10 @@ export default function ShipmentsPage() {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return orders.filter((o) => {
+      const key = shipmentStatus(o).key;
+      if (bucket === 'ready' && key !== 'ready' && key !== 'awaiting') return false;
+      if (bucket === 'transit' && key !== 'transit' && key !== 'scheduled') return false;
+      if (bucket === 'delivered' && key !== 'delivered') return false;
       if (!inDateRange(o.created_at, dateFrom, dateTo)) return false;
       if (!q) return true;
       const customer = [o.shipping_address?.first_name, o.shipping_address?.last_name]
@@ -163,42 +191,65 @@ export default function ShipmentsPage() {
         (o.delhivery_waybill || '').toLowerCase().includes(q)
       );
     });
-  }, [query, orders, dateFrom, dateTo]);
+  }, [query, orders, dateFrom, dateTo, bucket]);
 
   const missingWaybill = filtered.filter((o) => !o.delhivery_waybill).length;
-  const readyForPickup = filtered.filter(
-    (o) => o.delhivery_waybill && !o.delhivery_pickup_token
-  ).length;
+  const readyForPickup = filtered.filter((o) => shipmentStatus(o).key === 'ready').length;
 
   return (
     <div className="min-w-0">
-      <PageHeader
-        title="Pending"
-        accent="Shipments."
-        subtitle="Waybills are created automatically after payment. Download the packing label for the box, then schedule pickup on Pickups."
-        action={
+      <header className="relative z-10 mb-8 overflow-hidden rounded-2xl border border-neutral-500/55 bg-[#0A0A0A] shadow-[0_0_0_1px_rgba(163,163,163,0.12),0_20px_40px_-20px_rgba(0,0,0,0.55)]">
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent" />
+        <div className="absolute -right-16 -top-20 h-48 w-48 rounded-full bg-cyan-500/[0.07] blur-3xl pointer-events-none" />
+        <div className="absolute -left-10 bottom-0 h-32 w-32 rounded-full bg-violet-500/[0.05] blur-3xl pointer-events-none" />
+
+        <div className="relative px-4 sm:px-6 py-5 sm:py-6 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-5">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2 mb-3">
+              <span className="inline-flex items-center gap-1.5 rounded-md border border-cyan-400/25 bg-cyan-500/10 px-2 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-cyan-300">
+                <Truck className="w-3 h-3" />
+                Fulfillment
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-md border border-white/[0.08] bg-white/[0.03] px-2 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-neutral-400">
+                Delhivery AWB
+              </span>
+            </div>
+            <h1
+              className="font-black tracking-tight text-white leading-none"
+              style={{ fontSize: 'clamp(1.75rem, 3.2vw, 2.6rem)', letterSpacing: '-0.03em' }}
+            >
+              All{' '}
+              <span className="bg-gradient-to-br from-cyan-400 via-indigo-400 to-purple-500 bg-clip-text text-transparent">
+                Shipments.
+              </span>
+            </h1>
+            <p className="mt-3 max-w-xl text-sm text-neutral-400 leading-relaxed">
+              Ready for pickup still needs a courier. In transit is on the way. Delivered has reached the customer.
+            </p>
+          </div>
+
           <Link
             to="/dashboard/admin/pickups"
-            className="inline-flex items-center justify-center gap-2 w-full sm:w-auto shrink-0 px-4 sm:px-5 py-2.5 text-sm font-bold tracking-wide border border-white/[0.1] text-white bg-black/40 hover:bg-white/[0.04] rounded-xl"
+            className="inline-flex items-center justify-center gap-2 w-full sm:w-auto shrink-0 px-5 py-2.5 text-sm font-bold tracking-wide border border-neutral-500/70 text-white bg-black/40 hover:bg-white/[0.04] hover:border-neutral-400 transition-all rounded-xl"
           >
             <CalendarClock className="w-4 h-4" />
             Go to Pickups
             {readyForPickup > 0 ? ` (${readyForPickup})` : ''}
           </Link>
-        }
-      />
+        </div>
+      </header>
 
-      <Card className="relative z-10">
-        <div className="px-4 sm:px-6 py-4 border-b border-white/[0.04] flex flex-col gap-3 bg-[#0d0d0d]">
+      <Card className={`relative z-10 ${panel}`}>
+        <div className="px-4 sm:px-6 py-4 border-b border-neutral-500/40 flex flex-col gap-3 bg-[#0d0d0d]">
           <div className="flex flex-col lg:flex-row lg:items-center gap-3">
-            <div className="flex items-center gap-3 w-full lg:flex-1 lg:max-w-md px-4 py-2 rounded-xl bg-[#050505] border border-white/[0.06]">
-              <Search className="w-4 h-4 text-neutral-500 shrink-0" />
+            <div className="flex items-center gap-3 w-full lg:flex-1 lg:max-w-md px-4 py-2.5 rounded-xl bg-[#111] border border-neutral-500 shadow-inner focus-within:border-cyan-400 transition-colors">
+              <Search className="w-4 h-4 text-neutral-300 shrink-0" />
               <input
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search orders / waybill…"
-                className="w-full min-w-0 bg-transparent text-sm outline-none placeholder:text-neutral-500 text-white"
+                className="w-full min-w-0 bg-transparent text-sm outline-none placeholder:text-neutral-400 text-white"
               />
             </div>
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-neutral-500">
@@ -231,6 +282,29 @@ export default function ShipmentsPage() {
                 className="w-full min-w-0 px-2.5 sm:px-3 py-1.5 rounded-lg bg-[#050505] border border-white/[0.08] text-sm text-white [color-scheme:dark]"
               />
             </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {(
+              [
+                ['all', 'All'],
+                ['ready', 'Ready for pickup'],
+                ['transit', 'In transit'],
+                ['delivered', 'Delivered'],
+              ] as const
+            ).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setBucket(value)}
+                className={`px-3 py-1.5 text-xs font-bold rounded-xl border ${
+                  bucket === value
+                    ? 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30'
+                    : 'bg-white/[0.03] text-neutral-400 border-white/[0.06] hover:text-white'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
           </div>
         </div>
 

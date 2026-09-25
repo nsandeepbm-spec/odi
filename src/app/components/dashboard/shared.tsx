@@ -5,6 +5,7 @@ export type BookingStatus = 'confirmed' | 'processing' | 'shipped' | 'delivered'
 export type PaymentStatus = 'paid' | 'pending' | 'refunded' | 'failed';
 
 import { ODILoader } from '../ODILoader';
+import { deliveryStageFromDelhivery } from '../../lib/deliveryStage';
 
 // ─── PAGE HEADER ──────────────────────────────────────────────────────────────
 export function PageHeader({
@@ -54,6 +55,7 @@ export function StatCard({
   trend,
   trendUp = true,
   delay = 0,
+  className = '',
 }: {
   label: string;
   value: string;
@@ -61,13 +63,14 @@ export function StatCard({
   trend?: string;
   trendUp?: boolean;
   delay?: number;
+  className?: string;
 }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.45, delay, ease: [0.25, 0.1, 0.25, 1] }}
-      className="relative overflow-hidden bg-[#0A0A0A] p-4 sm:p-5 md:p-6 rounded-2xl border border-white/[0.04] shadow-[0_4px_24px_-4px_rgba(0,0,0,0.5)] flex flex-col gap-4 min-w-0 group hover:border-white/[0.08] transition-colors"
+      className={`relative overflow-hidden bg-[#0A0A0A] p-4 sm:p-5 md:p-6 rounded-2xl border border-neutral-500/55 shadow-[0_0_0_1px_rgba(163,163,163,0.12),0_20px_40px_-20px_rgba(0,0,0,0.55)] flex flex-col gap-4 min-w-0 group hover:border-neutral-400/60 transition-colors ${className}`}
     >
       <div className="absolute top-0 right-0 p-32 bg-gradient-to-bl from-white/[0.03] to-transparent rounded-bl-full pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
       <div className="flex items-center justify-between relative z-10">
@@ -171,6 +174,7 @@ export function userOrderStatusDisplay(order: {
 /** Admin labels — incomplete / abandoned must not look like customer cancels. */
 export function adminOrderStatusDisplay(order: {
   status: string;
+  channel?: string | null;
   razorpay_order_id?: string | null;
   payment_close_reason?: string | null;
   payment_lifecycle?: 'incomplete_payment' | 'abandoned_payment' | null;
@@ -190,9 +194,62 @@ export function adminOrderStatusDisplay(order: {
     return { badgeStatus: 'cancelled', label: 'Abandoned payment' };
   }
   if (order.status === 'pending' && !order.razorpay_order_id) {
+    if (order.channel === 'BULK_OFFLINE') {
+      return { badgeStatus: 'pending', label: 'Bulk pending' };
+    }
     return { badgeStatus: 'pending', label: 'Cash on delivery' };
   }
   return { badgeStatus: order.status, label: order.status.replace(/_/g, ' ') };
+}
+
+/**
+ * Delivery column. Live Delhivery status wins over a stale orders.status
+ * (e.g. list still says Processing while Track order says Delivered).
+ */
+export function adminDeliveryStatusDisplay(
+  order: {
+    status: string;
+    channel?: string | null;
+    delhivery_status?: string | null;
+    delhivery_waybill?: string | null;
+    payment_close_reason?: string | null;
+  },
+  live?: { status?: string | null; statusType?: string | null } | null
+): { badgeStatus: OrderStatus | string; label: string } {
+  if (order.channel === 'BULK_OFFLINE') {
+    return { badgeStatus: 'pending', label: 'Offline / no courier' };
+  }
+  if (order.status === 'cancelled' && order.payment_close_reason !== 'payment_abandoned') {
+    return { badgeStatus: 'cancelled', label: 'Cancelled' };
+  }
+  if (order.status === 'refunded') {
+    return { badgeStatus: 'refunded', label: 'Refunded' };
+  }
+
+  const stage =
+    deliveryStageFromDelhivery({
+      status: live?.status ?? order.delhivery_status,
+      statusType: live?.statusType,
+    }) ??
+    (order.status === 'delivered' || order.status === 'shipped' || order.status === 'processing'
+      ? order.status
+      : null);
+
+  const courier = (live?.status || order.delhivery_status || '').trim();
+
+  if (stage === 'delivered' || order.status === 'delivered') {
+    return { badgeStatus: 'delivered', label: 'Delivered' };
+  }
+  if (stage === 'shipped' || order.status === 'shipped') {
+    return { badgeStatus: 'shipped', label: courier && !/pickup_scheduled/i.test(courier) ? courier : 'Shipped' };
+  }
+  if (order.delhivery_waybill || stage === 'processing' || order.status === 'processing' || order.status === 'paid') {
+    return {
+      badgeStatus: 'processing',
+      label: order.delhivery_waybill ? 'Processing' : 'Preparing',
+    };
+  }
+  return { badgeStatus: 'pending', label: 'Not shipped' };
 }
 
 const paymentStyles: Record<PaymentStatus, string> = {
@@ -202,10 +259,10 @@ const paymentStyles: Record<PaymentStatus, string> = {
   failed: 'bg-red-500/10 text-red-400 border-red-500/20',
 };
 
-export function PaymentBadge({ status }: { status: PaymentStatus }) {
+export function PaymentBadge({ status, label }: { status: PaymentStatus; label?: string }) {
   return (
     <span className={`px-2.5 py-1 text-[9px] font-black uppercase tracking-widest rounded border ${paymentStyles[status]}`}>
-      {status}
+      {label ?? status}
     </span>
   );
 }
@@ -223,10 +280,10 @@ export function Card({
   className?: string;
 }) {
   return (
-    <div className={`bg-[#0A0A0A] rounded-2xl border border-white/[0.06] shadow-xl shadow-black/40 overflow-hidden relative ${className}`}>
+    <div className={`bg-[#0A0A0A] rounded-2xl border border-neutral-500/55 shadow-[0_0_0_1px_rgba(163,163,163,0.12),0_20px_40px_-20px_rgba(0,0,0,0.55)] overflow-hidden relative ${className}`}>
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/[0.15] to-transparent opacity-50" />
       {(title || action) && (
-        <div className="px-4 sm:px-8 py-4 sm:py-5 border-b border-white/[0.04] flex flex-wrap items-center justify-between gap-2 sm:gap-4 bg-[#0d0d0d]">
+        <div className="px-4 sm:px-8 py-4 sm:py-5 border-b border-neutral-500/40 flex flex-wrap items-center justify-between gap-2 sm:gap-4 bg-[#0d0d0d]">
           {title && (
             <h2 className="text-sm font-bold tracking-wide text-white min-w-0 break-words">{title}</h2>
           )}
@@ -256,7 +313,7 @@ export function ListPager({
 }) {
   if (totalPages <= 1) return null;
   return (
-    <div className="px-4 sm:px-8 py-4 border-t border-white/[0.04] flex items-center justify-between gap-3 min-w-0">
+    <div className="px-4 sm:px-8 py-4 border-t border-neutral-500/40 flex items-center justify-between gap-3 min-w-0">
       <p className="text-[10px] text-neutral-500">
         Page {page} of {totalPages}
         {total > 0 ? ` · ${total} total` : ''}

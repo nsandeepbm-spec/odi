@@ -15,6 +15,8 @@ export type MilestoneOrder = {
   paid_at?: string | null;
   delhivery_waybill?: string | null;
   delhivery_status?: string | null;
+  /** Set for Razorpay checkout; null for COD (and bulk without gateway). */
+  razorpay_order_id?: string | null;
 };
 
 type SubEvent = {
@@ -32,6 +34,10 @@ type Milestone = {
   current: boolean;
   events: SubEvent[];
 };
+
+function isCodOrder(order: MilestoneOrder): boolean {
+  return !order.razorpay_order_id;
+}
 
 function formatMilestoneDate(iso: string | null | undefined): string | null {
   if (!iso) return null;
@@ -156,7 +162,18 @@ export function buildShipmentMilestones(
     },
   ];
 
-  if (order.status !== 'paid' || order.paid_at) {
+  if (isCodOrder(order)) {
+    const collected = Boolean(order.paid_at) || order.status === 'delivered';
+    confirmedEvents.push({
+      id: 'cod',
+      text: collected
+        ? 'Payment collected on delivery'
+        : adminView
+          ? 'Cash on delivery'
+          : 'Cash on delivery — pay when you receive',
+      time: collected ? (order.paid_at ?? updatedAt) : order.created_at,
+    });
+  } else if (order.paid_at || ['paid', 'processing', 'shipped', 'delivered'].includes(order.status)) {
     confirmedEvents.push({
       id: 'paid',
       text: 'Payment received',

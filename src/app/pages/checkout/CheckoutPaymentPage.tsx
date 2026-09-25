@@ -97,6 +97,11 @@ export default function CheckoutPaymentPage() {
     message: string;
   } | null>(null);
 
+  const isCod = activeMethod === 'cod';
+  /** Coupons are online-only — COD always charges full price (no discount). */
+  const couponApplies = !isCod && !!couponCode && discountPaise > 0;
+  const payablePaise = isCod ? totalPaise + discountPaise : totalPaise;
+
   const successPath = (orderNumber: string, pay: 'cod' | 'online') =>
     `/checkout/success?order=${encodeURIComponent(orderNumber)}&pay=${pay}&product=${encodeURIComponent(product?.slug ?? '')}`;
 
@@ -123,11 +128,13 @@ export default function CheckoutPaymentPage() {
   }
 
   const off = discountPercent(product.price_paise, product.compare_at_paise);
-  const shippingLine = [shipping.street, shipping.city, shipping.postalCode].filter(Boolean).join(', ');
+  const shippingLine = [shipping.street, shipping.city, shipping.state, shipping.postalCode]
+    .filter(Boolean)
+    .join(', ');
   const customerName = [shipping.firstName, shipping.lastName].filter(Boolean).join(' ');
 
   const payLabel =
-    activeMethod === 'cod' ? `Place order · ${formatInr(totalPaise)}` : `Pay ${formatInr(totalPaise)}`;
+    isCod ? `Place order · ${formatInr(payablePaise)}` : `Pay ${formatInr(payablePaise)}`;
 
   const buildShippingAddress = () => ({
     first_name: shipping.firstName,
@@ -136,6 +143,7 @@ export default function CheckoutPaymentPage() {
     email: shipping.email,
     street: shipping.street,
     city: shipping.city,
+    state: shipping.state.trim() || null,
     postal_code: shipping.postalCode,
     country: 'IN' as const,
   });
@@ -146,7 +154,8 @@ export default function CheckoutPaymentPage() {
       ? { addressId: selectedAddressId }
       : { shippingAddress: buildShippingAddress() }),
     paymentMethod,
-    couponCode: couponCode || null,
+    // Server also rejects coupons on COD — never send a code for cash orders.
+    couponCode: paymentMethod === 'cod' ? null : couponCode || null,
   });
 
   const handlePay = async (e: React.FormEvent) => {
@@ -294,7 +303,7 @@ export default function CheckoutPaymentPage() {
               </h2>
               <div className="flex flex-wrap items-baseline gap-2">
                 <span className="text-2xl font-black text-neutral-900 tracking-tight">
-                  {formatInr(totalPaise)}
+                  {formatInr(payablePaise)}
                 </span>
                 {off !== null && (
                   <span className="inline-flex px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200">
@@ -304,10 +313,13 @@ export default function CheckoutPaymentPage() {
               </div>
               <p className="text-[10px] text-neutral-400 mt-0.5">
                 Qty {quantity}
-                {couponCode && discountPaise > 0
-                  ? ` · ${couponCode} −${formatInr(discountPaise)}`
-                  : ''}
+                {couponApplies ? ` · ${couponCode} −${formatInr(discountPaise)}` : ''}
               </p>
+              {isCod && couponCode ? (
+                <p className="text-[11px] text-amber-700 font-medium mt-1.5">
+                  Coupon {couponCode} applies to online payment only — not COD.
+                </p>
+              ) : null}
             </div>
 
             <div className="hidden sm:block w-px h-14 bg-neutral-100 shrink-0" />
@@ -347,7 +359,7 @@ export default function CheckoutPaymentPage() {
               Choose payment method
             </h1>
             <p className="text-sm text-neutral-600 mb-5">
-              Pay {formatInr(totalPaise)} for {product.name}
+              Pay {formatInr(payablePaise)} for {product.name}
             </p>
 
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 mb-6">
@@ -429,7 +441,10 @@ export default function CheckoutPaymentPage() {
                   <div>
                     <p className="text-sm font-bold text-neutral-900">Pay when your kit arrives</p>
                     <p className="text-sm text-neutral-600 mt-1 leading-relaxed">
-                      Keep {formatInr(totalPaise)} ready in cash for the courier. No online payment needed now.
+                      Keep {formatInr(payablePaise)} ready in cash for the courier. No online payment needed now.
+                      {couponCode ? (
+                        <> Coupons are for online payment only.</>
+                      ) : null}
                     </p>
                   </div>
                 </div>
@@ -460,7 +475,7 @@ export default function CheckoutPaymentPage() {
 
       {/* Right: order summary */}
       <div className="lg:col-span-4 lg:sticky lg:top-28">
-        <CheckoutOrderSummary />
+        <CheckoutOrderSummary couponsAllowed={!isCod} />
       </div>
 
       <FeedbackDialog

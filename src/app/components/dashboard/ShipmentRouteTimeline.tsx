@@ -148,12 +148,23 @@ export function buildRouteSteps(
 
 /** Fallback when Delhivery tracking is not loaded yet. */
 export function buildPreTrackingRouteSteps(
-  order: Pick<UserOrder, 'status' | 'created_at' | 'updated_at' | 'delhivery_waybill' | 'delhivery_status'>,
+  order: Pick<
+    UserOrder,
+    | 'status'
+    | 'created_at'
+    | 'updated_at'
+    | 'delhivery_waybill'
+    | 'delhivery_status'
+    | 'razorpay_order_id'
+  >,
   deliveryAddress?: string | null,
   phase?: ShipmentPhase,
 ): RouteStep[] {
   const resolvedPhase = phase ?? resolveShipmentPhase(order, null);
   const delivered = resolvedPhase === 'delivered';
+  const confirmedSubtitle = !order.razorpay_order_id
+    ? 'Cash on delivery — pay when you receive'
+    : 'Payment received — thank you for your order';
 
   if (resolvedPhase === 'delivered' || resolvedPhase === 'in_transit' || resolvedPhase === 'out_for_delivery') {
     const steps: RouteStep[] = [
@@ -222,7 +233,7 @@ export function buildPreTrackingRouteSteps(
       {
         id: 'confirmed',
         title: 'Order confirmed',
-        subtitle: 'Payment received — thank you for your order',
+        subtitle: confirmedSubtitle,
         time: order.created_at,
         completed: true,
         current: false,
@@ -251,7 +262,7 @@ export function buildPreTrackingRouteSteps(
     {
       id: 'confirmed',
       title: 'Order confirmed',
-      subtitle: 'Payment received — thank you for your order',
+      subtitle: confirmedSubtitle,
       time: order.created_at,
       completed: false,
       current: true,
@@ -277,13 +288,15 @@ export function buildPreTrackingRouteSteps(
 }
 
 export function buildCancelledRouteSteps(
-  order: Pick<UserOrder, 'created_at' | 'updated_at' | 'status'>,
+  order: Pick<UserOrder, 'created_at' | 'updated_at' | 'status' | 'razorpay_order_id'>,
 ): RouteStep[] {
   return [
     {
       id: 'confirmed',
       title: 'Order confirmed',
-      subtitle: 'Payment received — thank you for your order',
+      subtitle: !order.razorpay_order_id
+        ? 'Cash on delivery'
+        : 'Payment received — thank you for your order',
       time: order.created_at,
       completed: true,
       current: false,

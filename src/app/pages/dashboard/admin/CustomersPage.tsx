@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Search, UserX, Shield, ShieldOff, UserMinus, Ban, CheckCircle, Loader2, Pencil, Trash2 } from 'lucide-react';
-import { PageHeader, Card, EmptyState, TableSkeleton } from '../../../components/dashboard/shared';
+import { Search, UserX, Shield, ShieldOff, UserMinus, Ban, CheckCircle, Loader2, Pencil, Trash2, Users } from 'lucide-react';
+import { Card, EmptyState, TableSkeleton } from '../../../components/dashboard/shared';
 import { listUsers, adminUpdateUser, adminDeleteUser, type AppUser } from '../../../lib/api';
 import { displayName, getInitials } from '../../../lib/auth';
 import { useAuth } from '../../../lib/auth';
@@ -12,6 +12,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../../../components/ui/dialog';
+
+const panel =
+  '!border-neutral-500/55 shadow-[0_0_0_1px_rgba(163,163,163,0.12),0_20px_40px_-20px_rgba(0,0,0,0.55)]';
 
 const gradients = [
   'from-cyan-400 to-indigo-500',
@@ -402,15 +405,39 @@ export default function CustomersPage() {
 
   return (
     <div className="min-w-0">
-      <PageHeader
-        title="Customer"
-        accent="Directory."
-        subtitle="Every customer registered on the platform."
-      />
+      <header className="relative z-10 mb-8 overflow-hidden rounded-2xl border border-neutral-500/55 bg-[#0A0A0A] shadow-[0_0_0_1px_rgba(163,163,163,0.12),0_20px_40px_-20px_rgba(0,0,0,0.55)]">
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent" />
+        <div className="absolute -right-16 -top-20 h-48 w-48 rounded-full bg-cyan-500/[0.07] blur-3xl pointer-events-none" />
+        <div className="absolute -left-10 bottom-0 h-32 w-32 rounded-full bg-violet-500/[0.05] blur-3xl pointer-events-none" />
 
-      <Card className="relative z-10">
-        <div className="px-4 sm:px-6 py-4 sm:py-5 border-b border-white/[0.04] bg-[#0d0d0d]">
-          <div className="flex items-center gap-3 w-full lg:max-w-md px-4 py-2.5 rounded-xl bg-[#050505] border border-white/[0.06] shadow-inner focus-within:border-white/[0.2] transition-colors">
+        <div className="relative px-4 sm:px-6 py-5 sm:py-6">
+          <div className="flex flex-wrap items-center gap-2 mb-3">
+            <span className="inline-flex items-center gap-1.5 rounded-md border border-cyan-400/25 bg-cyan-500/10 px-2 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-cyan-300">
+              <Users className="w-3 h-3" />
+              Customers & payments
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-md border border-white/[0.08] bg-white/[0.03] px-2 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-neutral-400">
+              Directory
+            </span>
+          </div>
+          <h1
+            className="font-black tracking-tight text-white leading-none"
+            style={{ fontSize: 'clamp(1.75rem, 3.2vw, 2.6rem)', letterSpacing: '-0.03em' }}
+          >
+            Customer{' '}
+            <span className="bg-gradient-to-br from-cyan-400 via-indigo-400 to-purple-500 bg-clip-text text-transparent">
+              Directory.
+            </span>
+          </h1>
+          <p className="mt-3 max-w-xl text-sm text-neutral-400 leading-relaxed">
+            Every customer registered on the platform.
+          </p>
+        </div>
+      </header>
+
+      <Card className={`relative z-10 ${panel}`}>
+        <div className="px-4 sm:px-6 py-4 sm:py-5 border-b border-neutral-500/40 bg-[#0d0d0d]">
+          <div className="flex items-center gap-3 w-full lg:max-w-md px-4 py-2.5 rounded-xl bg-[#050505] border border-neutral-500/50 shadow-inner focus-within:border-cyan-400 transition-colors">
             <Search className="w-4 h-4 text-neutral-500 shrink-0" />
             <input
               type="text"

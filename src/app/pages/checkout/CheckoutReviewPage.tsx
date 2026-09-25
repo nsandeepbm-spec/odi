@@ -21,7 +21,7 @@ import { CheckoutOrderSummary } from '../../components/checkout/CheckoutOrderSum
 import { checkoutInput, checkoutLabel } from '../../components/checkout/CheckoutShell';
 
 function formatAddressLine(a: SavedAddress) {
-  return [a.street, a.city, a.postalCode].filter(Boolean).join(', ');
+  return [a.street, a.city, a.state, a.postalCode].filter(Boolean).join(', ');
 }
 
 function formatName(a: SavedAddress) {
@@ -79,6 +79,14 @@ export default function CheckoutReviewPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- init selection when addresses load
   }, [savedAddresses.length]);
+
+  // Shipping step requires an account (guests apply coupons on the product step first).
+  useEffect(() => {
+    if (auth.currentUser) return;
+    navigate(`/login?redirect=${encodeURIComponent(`/checkout/review${productQuery}`)}`, {
+      replace: true,
+    });
+  }, [navigate, productQuery]);
 
   const runPincodeCheck = useCallback(async (postalCode: string) => {
     const pin = normalizePin(postalCode);
@@ -244,6 +252,7 @@ export default function CheckoutReviewPage() {
       lastName: '',
       street: '',
       city: '',
+      state: '',
       postalCode: '',
     });
     setAddressLabel(savedAddresses.length === 0 ? 'Home' : 'Office');
@@ -454,8 +463,8 @@ export default function CheckoutReviewPage() {
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                  <div className="flex flex-col gap-2 md:col-span-1">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div className="flex flex-col gap-2">
                     <label className={checkoutLabel}>City</label>
                     <input
                       type="text"
@@ -463,6 +472,16 @@ export default function CheckoutReviewPage() {
                       placeholder="Mumbai"
                       value={shipping.city}
                       onChange={(e) => setShipping({ city: e.target.value })}
+                      className={checkoutInput}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <label className={checkoutLabel}>State / UT</label>
+                    <input
+                      type="text"
+                      placeholder="Maharashtra"
+                      value={shipping.state}
+                      onChange={(e) => setShipping({ state: e.target.value })}
                       className={checkoutInput}
                     />
                   </div>

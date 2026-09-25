@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Ban, CheckCircle2, Search, XCircle, Clock, Eye, ChevronRight } from 'lucide-react';
 import {
-  PageHeader,
   Card,
   EmptyState,
   StatCard,
@@ -16,6 +15,9 @@ import {
   type CancelRow,
   type CancelStatus,
 } from '../../../lib/api';
+
+const panel =
+  '!border-neutral-500/55 shadow-[0_0_0_1px_rgba(163,163,163,0.12),0_20px_40px_-20px_rgba(0,0,0,0.55)]';
 
 const FILTERS: { label: string; value: CancelStatus | 'all' }[] = [
   { label: 'All', value: 'all' },
@@ -136,19 +138,43 @@ export default function CancelManagementPage() {
 
   return (
     <div className="min-w-0">
-      <PageHeader
-        title="Cancel"
-        accent="Management."
-        subtitle="Open View to read the customer message and order details, then approve or reject."
-      />
+      <header className="relative z-10 mb-8 overflow-hidden rounded-2xl border border-neutral-500/55 bg-[#0A0A0A] shadow-[0_0_0_1px_rgba(163,163,163,0.12),0_20px_40px_-20px_rgba(0,0,0,0.55)]">
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent" />
+        <div className="absolute -right-16 -top-20 h-48 w-48 rounded-full bg-cyan-500/[0.07] blur-3xl pointer-events-none" />
+        <div className="absolute -left-10 bottom-0 h-32 w-32 rounded-full bg-violet-500/[0.05] blur-3xl pointer-events-none" />
+
+        <div className="relative px-4 sm:px-6 py-5 sm:py-6">
+          <div className="flex flex-wrap items-center gap-2 mb-3">
+            <span className="inline-flex items-center gap-1.5 rounded-md border border-amber-400/25 bg-amber-500/10 px-2 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-amber-300">
+              <Ban className="w-3 h-3" />
+              Orders
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-md border border-white/[0.08] bg-white/[0.03] px-2 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-neutral-400">
+              Cancel requests
+            </span>
+          </div>
+          <h1
+            className="font-black tracking-tight text-white leading-none"
+            style={{ fontSize: 'clamp(1.75rem, 3.2vw, 2.6rem)', letterSpacing: '-0.03em' }}
+          >
+            Cancel{' '}
+            <span className="bg-gradient-to-br from-cyan-400 via-indigo-400 to-purple-500 bg-clip-text text-transparent">
+              Management.
+            </span>
+          </h1>
+          <p className="mt-3 max-w-xl text-sm text-neutral-400 leading-relaxed">
+            Open View to read the customer message and order details, then approve or reject.
+          </p>
+        </div>
+      </header>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-        <StatCard label="Pending" value={String(pendingCount)} icon={Clock} delay={0} />
-        <StatCard label="Approved" value={String(approvedCount)} icon={CheckCircle2} delay={0.05} />
-        <StatCard label="Rejected" value={String(rejectedCount)} icon={XCircle} delay={0.1} />
+        <StatCard label="Pending" value={String(pendingCount)} icon={Clock} delay={0} className={panel} />
+        <StatCard label="Approved" value={String(approvedCount)} icon={CheckCircle2} delay={0.05} className={panel} />
+        <StatCard label="Rejected" value={String(rejectedCount)} icon={XCircle} delay={0.1} className={panel} />
       </div>
 
-      <Card>
+      <Card className={panel}>
         <div className="px-4 sm:p-5 py-4 border-b border-white/[0.04] flex flex-col lg:flex-row gap-3 lg:items-center lg:justify-between">
           <div className="flex flex-wrap gap-2">
             {FILTERS.map((f) => (

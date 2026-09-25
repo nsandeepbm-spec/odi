@@ -230,7 +230,7 @@ export function ShipmentTrackingSummary({
       : (tracking?.status ?? 'In progress');
 
   return (
-    <div className="rounded-2xl border border-white/[0.06] bg-[#0A0A0A] p-5">
+    <div className="rounded-2xl border border-neutral-500/55 bg-[#0A0A0A] p-5 shadow-[0_0_0_1px_rgba(163,163,163,0.12),0_20px_40px_-20px_rgba(0,0,0,0.55)]">
       <div className="flex items-start justify-between gap-2 mb-3">
         <p className="text-[10px] font-black uppercase tracking-widest text-neutral-500">
           Shipment tracking

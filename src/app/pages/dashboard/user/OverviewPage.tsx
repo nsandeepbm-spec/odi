@@ -12,9 +12,9 @@ import {
   MapPin,
   ChevronRight,
   Loader2,
+  LayoutDashboard,
 } from 'lucide-react';
 import {
-  PageHeader,
   StatCard,
   Card,
   EmptyState,
@@ -32,6 +32,9 @@ import {
   type ShipmentTracking,
 } from '../../../lib/api';
 import { deliveryLocationLine } from '../../../lib/shipmentStatus';
+
+const panel =
+  '!border-neutral-500/55 shadow-[0_0_0_1px_rgba(163,163,163,0.12),0_20px_40px_-20px_rgba(0,0,0,0.55)]';
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-IN', {
@@ -107,7 +110,7 @@ export default function OverviewPage() {
 
   if (error) {
     return (
-      <div className="min-w-0 bg-[#0A0A0A] rounded-2xl border border-white/[0.06] p-6 sm:p-10 flex flex-col items-center text-center gap-3">
+      <div className={`min-w-0 bg-[#0A0A0A] rounded-2xl border border-neutral-500/55 p-6 sm:p-10 flex flex-col items-center text-center gap-3 ${panel}`}>
         <AlertCircle className="w-8 h-8 text-red-500 drop-shadow-[0_0_15px_rgba(239,68,68,0.5)]" />
         <p className="font-bold text-sm text-white">Could not load your orders</p>
         <p className="text-xs text-neutral-400 max-w-sm break-words">{error}</p>
@@ -117,6 +120,7 @@ export default function OverviewPage() {
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  const firstName = user ? displayName(user).split(' ')[0] : 'there';
   const locationLine = activeOrder ? deliveryLocationLine(activeOrder, activeTracking) : null;
 
   return (
@@ -126,29 +130,53 @@ export default function OverviewPage() {
       transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
       className="min-w-0"
     >
-      <PageHeader
-        eyebrow={greeting}
-        title="Welcome back,"
-        accent={user ? displayName(user).split(' ')[0] : 'there'}
-        subtitle="Here's a live summary of your orders and activity."
-        action={
+      <header className="relative z-10 mb-8 overflow-hidden rounded-2xl border border-neutral-500/55 bg-[#0A0A0A] shadow-[0_0_0_1px_rgba(163,163,163,0.12),0_20px_40px_-20px_rgba(0,0,0,0.55)]">
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent" />
+        <div className="absolute -right-16 -top-20 h-48 w-48 rounded-full bg-cyan-500/[0.07] blur-3xl pointer-events-none" />
+        <div className="absolute -left-10 bottom-0 h-32 w-32 rounded-full bg-violet-500/[0.05] blur-3xl pointer-events-none" />
+
+        <div className="relative px-4 sm:px-6 py-5 sm:py-6 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-5">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2 mb-3">
+              <span className="inline-flex items-center gap-1.5 rounded-md border border-cyan-400/25 bg-cyan-500/10 px-2 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-cyan-300">
+                <LayoutDashboard className="w-3 h-3" />
+                My Account
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-md border border-white/[0.08] bg-white/[0.03] px-2 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-neutral-400">
+                {greeting}
+              </span>
+            </div>
+            <h1
+              className="font-black tracking-tight text-white leading-none"
+              style={{ fontSize: 'clamp(1.75rem, 3.2vw, 2.6rem)', letterSpacing: '-0.03em' }}
+            >
+              Welcome{' '}
+              <span className="bg-gradient-to-br from-cyan-400 via-indigo-400 to-purple-500 bg-clip-text text-transparent">
+                {firstName}.
+              </span>
+            </h1>
+            <p className="mt-3 max-w-xl text-sm text-neutral-400 leading-relaxed">
+              Here&apos;s a live summary of your orders and activity.
+            </p>
+          </div>
+
           <Link
             to="/products"
             className="inline-flex items-center justify-center gap-2 w-full sm:w-auto shrink-0 px-6 py-3 text-sm font-bold tracking-wide bg-gradient-to-r from-cyan-400 to-indigo-500 text-white shadow-[0_0_20px_rgba(34,211,238,0.3)] hover:shadow-[0_0_30px_rgba(99,102,241,0.5)] sm:hover:-translate-y-0.5 active:translate-y-0 transition-all rounded-xl"
           >
             Browse Books <ArrowUpRight className="w-4 h-4" />
           </Link>
-        }
-      />
+        </div>
+      </header>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8 relative z-10 min-w-0">
-        <StatCard label="Total Orders" value={String(orders.length)} icon={Package} delay={0} />
-        <StatCard label="In Transit" value={String(inTransitCount)} icon={Truck} delay={0.06} />
-        <StatCard label="Total Spent" value={inrFromPaise(totalSpent)} icon={CreditCard} delay={0.12} />
+        <StatCard label="Total Orders" value={String(orders.length)} icon={Package} delay={0} className={panel} />
+        <StatCard label="In Transit" value={String(inTransitCount)} icon={Truck} delay={0.06} className={panel} />
+        <StatCard label="Total Spent" value={inrFromPaise(totalSpent)} icon={CreditCard} delay={0.12} className={panel} />
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-8 relative z-10 min-w-0">
-        <Card title="Active Shipment" className="xl:col-span-2 min-w-0">
+        <Card title="Active Shipment" className={`xl:col-span-2 min-w-0 ${panel}`}>
           {activeOrder ? (
             <div className="p-4 sm:p-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 sm:mb-8 min-w-0">
@@ -209,7 +237,7 @@ export default function OverviewPage() {
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.15 }}
-          className="relative rounded-2xl overflow-hidden border border-white/[0.06] shadow-xl shadow-black/40 bg-[#0A0A0A] p-4 sm:p-6 flex flex-col min-w-0"
+          className={`relative rounded-2xl overflow-hidden border border-neutral-500/55 bg-[#0A0A0A] p-4 sm:p-6 flex flex-col min-w-0 ${panel}`}
         >
           <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 via-indigo-500/5 to-purple-600/5 pointer-events-none" />
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-400 via-indigo-500 to-purple-600 flex items-center justify-center mb-5 shadow-[0_0_20px_rgba(99,102,241,0.4)]">
@@ -231,7 +259,7 @@ export default function OverviewPage() {
       </div>
 
       <Card
-        className="relative z-10 min-w-0"
+        className={`relative z-10 min-w-0 ${panel}`}
         title="Recent Orders"
         action={
           <Link
@@ -280,7 +308,7 @@ export default function OverviewPage() {
 
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-sm text-left min-w-[540px]">
-                <thead className="bg-white/[0.02] text-neutral-400 text-[10px] uppercase tracking-[0.2em] font-bold border-b border-white/[0.04]">
+                <thead className="bg-white/[0.02] text-neutral-400 text-[10px] uppercase tracking-[0.2em] font-bold border-b border-neutral-500/40">
                   <tr>
                     <th className="px-4 lg:px-6 py-4">Order</th>
                     <th className="px-4 lg:px-6 py-4">Date</th>

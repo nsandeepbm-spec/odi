@@ -21,6 +21,7 @@ export interface ShippingDetails {
   lastName: string;
   street: string;
   city: string;
+  state: string;
   postalCode: string;
 }
 
@@ -36,6 +37,7 @@ const EMPTY_SHIPPING: ShippingDetails = {
   lastName: '',
   street: '',
   city: '',
+  state: '',
   postalCode: '',
 };
 
@@ -76,6 +78,7 @@ function dbToSaved(a: UserAddress): SavedAddress {
     lastName: a.last_name,
     street: a.street,
     city: a.city,
+    state: a.state ?? '',
     postalCode: a.postal_code,
   };
 }
@@ -93,13 +96,14 @@ function shippingToDbInput(
     email: s.email || null,
     street: s.street,
     city: s.city,
+    state: s.state.trim() || null,
     postal_code: s.postalCode,
     country: 'IN',
   };
 }
 
 function addressKey(a: ShippingDetails) {
-  return `${a.email}|${a.phone}|${a.street}|${a.city}|${a.postalCode}`.toLowerCase();
+  return `${a.email}|${a.phone}|${a.street}|${a.city}|${a.state}|${a.postalCode}`.toLowerCase();
 }
 
 interface PersistedCheckout {
@@ -192,14 +196,20 @@ export type CheckoutLocationState = {
 export function persistCheckoutProduct(slug: string, quantity: number) {
   const qty = clampCheckoutQty(quantity);
   const persisted = loadPersisted();
+  const cartCoupon = useCartStore.getState();
+  const couponCode = cartCoupon.couponCode ?? persisted.couponCode ?? null;
+  const couponDiscountPaise =
+    cartCoupon.couponCode != null
+      ? cartCoupon.couponDiscountPaise
+      : persisted.couponDiscountPaise ?? 0;
   savePersisted({
     productSlug: slug,
     quantity: qty,
     shipping: { ...EMPTY_SHIPPING, ...persisted.shipping },
     selectedAddressId: persisted.selectedAddressId,
     ikeySlug: persisted.ikeySlug,
-    couponCode: persisted.couponCode ?? null,
-    couponDiscountPaise: persisted.couponDiscountPaise ?? 0,
+    couponCode,
+    couponDiscountPaise,
   });
   return qty;
 }
@@ -212,6 +222,12 @@ export function CheckoutProvider({ children }: { children: React.ReactNode }) {
 
   const persisted = loadPersisted();
   const slug = productFromUrl || persisted.productSlug || null;
+  const cartCouponSeed = useCartStore.getState();
+  const initialCouponCode = cartCouponSeed.couponCode ?? persisted.couponCode ?? null;
+  const initialCouponDiscount =
+    cartCouponSeed.couponCode != null
+      ? cartCouponSeed.couponDiscountPaise
+      : persisted.couponDiscountPaise ?? 0;
 
   // Seed synchronously from cache when available — no flicker when the user
   // arrived via the /products page that already fetched all products.
@@ -233,11 +249,11 @@ export function CheckoutProvider({ children }: { children: React.ReactNode }) {
   );
   const [lastOrderId, setLastOrderId] = useState<string | null>(null);
 
-  const [couponInput, setCouponInput] = useState(persisted.couponCode ?? '');
-  const [couponCode, setCouponCode] = useState<string | null>(persisted.couponCode ?? null);
-  const [couponDiscountPaise, setCouponDiscountPaise] = useState(persisted.couponDiscountPaise ?? 0);
+  const [couponInput, setCouponInput] = useState(initialCouponCode ?? '');
+  const [couponCode, setCouponCode] = useState<string | null>(initialCouponCode);
+  const [couponDiscountPaise, setCouponDiscountPaise] = useState(initialCouponDiscount);
   const [couponMessage, setCouponMessage] = useState<string | null>(
-    persisted.couponCode ? `Offer ${persisted.couponCode} applied` : null
+    initialCouponCode ? `Offer ${initialCouponCode} applied` : null
   );
   const [couponApplying, setCouponApplying] = useState(false);
   const [shippingPaise, setShippingPaise] = useState(0);
@@ -268,6 +284,7 @@ export function CheckoutProvider({ children }: { children: React.ReactNode }) {
       setCouponDiscountPaise(0);
       setCouponMessage(null);
       couponEpochRef.current += 1;
+      useCartStore.getState().clearAppliedCoupon();
       savePersisted({
         productSlug: productFromUrl,
         quantity: 1,
@@ -279,6 +296,16 @@ export function CheckoutProvider({ children }: { children: React.ReactNode }) {
       });
     }
   }, [productFromUrl]);
+
+  // Mirror session coupon into the cart store so the drawer shows the same offer.
+  useEffect(() => {
+    if (!initialCouponCode) return;
+    const cart = useCartStore.getState();
+    if (!cart.couponCode) {
+      cart.setAppliedCoupon(initialCouponCode, initialCouponDiscount);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- seed once on mount
+  }, []);
 
   useEffect(() => {
     if (location.pathname.includes('/success')) return;
@@ -393,6 +420,7 @@ export function CheckoutProvider({ children }: { children: React.ReactNode }) {
     setCouponMessage(null);
     setCouponInput('');
     setCouponApplying(false);
+    useCartStore.getState().clearAppliedCoupon();
   }, []);
 
   const applyCoupon = useCallback(async (overrideCode?: string): Promise<boolean> => {
@@ -403,10 +431,6 @@ export function CheckoutProvider({ children }: { children: React.ReactNode }) {
     }
     if (!product?.id) {
       setCouponMessage('Product not loaded yet');
-      return false;
-    }
-    if (!auth.currentUser) {
-      setCouponMessage('Sign in to apply a coupon — then continue to checkout');
       return false;
     }
 
@@ -428,12 +452,14 @@ export function CheckoutProvider({ children }: { children: React.ReactNode }) {
           ? `Offer ${result.code} applied — you save ₹${(result.discount_paise / 100).toFixed(0)}`
           : `Offer ${result.code} applied`
       );
+      useCartStore.getState().setAppliedCoupon(result.code, result.discount_paise);
       return true;
     } catch (err) {
       if (epoch !== couponEpochRef.current) return false;
       setCouponCode(null);
       setCouponDiscountPaise(0);
       setCouponMessage(err instanceof Error ? err.message : 'Invalid or expired coupon');
+      useCartStore.getState().clearAppliedCoupon();
       return false;
     } finally {
       if (epoch === couponEpochRef.current) setCouponApplying(false);
@@ -442,7 +468,7 @@ export function CheckoutProvider({ children }: { children: React.ReactNode }) {
 
   // Re-validate applied coupon when quantity changes (ignore if user already removed it)
   useEffect(() => {
-    if (!couponCode || !product?.id || !auth.currentUser) return;
+    if (!couponCode || !product?.id) return;
     const epoch = couponEpochRef.current;
     const code = couponCode;
     let cancelled = false;
@@ -460,17 +486,48 @@ export function CheckoutProvider({ children }: { children: React.ReactNode }) {
             ? `Offer ${result.code} applied — you save ₹${(result.discount_paise / 100).toFixed(0)}`
             : `Offer ${result.code} applied`
         );
+        useCartStore.getState().setAppliedCoupon(result.code, result.discount_paise);
       } catch (err) {
         if (cancelled || epoch !== couponEpochRef.current) return;
         setCouponCode(null);
         setCouponDiscountPaise(0);
         setCouponMessage(err instanceof Error ? err.message : 'Coupon no longer valid');
+        useCartStore.getState().clearAppliedCoupon();
       }
     })();
     return () => {
       cancelled = true;
     };
   }, [quantity, product?.id, couponCode]);
+
+  // Keep checkout coupon in sync when cart drawer applies / removes an offer.
+  useEffect(() => {
+    return useCartStore.subscribe((state, prev) => {
+      if (
+        state.couponCode === prev.couponCode &&
+        state.couponDiscountPaise === prev.couponDiscountPaise
+      ) {
+        return;
+      }
+      if (!state.couponCode) {
+        couponEpochRef.current += 1;
+        setCouponCode(null);
+        setCouponDiscountPaise(0);
+        setCouponInput('');
+        setCouponMessage(null);
+        setCouponApplying(false);
+        return;
+      }
+      setCouponCode(state.couponCode);
+      setCouponDiscountPaise(state.couponDiscountPaise);
+      setCouponInput(state.couponCode);
+      setCouponMessage(
+        state.couponDiscountPaise > 0
+          ? `Offer ${state.couponCode} applied — you save ₹${(state.couponDiscountPaise / 100).toFixed(0)}`
+          : `Offer ${state.couponCode} applied`
+      );
+    });
+  }, []);
 
   const setQuantity = useCallback((qty: number) => {
     const next = clampCheckoutQty(qty);
@@ -521,6 +578,7 @@ export function CheckoutProvider({ children }: { children: React.ReactNode }) {
           lastName: saved.lastName,
           street: saved.street,
           city: saved.city,
+          state: saved.state,
           postalCode: saved.postalCode,
         });
         setSelectedAddressId(saved.id);
@@ -613,7 +671,15 @@ export function CheckoutProvider({ children }: { children: React.ReactNode }) {
   const goToReview = useCallback(() => {
     if (!product || !isProductPurchasable(product)) return;
     const qty = persistCheckoutProduct(product.slug, quantity);
-    navigate(`/checkout/review?product=${product.slug}`, {
+    const reviewPath = `/checkout/review?product=${product.slug}`;
+    // Guests can preview coupons on the product step; shipping needs an account.
+    if (!auth.currentUser) {
+      navigate(`/login?redirect=${encodeURIComponent(reviewPath)}`, {
+        state: { checkoutQuantity: qty } satisfies CheckoutLocationState,
+      });
+      return;
+    }
+    navigate(reviewPath, {
       state: { checkoutQuantity: qty } satisfies CheckoutLocationState,
     });
   }, [navigate, product, quantity]);

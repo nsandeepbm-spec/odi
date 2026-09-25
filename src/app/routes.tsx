@@ -54,10 +54,14 @@ const AdminLayout = lazyRoute(() => import('./components/dashboard/AdminLayout')
 const AdminOverviewPage = lazyRoute(() => import('./pages/dashboard/admin/OverviewPage'));
 const AdminOrdersPage = lazyRoute(() => import('./pages/dashboard/admin/OrdersPage'));
 const AdminOrderDetailPage = lazyRoute(() => import('./pages/dashboard/admin/OrderDetailPage'));
+const AdminBulkOrdersPage = lazyRoute(() => import('./pages/dashboard/admin/BulkOrdersPage'));
+const AdminBulkOrderCreatePage = lazyRoute(() => import('./pages/dashboard/admin/BulkOrderCreatePage'));
+const AdminBulkOrderDetailPage = lazyRoute(() => import('./pages/dashboard/admin/BulkOrderDetailPage'));
 const AdminShipmentsPage = lazyRoute(() => import('./pages/dashboard/admin/ShipmentsPage'));
 const AdminPickupsPage = lazyRoute(() => import('./pages/dashboard/admin/PickupsPage'));
 const AdminProductsPage = lazyRoute(() => import('./pages/dashboard/admin/ProductsPage'));
 const ProductEditorPage = lazyRoute(() => import('./pages/dashboard/admin/ProductEditorPage'));
+const AdminReviewsPage = lazyRoute(() => import('./pages/dashboard/admin/ReviewsPage'));
 const AdminCustomersPage = lazyRoute(() => import('./pages/dashboard/admin/CustomersPage'));
 const AdminPaymentsPage = lazyRoute(() => import('./pages/dashboard/admin/PaymentsPage'));
 const AdminPaymentDetailPage = lazyRoute(() => import('./pages/dashboard/admin/PaymentDetailPage'));
@@ -109,6 +113,9 @@ export const router = createBrowserRouter([
           { path: "legal", lazy: AdminLegalPagesPage },
           { path: "orders", lazy: AdminOrdersPage },
           { path: "orders/:orderId", lazy: AdminOrderDetailPage },
+          { path: "bulk-orders", lazy: AdminBulkOrdersPage },
+          { path: "bulk-orders/new", lazy: AdminBulkOrderCreatePage },
+          { path: "bulk-orders/:orderId", lazy: AdminBulkOrderDetailPage },
           { path: "shipments", lazy: AdminShipmentsPage },
           { path: "pickups", lazy: AdminPickupsPage },
           { path: "cancels", lazy: AdminCancelManagementPage },
@@ -117,6 +124,7 @@ export const router = createBrowserRouter([
           { path: "products", lazy: AdminProductsPage },
           { path: "products/new", lazy: ProductEditorPage },
           { path: "products/:id", lazy: ProductEditorPage },
+          { path: "reviews", lazy: AdminReviewsPage },
           { path: "coupons", lazy: AdminCouponsPage },
           { path: "customers", lazy: AdminCustomersPage },
           { path: "payments", lazy: AdminPaymentsPage },

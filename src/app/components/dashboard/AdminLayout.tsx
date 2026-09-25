@@ -15,6 +15,8 @@ import {
   Ban,
   Banknote,
   Scale,
+  MessageSquare,
+  Building2,
 } from 'lucide-react';
 import DashboardShell, { type NavGroup } from './DashboardShell';
 
@@ -27,6 +29,7 @@ const adminGroups: NavGroup[] = [
     label: 'Orders & fulfillment',
     items: [
       { name: 'All orders', path: '/dashboard/admin/orders', icon: CalendarCheck },
+      { name: 'Bulk / Offline', path: '/dashboard/admin/bulk-orders', icon: Building2 },
       { name: 'Shipments', path: '/dashboard/admin/shipments', icon: Truck },
       { name: 'Pickup schedule', path: '/dashboard/admin/pickups', icon: CalendarClock },
       { name: 'Cancel requests', path: '/dashboard/admin/cancels', icon: Ban },
@@ -37,6 +40,7 @@ const adminGroups: NavGroup[] = [
     label: 'Catalog',
     items: [
       { name: 'Products', path: '/dashboard/admin/products', icon: Package },
+      { name: 'Reviews', path: '/dashboard/admin/reviews', icon: MessageSquare },
       { name: 'Coupons', path: '/dashboard/admin/coupons', icon: Tag },
     ],
   },

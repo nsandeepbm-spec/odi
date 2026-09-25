@@ -56,9 +56,11 @@ export const API = {
     orders: '/admin/orders',
     payments: '/admin/payments',
     coupons: '/admin/coupons',
+    bulkOrders: '/admin/bulk-orders',
     supportTickets: '/admin/support-tickets',
     contactInquiries: '/admin/contact-inquiries',
     careerApplications: '/admin/career-applications',
+    reviews: '/admin/reviews',
     cancels: '/admin/cancels',
     refunds: '/admin/refunds',
     legal: '/admin/legal',
@@ -441,15 +443,20 @@ export async function getShippingQuote(input: {
   return body.data;
 }
 
-/** POST /coupons/validate — preview discount for a code (auth required). */
+/** POST /coupons/validate — preview discount (guests OK with items; auth adds per-user checks). */
 export async function validateCoupon(input: {
   code: string;
   items?: Array<{ productId: string; quantity: number }>;
 }): Promise<CouponValidation> {
-  const body = await authFetch<ApiSuccess<CouponValidation>>(API.coupons.validate, {
+  const init: RequestInit = {
     method: 'POST',
     body: JSON.stringify(input),
-  });
+  };
+  if (auth.currentUser) {
+    const body = await authFetch<ApiSuccess<CouponValidation>>(API.coupons.validate, init);
+    return body.data;
+  }
+  const body = await publicFetch<ApiSuccess<CouponValidation>>(API.coupons.validate, init);
   return body.data;
 }
 
@@ -1031,10 +1038,20 @@ export interface AdminOverview {
     paidOrderCount: number;
     attentionCount: number;
     customerCount: number;
+    /** All users (any status) — for active vs other customer pie. */
+    totalCustomerCount?: number;
     liveProductCount: number;
     productCount: number;
   };
+  /** Adaptive: day (few orders) · week · month. */
+  revenueGranularity?: 'day' | 'week' | 'month';
   revenueSeries: { month: string; revenuePaise: number }[];
+  /** All bucket sizes so the UI can switch Day / Week / Month without refetch. */
+  revenueSeriesBy?: {
+    day: { month: string; revenuePaise: number }[];
+    week: { month: string; revenuePaise: number }[];
+    month: { month: string; revenuePaise: number }[];
+  };
   catalog: {
     id: string;
     slug: string;
@@ -1051,6 +1068,7 @@ export interface AdminOverview {
     status: string;
     totalPaise: number;
     createdAt: string;
+    channel?: string;
     customerName: string;
     customerEmail: string | null;
   }[];
@@ -1264,7 +1282,7 @@ export async function createProductReview(
   return body.data.review;
 }
 
-/** PATCH /reviews/:id — update own review. */
+/** PATCH /reviews/:id — update own review (admins may edit any via /admin/reviews/:id). */
 export async function updateProductReview(
   id: string,
   input: { rating?: number; body?: string; title?: string | null }
@@ -1276,11 +1294,211 @@ export async function updateProductReview(
   return body.data.review;
 }
 
-/** DELETE /reviews/:id — delete own review. */
+/** DELETE /reviews/:id — admin only (customers cannot delete reviews). */
 export async function deleteProductReview(id: string): Promise<void> {
   await authFetch<ApiSuccess<{ deleted: boolean }>>(API.reviews.item(id), {
     method: 'DELETE',
   });
+}
+
+export interface AdminReview {
+  id: string;
+  product_id: string;
+  user_id: string;
+  rating: number;
+  title: string | null;
+  body: string;
+  created_at: string;
+  updated_at: string;
+  product_slug: string | null;
+  product_name: string | null;
+  author_name: string;
+  author_email: string | null;
+  author_avatar_url: string | null;
+}
+
+export interface AdminReviewsResult {
+  reviews: AdminReview[];
+  meta: { total: number; page: number; perPage: number; totalPages: number };
+}
+
+/** GET /admin/reviews */
+export async function listAdminReviews(
+  page = 1,
+  perPage = 20,
+  productSlug?: string
+): Promise<AdminReviewsResult> {
+  const qs = new URLSearchParams({ page: String(page), perPage: String(perPage) });
+  if (productSlug?.trim()) qs.set('productSlug', productSlug.trim());
+  const body = await authFetch<ApiSuccess<AdminReviewsResult>>(`${API.admin.reviews}?${qs}`);
+  return body.data;
+}
+
+/** PATCH /admin/reviews/:id */
+export async function updateAdminReview(
+  id: string,
+  input: { rating?: number; body?: string; title?: string | null }
+): Promise<PublicReview> {
+  const body = await authFetch<ApiSuccess<{ review: PublicReview }>>(`${API.admin.reviews}/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(input),
+  });
+  return body.data.review;
+}
+
+/** DELETE /admin/reviews/:id */
+export async function deleteAdminReview(id: string): Promise<void> {
+  await authFetch<ApiSuccess<{ deleted: boolean }>>(`${API.admin.reviews}/${id}`, {
+    method: 'DELETE',
+  });
+}
+
+export const BULK_PAYMENT_METHODS = [
+  'UPI',
+  'Cash',
+  'Online Payment',
+  'Bank Transfer',
+  'Cheque',
+  'Other',
+] as const;
+
+export type BulkPaymentMethod = (typeof BULK_PAYMENT_METHODS)[number];
+
+export interface BulkOrderCustomerInput {
+  organization_name: string;
+  contact_name: string;
+  email?: string | null;
+  phone: string;
+  gstin?: string | null;
+  street?: string | null;
+  city?: string | null;
+  state?: string | null;
+  postal_code?: string | null;
+  country?: string | null;
+}
+
+export interface BulkOrderListRow {
+  id: string;
+  order_number: string;
+  channel: 'BULK_OFFLINE';
+  status: string;
+  subtotal_paise: number;
+  discount_paise: number;
+  tax_paise: number;
+  shipping_paise: number;
+  total_paise: number;
+  currency: string;
+  shipping_address: {
+    organization_name?: string;
+    first_name?: string;
+    last_name?: string;
+    email?: string;
+    phone?: string;
+    gstin?: string;
+    street?: string;
+    city?: string;
+    state?: string;
+    postal_code?: string;
+    country?: string;
+  };
+  bulk_payment_method: string | null;
+  bulk_notes: string | null;
+  paid_at: string | null;
+  created_at: string;
+  updated_at: string;
+  order_items: Array<{
+    id: string;
+    snapshot_name: string;
+    snapshot_slug: string;
+    snapshot_image_url: string | null;
+    quantity: number;
+    unit_price_paise: number;
+    line_total_paise: number;
+  }>;
+  payments: Array<{
+    id: string;
+    provider: string;
+    status: string;
+    amount_paise: number;
+    created_at: string;
+  }>;
+}
+
+export interface BulkOrderDetail {
+  order: BulkOrderListRow & {
+    created_by_admin_id: string | null;
+    idempotency_key?: string;
+  };
+  items: BulkOrderListRow['order_items'];
+  payments: BulkOrderListRow['payments'];
+  created_by: { id: string; email: string; full_name: string | null } | null;
+}
+
+export async function listAdminBulkOrders(opts: {
+  page?: number;
+  perPage?: number;
+  paymentStatus?: 'paid' | 'pending' | 'all';
+  q?: string;
+  from?: string;
+  to?: string;
+} = {}): Promise<{
+  orders: BulkOrderListRow[];
+  meta: { total: number; page: number; perPage: number; totalPages: number };
+}> {
+  const qs = new URLSearchParams({
+    page: String(opts.page ?? 1),
+    perPage: String(opts.perPage ?? 20),
+  });
+  if (opts.paymentStatus && opts.paymentStatus !== 'all') qs.set('paymentStatus', opts.paymentStatus);
+  if (opts.q?.trim()) qs.set('q', opts.q.trim());
+  if (opts.from) qs.set('from', opts.from);
+  if (opts.to) qs.set('to', opts.to);
+  const body = await authFetch<
+    ApiSuccess<{
+      orders: BulkOrderListRow[];
+      meta: { total: number; page: number; perPage: number; totalPages: number };
+    }>
+  >(`${API.admin.bulkOrders}?${qs}`);
+  return body.data;
+}
+
+export async function getAdminBulkOrder(id: string): Promise<BulkOrderDetail> {
+  const body = await authFetch<ApiSuccess<BulkOrderDetail>>(`${API.admin.bulkOrders}/${id}`);
+  return body.data;
+}
+
+export async function createAdminBulkOrder(input: {
+  productId: string;
+  quantity: number;
+  unitPricePaise: number;
+  discountPaise?: number;
+  taxPaise?: number;
+  paymentMethod: BulkPaymentMethod;
+  paymentStatus: 'paid' | 'pending';
+  customer: BulkOrderCustomerInput;
+  notes?: string | null;
+  idempotencyKey?: string;
+}): Promise<BulkOrderDetail> {
+  const body = await authFetch<ApiSuccess<BulkOrderDetail>>(API.admin.bulkOrders, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+  return body.data;
+}
+
+export async function markAdminBulkOrderPaid(
+  id: string,
+  input?: {
+    paymentMethod?: (typeof BULK_PAYMENT_METHODS)[number];
+    notes?: string | null;
+    paidAt?: string;
+  }
+): Promise<BulkOrderDetail> {
+  const body = await authFetch<ApiSuccess<BulkOrderDetail>>(`${API.admin.bulkOrders}/${id}/mark-paid`, {
+    method: 'PATCH',
+    body: JSON.stringify(input ?? {}),
+  });
+  return body.data;
 }
 
 export async function getAdminProduct(id: string): Promise<AdminProduct> {
@@ -1327,6 +1545,7 @@ export async function uploadAdminProductImage(file: File): Promise<{ url: string
 export interface AdminOrderShippingAddress {
   first_name?: string;
   last_name?: string;
+  organization_name?: string;
   email?: string;
   phone?: string;
   street?: string;
@@ -1334,6 +1553,7 @@ export interface AdminOrderShippingAddress {
   state?: string;
   postal_code?: string;
   country?: string;
+  gstin?: string;
 }
 
 export interface AdminOrderItem {
@@ -1350,13 +1570,17 @@ export interface AdminOrder {
   id: string;
   order_number: string;
   status: string;
+  /** ONLINE (storefront) or BULK_OFFLINE (admin bulk sales). */
+  channel?: 'ONLINE' | 'BULK_OFFLINE' | string;
+  bulk_payment_method?: string | null;
+  tax_paise?: number | null;
   subtotal_paise: number;
   discount_paise: number;
   shipping_paise: number;
   total_paise: number;
   coupon_code?: string | null;
   shipping_address: AdminOrderShippingAddress;
-  user_id: string;
+  user_id: string | null;
   created_at: string;
   paid_at?: string | null;
   razorpay_order_id?: string | null;
@@ -1405,9 +1629,16 @@ export interface AdminOrderDetail {
   } | null;
 }
 
-export async function listAdminOrders(page = 1, perPage = 20, status?: string) {
+export async function listAdminOrders(
+  page = 1,
+  perPage = 20,
+  status?: string,
+  range?: { from?: string; to?: string }
+) {
   const qs = new URLSearchParams({ page: String(page), perPage: String(perPage) });
   if (status && status !== 'all') qs.set('status', status);
+  if (range?.from) qs.set('from', range.from);
+  if (range?.to) qs.set('to', range.to);
   const body = await authFetch<
     ApiSuccess<{ orders: AdminOrder[]; meta: { total: number; page: number; perPage: number } }>
   >(`${API.admin.orders}?${qs}`);
@@ -1479,7 +1710,7 @@ export type AdminPickupRow = {
 /** GET /admin/pickups — needs + scheduled rows with pickup date/time */
 export async function listAdminPickups() {
   const body = await authFetch<
-    ApiSuccess<{ needs: AdminPickupRow[]; scheduled: AdminPickupRow[] }>
+    ApiSuccess<{ needs: AdminPickupRow[]; scheduled: AdminPickupRow[]; delivered?: AdminPickupRow[] }>
   >('/admin/pickups');
   return body.data;
 }
@@ -1513,6 +1744,8 @@ export type ShipmentTracking = {
   deliveryDate: string | null;
   orderType: string | null;
   scans: ShipmentTrackingScan[];
+  /** Order status after this track was saved (delivered / shipped / unchanged). */
+  orderStatus?: string | null;
 };
 
 /** GET /admin/orders/:id/tracking */

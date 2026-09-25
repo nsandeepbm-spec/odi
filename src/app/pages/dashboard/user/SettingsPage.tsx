@@ -1,14 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { motion } from 'motion/react';
-import { Loader2, Shield, Bell, User } from 'lucide-react';
-import { PageHeader, Card } from '../../../components/dashboard/shared';
+import { Loader2, Shield, Bell, User, Settings } from 'lucide-react';
+import { Card } from '../../../components/dashboard/shared';
 import { displayName, getInitials, useAuth } from '../../../lib/auth';
 import {
   authErrorMessage,
   changePassword,
   hasEmailPasswordProvider,
 } from '../../../lib/firebase';
+
+const panel =
+  '!border-neutral-500/55 shadow-[0_0_0_1px_rgba(163,163,163,0.12),0_20px_40px_-20px_rgba(0,0,0,0.55)]';
 
 const inputCls =
   'w-full px-4 py-3 rounded-xl border border-white/[0.08] bg-white/[0.03] focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/30 outline-none transition-all text-sm text-white placeholder:text-neutral-600';
@@ -108,16 +111,41 @@ export default function SettingsPage() {
       transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
       className="min-w-0"
     >
-      <PageHeader
-        eyebrow="Preferences"
-        title="Account"
-        accent="Settings."
-        subtitle="Manage your profile, security and notification preferences."
-      />
+      <header className="relative z-10 mb-8 overflow-hidden rounded-2xl border border-neutral-500/55 bg-[#0A0A0A] shadow-[0_0_0_1px_rgba(163,163,163,0.12),0_20px_40px_-20px_rgba(0,0,0,0.55)]">
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent" />
+        <div className="absolute -right-16 -top-20 h-48 w-48 rounded-full bg-cyan-500/[0.07] blur-3xl pointer-events-none" />
+        <div className="absolute -left-10 bottom-0 h-32 w-32 rounded-full bg-violet-500/[0.05] blur-3xl pointer-events-none" />
+
+        <div className="relative px-4 sm:px-6 py-5 sm:py-6">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2 mb-3">
+              <span className="inline-flex items-center gap-1.5 rounded-md border border-cyan-400/25 bg-cyan-500/10 px-2 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-cyan-300">
+                <Settings className="w-3 h-3" />
+                System
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-md border border-white/[0.08] bg-white/[0.03] px-2 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-neutral-400">
+                Preferences
+              </span>
+            </div>
+            <h1
+              className="font-black tracking-tight text-white leading-none"
+              style={{ fontSize: 'clamp(1.75rem, 3.2vw, 2.6rem)', letterSpacing: '-0.03em' }}
+            >
+              Account{' '}
+              <span className="bg-gradient-to-br from-cyan-400 via-indigo-400 to-purple-500 bg-clip-text text-transparent">
+                Settings.
+              </span>
+            </h1>
+            <p className="mt-3 max-w-xl text-sm text-neutral-400 leading-relaxed">
+              Manage your profile, security and notification preferences.
+            </p>
+          </div>
+        </div>
+      </header>
 
       <div className="space-y-6 max-w-3xl relative z-10 min-w-0">
         {/* Profile */}
-        <Card title="Profile" action={<User className="w-4 h-4 text-neutral-600" />}>
+        <Card title="Profile" action={<User className="w-4 h-4 text-neutral-600" />} className={panel}>
           <form onSubmit={handleSave} className="p-4 sm:p-6">
             <div className="flex items-start sm:items-center gap-3 sm:gap-4 mb-6 sm:mb-8 p-3 sm:p-4 rounded-xl border border-white/[0.04] bg-white/[0.02] min-w-0">
               {avatarUrl ? (
@@ -210,7 +238,7 @@ export default function SettingsPage() {
         </Card>
 
         {/* Security — Firebase Auth only; never stores password in our DB */}
-        <Card title="Security" action={<Shield className="w-4 h-4 text-neutral-600" />}>
+        <Card title="Security" action={<Shield className="w-4 h-4 text-neutral-600" />} className={panel}>
           <div className="p-4 sm:p-6">
             {canChangePassword ? (
               <form onSubmit={handlePasswordUpdate} className="space-y-5 max-w-md">
@@ -300,7 +328,7 @@ export default function SettingsPage() {
         </Card>
 
         {/* Notifications */}
-        <Card title="Notifications" action={<Bell className="w-4 h-4 text-neutral-600" />}>
+        <Card title="Notifications" action={<Bell className="w-4 h-4 text-neutral-600" />} className={panel}>
           <div className="p-4 sm:p-6 divide-y divide-white/[0.04]">
             {[
               {

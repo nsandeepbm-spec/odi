@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'motion/react';
-import { AlertCircle, MessageSquare, Star, Trash2 } from 'lucide-react';
-import { PageHeader, Card, EmptyState, DashboardSkeleton } from '../../../components/dashboard/shared';
+import { AlertCircle, MessageSquare, Star } from 'lucide-react';
+import { useSearchParams } from 'react-router';
+import { Card, EmptyState, DashboardSkeleton } from '../../../components/dashboard/shared';
 import {
   createProductReview,
-  deleteProductReview,
   listMyOrders,
   listMyReviews,
   updateProductReview,
@@ -12,7 +12,10 @@ import {
   type UserOrder,
 } from '../../../lib/api';
 
-const REVIEWABLE_STATUSES = new Set(['paid', 'processing', 'shipped', 'delivered']);
+const panel =
+  '!border-neutral-500/55 shadow-[0_0_0_1px_rgba(163,163,163,0.12),0_20px_40px_-20px_rgba(0,0,0,0.55)]';
+
+const REVIEWABLE_STATUSES = new Set(['delivered']);
 
 type ReviewTarget = {
   slug: string;
@@ -74,6 +77,10 @@ function reviewTargetsFromOrders(orders: UserOrder[]): ReviewTarget[] {
 }
 
 export default function ReviewsPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const productQuery = searchParams.get('product');
+  const deepLinkHandled = React.useRef(false);
+
   const [orders, setOrders] = useState<UserOrder[]>([]);
   const [reviews, setReviews] = useState<MyReview[]>([]);
   const [loading, setLoading] = useState(true);
@@ -108,6 +115,24 @@ export default function ReviewsPage() {
     const reviewedSlugs = new Set(reviews.map((r) => r.product_slug).filter(Boolean));
     return reviewTargetsFromOrders(orders).filter((t) => !reviewedSlugs.has(t.slug));
   }, [orders, reviews]);
+
+  // Email deep-link: /dashboard/reviews?product=space-explorer → open write form
+  useEffect(() => {
+    if (loading || !productQuery || deepLinkHandled.current) return;
+    deepLinkHandled.current = true;
+    const target = reviewable.find((t) => t.slug === productQuery);
+    if (target) {
+      setActiveSlug(target.slug);
+      setEditingId(null);
+      setRating(5);
+      setTitle('');
+      setBody('');
+      setMessage(null);
+    }
+    const next = new URLSearchParams(searchParams);
+    next.delete('product');
+    setSearchParams(next, { replace: true });
+  }, [loading, productQuery, reviewable, searchParams, setSearchParams]);
 
   const resetForm = () => {
     setActiveSlug(null);
@@ -168,25 +193,11 @@ export default function ReviewsPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!window.confirm('Delete this review?')) return;
-    setSaving(true);
-    try {
-      await deleteProductReview(id);
-      if (editingId === id) resetForm();
-      await load();
-    } catch (err) {
-      setMessage(err instanceof Error ? err.message : 'Could not delete review');
-    } finally {
-      setSaving(false);
-    }
-  };
-
   if (loading) return <DashboardSkeleton cols={4} rows={5} />;
 
   if (error) {
     return (
-      <div className="bg-[#0A0A0A] rounded-2xl border border-white/[0.06] p-10 flex flex-col items-center text-center gap-3">
+      <div className={`bg-[#0A0A0A] rounded-2xl border border-neutral-500/55 p-10 flex flex-col items-center text-center gap-3 ${panel}`}>
         <AlertCircle className="w-8 h-8 text-red-500" />
         <p className="font-bold text-sm text-white">Could not load reviews</p>
         <p className="text-xs text-neutral-400 max-w-sm">{error}</p>
@@ -207,20 +218,45 @@ export default function ReviewsPage() {
       transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
       className="min-w-0"
     >
-      <PageHeader
-        eyebrow="Your voice"
-        title="Product"
-        accent="Reviews."
-        subtitle="Only kits from your paid orders can be reviewed. Reviews show on the product page."
-      />
+      <header className="relative z-10 mb-8 overflow-hidden rounded-2xl border border-neutral-500/55 bg-[#0A0A0A] shadow-[0_0_0_1px_rgba(163,163,163,0.12),0_20px_40px_-20px_rgba(0,0,0,0.55)]">
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent" />
+        <div className="absolute -right-16 -top-20 h-48 w-48 rounded-full bg-cyan-500/[0.07] blur-3xl pointer-events-none" />
+        <div className="absolute -left-10 bottom-0 h-32 w-32 rounded-full bg-violet-500/[0.05] blur-3xl pointer-events-none" />
+
+        <div className="relative px-4 sm:px-6 py-5 sm:py-6">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2 mb-3">
+              <span className="inline-flex items-center gap-1.5 rounded-md border border-cyan-400/25 bg-cyan-500/10 px-2 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-cyan-300">
+                <Star className="w-3 h-3" />
+                My Account
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-md border border-white/[0.08] bg-white/[0.03] px-2 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-neutral-400">
+                Your voice
+              </span>
+            </div>
+            <h1
+              className="font-black tracking-tight text-white leading-none"
+              style={{ fontSize: 'clamp(1.75rem, 3.2vw, 2.6rem)', letterSpacing: '-0.03em' }}
+            >
+              Product{' '}
+              <span className="bg-gradient-to-br from-cyan-400 via-indigo-400 to-purple-500 bg-clip-text text-transparent">
+                Reviews.
+              </span>
+            </h1>
+            <p className="mt-3 max-w-xl text-sm text-neutral-400 leading-relaxed">
+              After a kit is delivered, you can write a review here. Reviews show on the product page.
+            </p>
+          </div>
+        </div>
+      </header>
 
       <div className="space-y-6 relative z-10">
-        <Card title="Purchased kits">
+        <Card title="Purchased kits" className={panel}>
           {reviewable.length === 0 && !activeSlug ? (
             <EmptyState
               icon={MessageSquare}
               title="Nothing to review yet"
-              subtitle="After you complete an order, that kit will appear here so you can write a review."
+              subtitle="Once an order is marked delivered, that kit will appear here so you can write a review."
             />
           ) : activeSlug ? (
             <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4">
@@ -330,7 +366,7 @@ export default function ReviewsPage() {
           )}
         </Card>
 
-        <Card title="Your reviews">
+        <Card title="Your reviews" className={panel}>
           {reviews.length === 0 ? (
             <EmptyState
               icon={Star}
@@ -364,15 +400,6 @@ export default function ReviewsPage() {
                         className="px-3 py-1.5 rounded-lg border border-white/20 bg-transparent text-[10px] font-bold text-cyan-400 hover:bg-white/[0.04] uppercase tracking-wider"
                       >
                         Edit
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => void handleDelete(review.id)}
-                        disabled={saving}
-                        className="p-1.5 rounded-lg text-red-400 hover:bg-red-500/10 disabled:opacity-50"
-                        aria-label="Delete review"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </div>

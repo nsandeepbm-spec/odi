@@ -3,7 +3,6 @@ import { motion } from 'motion/react';
 import { useNavigate } from 'react-router';
 import { CreditCard, IndianRupee, Clock, CheckCircle2, XCircle, AlertCircle, ChevronRight } from 'lucide-react';
 import {
-  PageHeader,
   StatCard,
   Card,
   EmptyState,
@@ -12,6 +11,9 @@ import {
   userOrderStatusDisplay,
 } from '../../../components/dashboard/shared';
 import { listMyOrders, type UserOrder } from '../../../lib/api';
+
+const panel =
+  '!border-neutral-500/55 shadow-[0_0_0_1px_rgba(163,163,163,0.12),0_20px_40px_-20px_rgba(0,0,0,0.55)]';
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-IN', {
@@ -78,7 +80,7 @@ export default function PaymentsPage() {
 
   if (error) {
     return (
-      <div className="bg-[#0A0A0A] rounded-2xl border border-white/[0.06] p-10 flex flex-col items-center text-center gap-3">
+      <div className={`bg-[#0A0A0A] rounded-2xl border border-neutral-500/55 p-10 flex flex-col items-center text-center gap-3 ${panel}`}>
         <AlertCircle className="w-8 h-8 text-red-500 drop-shadow-[0_0_15px_rgba(239,68,68,0.5)]" />
         <p className="font-bold text-sm text-white">Could not load payments</p>
         <p className="text-xs text-neutral-400 max-w-sm">{error}</p>
@@ -92,22 +94,47 @@ export default function PaymentsPage() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
     >
-      <PageHeader
-        eyebrow="Financial Summary"
-        title="Payments &"
-        accent="Billing."
-        subtitle="Your complete billing history and payment summary."
-      />
+      <header className="relative z-10 mb-8 overflow-hidden rounded-2xl border border-neutral-500/55 bg-[#0A0A0A] shadow-[0_0_0_1px_rgba(163,163,163,0.12),0_20px_40px_-20px_rgba(0,0,0,0.55)]">
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent" />
+        <div className="absolute -right-16 -top-20 h-48 w-48 rounded-full bg-cyan-500/[0.07] blur-3xl pointer-events-none" />
+        <div className="absolute -left-10 bottom-0 h-32 w-32 rounded-full bg-violet-500/[0.05] blur-3xl pointer-events-none" />
+
+        <div className="relative px-4 sm:px-6 py-5 sm:py-6">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2 mb-3">
+              <span className="inline-flex items-center gap-1.5 rounded-md border border-cyan-400/25 bg-cyan-500/10 px-2 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-cyan-300">
+                <IndianRupee className="w-3 h-3" />
+                Billing
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-md border border-white/[0.08] bg-white/[0.03] px-2 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-neutral-400">
+                Financial summary
+              </span>
+            </div>
+            <h1
+              className="font-black tracking-tight text-white leading-none"
+              style={{ fontSize: 'clamp(1.75rem, 3.2vw, 2.6rem)', letterSpacing: '-0.03em' }}
+            >
+              Payments &{' '}
+              <span className="bg-gradient-to-br from-cyan-400 via-indigo-400 to-purple-500 bg-clip-text text-transparent">
+                Billing.
+              </span>
+            </h1>
+            <p className="mt-3 max-w-xl text-sm text-neutral-400 leading-relaxed">
+              Your complete billing history and payment summary.
+            </p>
+          </div>
+        </div>
+      </header>
 
       {/* KPI row */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8 relative z-10">
-        <StatCard label="Total Paid"    value={inrFromPaise(kpis.paid)}     icon={IndianRupee}   delay={0} />
-        <StatCard label="Pending"       value={inrFromPaise(kpis.pending)}  icon={Clock}         delay={0.06} />
-        <StatCard label="Refunded"      value={inrFromPaise(kpis.refunded)} icon={CreditCard}    delay={0.12} />
+        <StatCard label="Total Paid"    value={inrFromPaise(kpis.paid)}     icon={IndianRupee}   delay={0} className={panel} />
+        <StatCard label="Pending"       value={inrFromPaise(kpis.pending)}  icon={Clock}         delay={0.06} className={panel} />
+        <StatCard label="Refunded"      value={inrFromPaise(kpis.refunded)} icon={CreditCard}    delay={0.12} className={panel} />
       </div>
 
       <Card
-        className="relative z-10"
+        className={`relative z-10 ${panel}`}
         title="Billing History"
       >
         {orders.length === 0 ? (
@@ -163,7 +190,7 @@ export default function PaymentsPage() {
             {/* Desktop table */}
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-sm text-left min-w-[520px]">
-              <thead className="bg-white/[0.02] text-neutral-400 text-[10px] uppercase tracking-[0.2em] font-bold border-b border-white/[0.04]">
+              <thead className="bg-white/[0.02] text-neutral-400 text-[10px] uppercase tracking-[0.2em] font-bold border-b border-neutral-500/40">
                 <tr>
                   <th className="px-6 py-4">Reference</th>
                   <th className="px-6 py-4">Date</th>

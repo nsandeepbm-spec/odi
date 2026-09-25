@@ -12,7 +12,6 @@ import {
   X,
 } from 'lucide-react';
 import {
-  PageHeader,
   StatCard,
   Card,
   EmptyState,
@@ -27,6 +26,9 @@ import {
   type AdminCoupon,
   type AdminProduct,
 } from '../../../lib/api';
+
+const panel =
+  '!border-neutral-500/55 shadow-[0_0_0_1px_rgba(163,163,163,0.12),0_20px_40px_-20px_rgba(0,0,0,0.55)]';
 
 type CouponType = 'percent' | 'fixed_paise';
 
@@ -355,12 +357,12 @@ export default function CouponsPage() {
     setForm((f) => {
       if (f.productIds.includes(product.id)) return f;
       const copy = offerCopyForProduct(product, f);
-      const shouldFillTitle = !f.title.trim() || f.productIds.length === 0;
+      // Only auto-fill empty fields — never overwrite admin-edited offer copy.
       return {
         ...f,
         productIds: [...f.productIds, product.id],
-        title: shouldFillTitle ? copy.title : f.title,
-        description: shouldFillTitle ? copy.description : f.description,
+        title: f.title.trim() ? f.title : copy.title,
+        description: f.description.trim() ? f.description : copy.description,
       };
     });
     setProductSearch('');
@@ -593,35 +595,61 @@ export default function CouponsPage() {
 
   return (
     <div className="min-w-0">
-      <PageHeader
-        title="Promotions &"
-        accent="Coupons."
-        subtitle="Launch ODI Kids discount codes — percent or flat ₹ off — with usage caps and date windows."
-        action={
+      <header className="relative z-10 mb-8 overflow-hidden rounded-2xl border border-neutral-500/55 bg-[#0A0A0A] shadow-[0_0_0_1px_rgba(163,163,163,0.12),0_20px_40px_-20px_rgba(0,0,0,0.55)]">
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent" />
+        <div className="absolute -right-16 -top-20 h-48 w-48 rounded-full bg-cyan-500/[0.07] blur-3xl pointer-events-none" />
+        <div className="absolute -left-10 bottom-0 h-32 w-32 rounded-full bg-violet-500/[0.05] blur-3xl pointer-events-none" />
+
+        <div className="relative px-4 sm:px-6 py-5 sm:py-6 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-5">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2 mb-3">
+              <span className="inline-flex items-center gap-1.5 rounded-md border border-violet-400/25 bg-violet-500/10 px-2 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-violet-300">
+                <Tag className="w-3 h-3" />
+                Catalog
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-md border border-white/[0.08] bg-white/[0.03] px-2 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-neutral-400">
+                Discount codes
+              </span>
+            </div>
+            <h1
+              className="font-black tracking-tight text-white leading-none"
+              style={{ fontSize: 'clamp(1.75rem, 3.2vw, 2.6rem)', letterSpacing: '-0.03em' }}
+            >
+              Promotions &{' '}
+              <span className="bg-gradient-to-br from-cyan-400 via-indigo-400 to-purple-500 bg-clip-text text-transparent">
+                Coupons.
+              </span>
+            </h1>
+            <p className="mt-3 max-w-xl text-sm text-neutral-400 leading-relaxed">
+              Launch ODI Kids discount codes — percent or flat ₹ off — with usage caps and date windows.
+            </p>
+          </div>
+
           <button
             type="button"
             onClick={openCreate}
-            className="inline-flex items-center justify-center gap-2 w-full sm:w-auto shrink-0 px-6 py-3 text-sm font-bold tracking-wide bg-gradient-to-r from-cyan-400 to-indigo-500 text-white shadow-[0_0_20px_rgba(34,211,238,0.3)] hover:shadow-[0_0_30px_rgba(99,102,241,0.5)] transform hover:-translate-y-0.5 active:translate-y-0 transition-all rounded-xl relative z-10"
+            className="inline-flex items-center justify-center gap-2 w-full sm:w-auto shrink-0 px-5 py-2.5 text-sm font-bold tracking-wide bg-cyan-500 text-white hover:bg-cyan-400 transition-all rounded-xl"
           >
             <Plus className="w-4 h-4" /> New Coupon
           </button>
-        }
-      />
+        </div>
+      </header>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8 relative z-10">
-        <StatCard label="Total Coupons" value={String(kpis.total)} icon={Tag} delay={0} />
-        <StatCard label="Active" value={String(kpis.active)} icon={Sparkles} delay={0.06} />
+        <StatCard label="Total Coupons" value={String(kpis.total)} icon={Tag} delay={0} className={panel} />
+        <StatCard label="Active" value={String(kpis.active)} icon={Sparkles} delay={0.06} className={panel} />
         <StatCard
           label="Redemptions"
           value={String(kpis.redemptions)}
           icon={Percent}
           delay={0.12}
+          className={panel}
         />
-        <StatCard label="Exhausted" value={String(kpis.exhausted)} icon={Ban} delay={0.18} />
+        <StatCard label="Exhausted" value={String(kpis.exhausted)} icon={Ban} delay={0.18} className={panel} />
       </div>
 
       {/* Quick promo templates */}
-      <Card title="Promo templates" className="mb-6 relative z-10">
+      <Card title="Promo templates" className={`mb-6 relative z-10 ${panel}`}>
         <div className="px-4 sm:px-6 py-4 sm:py-5">
           <p className="text-xs text-neutral-500 mb-4 max-w-2xl">
             One-click starters for common ODI Kids offers. If a code is already live, the card opens
@@ -635,7 +663,7 @@ export default function CouponsPage() {
                   key={t.id}
                   type="button"
                   onClick={() => applyTemplate(t)}
-                  className="text-left p-4 rounded-xl border border-white/[0.06] bg-[#050505] hover:border-cyan-400/40 hover:bg-white/[0.02] transition-all group"
+                  className="text-left p-4 rounded-xl border border-neutral-500/50 bg-[#050505] hover:border-cyan-400/40 hover:bg-white/[0.02] transition-all group"
                 >
                   <div className="flex items-center justify-between gap-2 mb-2">
                     <span className="font-mono font-black text-cyan-400 tracking-wide group-hover:text-cyan-300">
@@ -662,7 +690,7 @@ export default function CouponsPage() {
       {formOpen && (
         <Card
           title={editingId ? `Edit · ${form.code || 'Coupon'}` : 'Create coupon'}
-          className="mb-6 relative z-10"
+          className={`mb-6 relative z-10 ${panel}`}
           action={
             <button
               type="button"
@@ -896,15 +924,66 @@ export default function CouponsPage() {
                 </div>
               )}
               <p className={hintClass}>
-                Search and select live products. Title & description fill in automatically from the
-                product + discount.
+                Search and select live products. Offer title & description below are what shoppers see
+                in checkout — edit freely, or use “Fill from product”.
               </p>
             </div>
 
-            {(form.title || form.description || form.productIds.length > 0 || form.isPublic) && (
-              <div className="md:col-span-2 xl:col-span-3 rounded-xl border border-white/[0.06] bg-[#050505] px-4 py-3">
-                <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-neutral-500 mb-1">
-                  Checkout offer preview
+            <div className="md:col-span-2 xl:col-span-3 space-y-4 rounded-xl border border-white/[0.06] bg-[#050505] p-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-neutral-500">
+                  Checkout offer copy
+                </p>
+                <button
+                  type="button"
+                  disabled={selectedProducts.length === 0}
+                  onClick={() => {
+                    const product = selectedProducts[0];
+                    if (!product) return;
+                    const copy = offerCopyForProduct(product, form);
+                    setForm((f) => ({
+                      ...f,
+                      title: copy.title,
+                      description: copy.description,
+                    }));
+                  }}
+                  className="text-[10px] font-bold uppercase tracking-wider text-cyan-400 hover:text-cyan-300 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Fill from product
+                </button>
+              </div>
+
+              <div>
+                <label className={labelClass}>Offer title</label>
+                <input
+                  type="text"
+                  value={form.title}
+                  onChange={(e) => setForm((f) => ({ ...f, title: e.target.value.slice(0, 120) }))}
+                  placeholder="e.g. 20% off on Space Explorer"
+                  maxLength={120}
+                  className={inputClass}
+                />
+                <p className={hintClass}>Main line in “View offers” at checkout.</p>
+              </div>
+
+              <div>
+                <label className={labelClass}>Offer description</label>
+                <input
+                  type="text"
+                  value={form.description}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, description: e.target.value.slice(0, 500) }))
+                  }
+                  placeholder="e.g. Min order ₹999 · once per customer"
+                  maxLength={500}
+                  className={inputClass}
+                />
+                <p className={hintClass}>Secondary line under the title (optional).</p>
+              </div>
+
+              <div className="rounded-lg border border-white/[0.05] bg-[#0A0A0A] px-3 py-2.5">
+                <p className="text-[10px] font-bold tracking-[0.16em] uppercase text-neutral-600 mb-1.5">
+                  Preview
                 </p>
                 <p className="text-sm font-bold text-white">
                   {form.title.trim() || form.code || 'Offer title'}
@@ -915,7 +994,7 @@ export default function CouponsPage() {
                   <p className="text-xs text-neutral-600 mt-1">No description</p>
                 )}
               </div>
-            )}
+            </div>
 
             <div className="xl:col-span-3 flex flex-col sm:flex-row sm:flex-wrap sm:items-center sm:justify-between gap-4 pt-2">
               <div className="flex flex-col gap-3">
@@ -992,9 +1071,9 @@ export default function CouponsPage() {
         </Card>
       )}
 
-      <Card title="All Coupons" className="relative z-10">
-        <div className="px-4 sm:px-6 py-4 sm:py-5 border-b border-white/[0.04] bg-[#0d0d0d]">
-          <div className="flex items-center gap-3 w-full lg:max-w-md px-4 py-2.5 rounded-xl bg-[#050505] border border-white/[0.06] shadow-inner focus-within:border-white/[0.2] transition-colors">
+      <Card title="All Coupons" className={`relative z-10 ${panel}`}>
+        <div className="px-4 sm:px-6 py-4 sm:py-5 border-b border-neutral-500/40 bg-[#0d0d0d]">
+          <div className="flex items-center gap-3 w-full lg:max-w-md px-4 py-2.5 rounded-xl bg-[#050505] border border-neutral-500/50 shadow-inner focus-within:border-cyan-400 transition-colors">
             <Search className="w-4 h-4 text-neutral-500 shrink-0" />
             <input
               type="text"

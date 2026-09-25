@@ -303,12 +303,13 @@ export function Navbar() {
    ) : (
      <>
        <button
-         onClick={() => navigate('/register')}
+         type="button"
+         onClick={() => navigate('/login')}
          className={`px-5 py-2.5 rounded-full text-[11px] font-black tracking-[0.2em] uppercase transition-all shadow-xl whitespace-nowrap ${
            isLight ? 'bg-neutral-900 text-white hover:bg-cyan-600' : 'bg-white text-black hover:bg-cyan-400'
          }`}
        >
-         Register
+         Sign in
        </button>
        <CartButton />
      </>
@@ -409,10 +410,11 @@ export function Navbar() {
  </>
  ) : (
  <button
- onClick={() => { setMobileMenuOpen(false); navigate('/register'); }}
+ type="button"
+ onClick={() => { setMobileMenuOpen(false); navigate('/login'); }}
  className="w-full py-4 bg-white text-black rounded-2xl font-black tracking-widest uppercase text-xs shadow-xl"
  >
- Register
+ Sign in
  </button>
  )}
  </div>

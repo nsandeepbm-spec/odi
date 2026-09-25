@@ -51,6 +51,15 @@ function humanPaymentMethod(provider: string, method?: string | null) {
     paylater: 'Pay Later',
   };
   if (m && instruments[m]) return { lines: [instruments[m]], mode: 'Prepaid', isCod: false };
+
+  if (p.startsWith('bulk_')) {
+    const label = p
+      .replace(/^bulk_/, '')
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, (c) => c.toUpperCase());
+    return { lines: [label || 'Bulk / Offline'], mode: 'Bulk / Offline', isCod: false };
+  }
+
   if (p === 'stripe') return { lines: ['Card'], mode: 'Prepaid', isCod: false };
   return { lines: ['Online'], mode: 'Prepaid', isCod: false };
 }
@@ -63,11 +72,16 @@ export type InvoiceDetail = {
     subtotal_paise: number;
     discount_paise: number;
     total_paise: number;
+    tax_paise?: number | null;
     coupon_code?: string | null;
     shipping_paise?: number;
+    channel?: string | null;
+    bulk_payment_method?: string | null;
+    paid_at?: string | null;
     shipping_address?: {
       first_name?: string;
       last_name?: string;
+      organization_name?: string;
       email?: string;
       phone?: string;
       street?: string;
@@ -96,6 +110,16 @@ export type InvoiceDetail = {
     email?: string;
     phone?: string | null;
   } | null;
+};
+
+export type InvoiceDocumentKind = 'auto' | 'bill' | 'invoice';
+
+export type DownloadInvoiceOptions = {
+  /**
+   * `auto` (default): unpaid bulk/offline → BILL; paid / online → TAX INVOICE.
+   * Force with `bill` or `invoice`.
+   */
+  documentKind?: InvoiceDocumentKind;
 };
 
 function drawCard(doc: jsPDF, x: number, y: number, w: number, h: number) {
@@ -179,7 +203,10 @@ function drawOdiMarkFallback(doc: jsPDF, x: number, y: number, w: number, h: num
   doc.text('ODI', x + w / 2, y + h / 2 + h * 0.18, { align: 'center' });
 }
 
-export async function downloadOrderInvoice(detail: InvoiceDetail | AdminOrderDetail) {
+export async function downloadOrderInvoice(
+  detail: InvoiceDetail | AdminOrderDetail,
+  options: DownloadInvoiceOptions = {}
+) {
   const settings = getAdminStoreSettings();
   const supportEmail =
     settings.supportEmail && settings.supportEmail !== 'support@odi.com'
@@ -189,16 +216,21 @@ export async function downloadOrderInvoice(detail: InvoiceDetail | AdminOrderDet
 
   const { order, items, payments, user } = detail;
   const addr = order.shipping_address;
+  const channel = (order as { channel?: string | null }).channel ?? null;
+  const isBulkOffline = channel === 'BULK_OFFLINE';
 
   const customerName =
+    addr?.organization_name?.trim() ||
     [addr?.first_name, addr?.last_name].filter(Boolean).join(' ') ||
     user?.full_name ||
     user?.email ||
     'Customer';
+  const contactLine = [addr?.first_name, addr?.last_name].filter(Boolean).join(' ');
   const customerEmail = addr?.email || user?.email || '';
   const customerPhone = addr?.phone || (user?.phone ? String(user.phone) : '') || '';
   const shipCountry = !addr?.country || /^in$/i.test(addr.country) ? 'India' : addr.country;
   const shipParts = [
+    contactLine && addr?.organization_name ? contactLine : null,
     addr?.street,
     addr?.city && addr?.state && addr.city.trim().toLowerCase() === addr.state.trim().toLowerCase()
       ? null
@@ -214,7 +246,11 @@ export async function downloadOrderInvoice(detail: InvoiceDetail | AdminOrderDet
     payments.find((row) =>
       ['captured', 'paid', 'authorized'].includes((row.status || '').toLowerCase()),
     ) || payments[0];
-  const payKind = humanPaymentMethod(payment?.provider || '', payment?.method);
+  const payMethodHint =
+    payment?.method ||
+    (order as { bulk_payment_method?: string | null }).bulk_payment_method ||
+    null;
+  const payKind = humanPaymentMethod(payment?.provider || '', payMethodHint);
   const isCod = payKind.isCod;
   const payStatus = (payment?.status || '').toLowerCase();
   const isPaid = isCod
@@ -222,10 +258,25 @@ export async function downloadOrderInvoice(detail: InvoiceDetail | AdminOrderDet
     : ['captured', 'paid', 'authorized'].includes(payStatus) ||
       ['paid', 'delivered', 'shipped', 'processing'].includes(order.status);
 
+  const forced = options.documentKind ?? 'auto';
+  // Bulk unpaid can only be a BILL — never a tax invoice until payment is recorded.
+  const asBill =
+    forced === 'bill' ||
+    (isBulkOffline && !isPaid) ||
+    (forced === 'auto' && isBulkOffline && !isPaid);
+  const docTitle = asBill ? 'BILL' : 'TAX INVOICE';
+  const docNumberLabel = asBill ? 'Bill Number' : 'Invoice Number';
+  const docDateLabel = asBill ? 'Bill Date' : 'Invoice Date';
+  const totalLabel = asBill ? 'TOTAL BILL AMOUNT' : 'TOTAL INVOICE AMOUNT';
+
   const txnId = payment?.provider_payment_id || payment?.provider_order_id || '—';
   const displayTxn = txnId.length > 24 ? `${txnId.slice(0, 11)}…${txnId.slice(-8)}` : txnId;
 
-  const gstPaise = gstInclusivePaise(order.total_paise);
+  const storedTax = (order as { tax_paise?: number | null }).tax_paise;
+  const gstPaise =
+    typeof storedTax === 'number' && storedTax > 0
+      ? storedTax
+      : gstInclusivePaise(order.total_paise);
   const shippingPaise = order.shipping_paise ?? 0;
 
   const doc = new jsPDF({ unit: 'pt', format: 'a4' });
@@ -258,9 +309,15 @@ export async function downloadOrderInvoice(detail: InvoiceDetail | AdminOrderDet
   doc.text('Spatial Media & Kids Learning Kits', brandX, headerTop + 23);
 
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(22);
+  doc.setFontSize(asBill ? 26 : 22);
   doc.setTextColor(17, 24, 39);
-  doc.text('TAX INVOICE', pageW - mX, headerTop + 18, { align: 'right' });
+  doc.text(docTitle, pageW - mX, headerTop + 18, { align: 'right' });
+  if (asBill) {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(180, 83, 9);
+    doc.text('Payment pending — not a tax invoice', pageW - mX, headerTop + 34, { align: 'right' });
+  }
 
   // ── Sold by (left) + invoice meta (right) ───────────────────────────────
   const metaColW = 210;
@@ -278,10 +335,16 @@ export async function downloadOrderInvoice(detail: InvoiceDetail | AdminOrderDet
   doc.text(soldBy, mX, y);
 
   const metaRows: Array<[string, string]> = [
-    ['Invoice Number', `#${order.order_number}`],
-    ['Invoice Date', formatDate(order.created_at)],
+    [docNumberLabel, `#${order.order_number}`],
+    [docDateLabel, formatDate(order.created_at)],
     ['Place of Supply', placeOfSupply(addr)],
   ];
+  if (isBulkOffline) {
+    metaRows.push(['Channel', 'Bulk / Offline']);
+  }
+  if (isPaid && (order as { paid_at?: string | null }).paid_at) {
+    metaRows.push(['Paid On', formatDate((order as { paid_at: string }).paid_at)]);
+  }
   let metaY = y;
   for (const [label, value] of metaRows) {
     doc.setFont('helvetica', 'normal');
@@ -432,7 +495,15 @@ export async function downloadOrderInvoice(detail: InvoiceDetail | AdminOrderDet
     { label: 'PAYMENT MODE', lines: [payKind.mode], color: [17, 24, 39] as const },
     {
       label: 'PAYMENT STATUS',
-      lines: [isPaid ? 'Paid in Full' : isCod ? 'Pay on delivery' : 'Awaiting payment'],
+      lines: [
+        isPaid
+          ? 'Paid in Full'
+          : isCod
+            ? 'Pay on delivery'
+            : asBill
+              ? 'Payment pending'
+              : 'Awaiting payment',
+      ],
       color: (isPaid
         ? [16, 185, 129]
         : isCod
@@ -553,7 +624,7 @@ export async function downloadOrderInvoice(detail: InvoiceDetail | AdminOrderDet
     kind: 'gst',
   });
   totalRows.push({
-    label: 'TOTAL INVOICE AMOUNT',
+    label: totalLabel,
     value: pdfMoney(order.total_paise),
     kind: 'total',
   });
@@ -562,6 +633,12 @@ export async function downloadOrderInvoice(detail: InvoiceDetail | AdminOrderDet
       label: 'Total Paid (Full Settlement)',
       value: pdfMoney(order.total_paise),
       kind: 'paid',
+    });
+  } else if (asBill) {
+    totalRows.push({
+      label: 'Amount Due',
+      value: pdfMoney(order.total_paise),
+      kind: 'muted',
     });
   }
 
@@ -591,7 +668,9 @@ export async function downloadOrderInvoice(detail: InvoiceDetail | AdminOrderDet
   doc.setFontSize(9);
   doc.setTextColor(71, 85, 105);
   const thanks = doc.splitTextToSize(
-    'Thank you for shopping with ODI Studio Kids Store!',
+    asBill
+      ? 'This bill is for goods ordered. A tax invoice will be issued once payment is collected.'
+      : 'Thank you for shopping with ODI Studio Kids Store!',
     notesW - 28,
   ) as string[];
   doc.text(thanks, mX + 14, blockY + 38);
@@ -661,5 +740,5 @@ export async function downloadOrderInvoice(detail: InvoiceDetail | AdminOrderDet
   );
 
   const safeName = order.order_number.replace(/[^\w.-]+/g, '_');
-  doc.save(`ODI-Invoice-${safeName}.pdf`);
+  doc.save(asBill ? `ODI-Bill-${safeName}.pdf` : `ODI-Invoice-${safeName}.pdf`);
 }

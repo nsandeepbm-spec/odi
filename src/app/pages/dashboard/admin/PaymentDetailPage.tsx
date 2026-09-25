@@ -10,7 +10,6 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import {
-  PageHeader,
   Card,
   PaymentBadge,
   EmptyState,
@@ -20,6 +19,9 @@ import {
 import { ODILoader } from '../../../components/ODILoader';
 import { getAdminPaymentDetail, type AdminPaymentDetail } from '../../../lib/api';
 import { getInitials } from '../../../lib/auth';
+
+const panel =
+  '!border-neutral-500/55 shadow-[0_0_0_1px_rgba(163,163,163,0.12),0_20px_40px_-20px_rgba(0,0,0,0.55)]';
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-IN', {
@@ -108,20 +110,30 @@ export default function PaymentDetailPage() {
   if (error || !detail) {
     return (
       <div className="min-w-0">
-        <PageHeader
-          title="Payment"
-          accent="Detail."
-          subtitle="Could not load this transaction."
-          action={
+        <header className="relative z-10 mb-8 overflow-hidden rounded-2xl border border-neutral-500/55 bg-[#0A0A0A] shadow-[0_0_0_1px_rgba(163,163,163,0.12),0_20px_40px_-20px_rgba(0,0,0,0.55)]">
+          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent" />
+          <div className="relative px-4 sm:px-6 py-5 sm:py-6 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-5">
+            <div className="min-w-0">
+              <h1
+                className="font-black tracking-tight text-white leading-none"
+                style={{ fontSize: 'clamp(1.75rem, 3.2vw, 2.6rem)', letterSpacing: '-0.03em' }}
+              >
+                Payment{' '}
+                <span className="bg-gradient-to-br from-cyan-400 via-indigo-400 to-purple-500 bg-clip-text text-transparent">
+                  Detail.
+                </span>
+              </h1>
+              <p className="mt-3 text-sm text-neutral-400">Could not load this transaction.</p>
+            </div>
             <Link
               to="/dashboard/admin/payments"
-              className="inline-flex items-center justify-center gap-2 w-full sm:w-auto shrink-0 px-5 py-2.5 text-sm font-bold tracking-wide border border-white/[0.1] text-white bg-black/40 hover:bg-white/[0.04] transition-all rounded-xl"
+              className="inline-flex items-center justify-center gap-2 w-full sm:w-auto shrink-0 px-5 py-2.5 text-sm font-bold tracking-wide border border-neutral-500/70 text-white bg-black/40 hover:bg-white/[0.04] hover:border-neutral-400 transition-all rounded-xl"
             >
               <ArrowLeft className="w-4 h-4" /> Back to payments
             </Link>
-          }
-        />
-        <Card>
+          </div>
+        </header>
+        <Card className={panel}>
           <EmptyState
             icon={AlertCircle}
             title="Payment not found"
@@ -145,25 +157,48 @@ export default function PaymentDetailPage() {
 
   return (
     <div className="min-w-0">
-      <PageHeader
-        title="Payment"
-        accent="Detail."
-        subtitle={`${payment.provider} · ${formatDateTime(payment.created_at)}`}
-        action={
+      <header className="relative z-10 mb-8 overflow-hidden rounded-2xl border border-neutral-500/55 bg-[#0A0A0A] shadow-[0_0_0_1px_rgba(163,163,163,0.12),0_20px_40px_-20px_rgba(0,0,0,0.55)]">
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent" />
+        <div className="absolute -right-16 -top-20 h-48 w-48 rounded-full bg-cyan-500/[0.07] blur-3xl pointer-events-none" />
+        <div className="absolute -left-10 bottom-0 h-32 w-32 rounded-full bg-violet-500/[0.05] blur-3xl pointer-events-none" />
+
+        <div className="relative px-4 sm:px-6 py-5 sm:py-6 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-5">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2 mb-3">
+              <span className="inline-flex items-center gap-1.5 rounded-md border border-emerald-400/25 bg-emerald-500/10 px-2 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-300">
+                <CreditCard className="w-3 h-3" />
+                Payment
+              </span>
+              <PaymentBadge status={badgeStatus(payment.status)} />
+            </div>
+            <h1
+              className="font-black tracking-tight text-white leading-none"
+              style={{ fontSize: 'clamp(1.75rem, 3.2vw, 2.6rem)', letterSpacing: '-0.03em' }}
+            >
+              Payment{' '}
+              <span className="bg-gradient-to-br from-cyan-400 via-indigo-400 to-purple-500 bg-clip-text text-transparent">
+                Detail.
+              </span>
+            </h1>
+            <p className="mt-3 max-w-xl text-sm text-neutral-400 leading-relaxed">
+              {payment.provider} · {formatDateTime(payment.created_at)}
+            </p>
+          </div>
+
           <button
             type="button"
             onClick={() => navigate('/dashboard/admin/payments')}
-            className="inline-flex items-center justify-center gap-2 w-full sm:w-auto shrink-0 px-5 py-2.5 text-sm font-bold tracking-wide border border-white/[0.1] text-white bg-black/40 hover:bg-white/[0.04] hover:border-white/[0.2] transition-all rounded-xl"
+            className="inline-flex items-center justify-center gap-2 w-full sm:w-auto shrink-0 px-5 py-2.5 text-sm font-bold tracking-wide border border-neutral-500/70 text-white bg-black/40 hover:bg-white/[0.04] hover:border-neutral-400 transition-all rounded-xl"
           >
             <ArrowLeft className="w-4 h-4" /> Back to payments
           </button>
-        }
-      />
+        </div>
+      </header>
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 relative z-10">
         <div className="xl:col-span-8 flex flex-col gap-6 min-w-0">
-          <Card>
-            <div className="px-4 sm:px-6 py-5 border-b border-white/[0.04] bg-[#0d0d0d] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <Card className={panel}>
+            <div className="px-4 sm:px-6 py-5 border-b border-neutral-500/40 bg-[#0d0d0d] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div className="min-w-0">
                 <SectionTitle icon={CreditCard}>Transaction</SectionTitle>
                 <div className="flex flex-wrap items-center gap-3 -mt-2">
@@ -218,8 +253,8 @@ export default function PaymentDetailPage() {
           </Card>
 
           {order && (
-            <Card>
-              <div className="px-4 sm:px-6 py-5 border-b border-white/[0.04] bg-[#0d0d0d] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <Card className={panel}>
+              <div className="px-4 sm:px-6 py-5 border-b border-neutral-500/40 bg-[#0d0d0d] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <SectionTitle icon={Package}>Linked order</SectionTitle>
                 <Link
                   to={`/dashboard/admin/orders/${order.id}`}
@@ -229,7 +264,7 @@ export default function PaymentDetailPage() {
                 </Link>
               </div>
               <div className="p-4 sm:p-6">
-                <div className="bg-white/[0.02] border border-white/[0.04] rounded-2xl p-4">
+                <div className="bg-white/[0.02] border border-neutral-500/40 rounded-2xl p-4">
                   <DetailRow
                     label="Order #"
                     value={<span className="font-black text-cyan-400">{order.order_number}</span>}
@@ -263,11 +298,11 @@ export default function PaymentDetailPage() {
         </div>
 
         <div className="xl:col-span-4 flex flex-col gap-6 min-w-0">
-          <Card>
+          <Card className={panel}>
             <div className="p-5 sm:p-6">
               <SectionTitle icon={User}>Customer</SectionTitle>
               {user ? (
-                <div className="flex items-center gap-3 mb-4 pb-4 border-b border-white/[0.04]">
+                <div className="flex items-center gap-3 mb-4 pb-4 border-b border-neutral-500/30">
                   {user.avatar_url ? (
                     <img
                       src={user.avatar_url}
@@ -287,7 +322,7 @@ export default function PaymentDetailPage() {
                   </div>
                 </div>
               ) : null}
-              <div className="bg-white/[0.02] border border-white/[0.04] rounded-2xl p-4">
+              <div className="bg-white/[0.02] border border-neutral-500/40 rounded-2xl p-4">
                 <DetailRow label="Name" value={customerName} />
                 <DetailRow label="Email" value={user?.email ?? addr?.email ?? '—'} />
                 <DetailRow label="Phone" value={user?.phone ?? addr?.phone ?? '—'} />
@@ -298,10 +333,10 @@ export default function PaymentDetailPage() {
           </Card>
 
           {addr && (
-            <Card>
+            <Card className={panel}>
               <div className="p-5 sm:p-6">
                 <SectionTitle icon={MapPin}>Shipping</SectionTitle>
-                <div className="bg-white/[0.02] border border-white/[0.04] rounded-2xl p-4">
+                <div className="bg-white/[0.02] border border-neutral-500/40 rounded-2xl p-4">
                   <DetailRow label="Name" value={customerName} />
                   <DetailRow label="Email" value={addr.email ?? '—'} />
                   <DetailRow label="Phone" value={addr.phone ?? '—'} />
